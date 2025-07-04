@@ -71,6 +71,7 @@
 			<groupId>com.vaadin</groupId>
 			<artifactId>vaadin-spring-boot-starter</artifactId>
 		</dependency>
+
 		<!-- Kotlin dependencies -->
 		<dependency>
 			<groupId>org.jetbrains.kotlin</groupId>
