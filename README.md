@@ -59,7 +59,7 @@ The project is proudly supported and maintained by **PT Fusi Solusi Transformasi
 We believe in collaboration, learning, and sharing—feel free to use, modify, or contribute to this project.
 For partnership opportunities, product demo, or inquiries, please reach out to:
 
-📧 Email: info@fusisolusi.co.id  
+📧 Email: info@fusi24.com  
 🌐 Website: [https://fusi24.com](https://fusi24.com)  
 📍 Jakarta, Indonesia
 
