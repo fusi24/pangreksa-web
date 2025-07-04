@@ -1,10 +1,11 @@
+# Generated filed
 node_modules
 target/
+src/main/frontend/generated/
+src/test/frontend/generated/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-
-# Compiled class file
 *.class
 
 # Log file
