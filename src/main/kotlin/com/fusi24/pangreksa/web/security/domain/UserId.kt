@@ -4,7 +4,7 @@ import java.io.Serializable
 import java.util.*
 
 class UserId private constructor(userId: String) : Serializable {
-    private val userId: String
+    val userId: String
     init {
         // TODO If the userId has a specific format, validate it here.
         this.userId = Objects.requireNonNull<String>(userId)
