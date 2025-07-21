@@ -1,7 +1,8 @@
-package com.fusi24.pangreksa.web.view.template;
+package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.web.model.entity.FwPages;
+import com.fusi24.pangreksa.web.view.template.RefactorPageFormView;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -19,9 +20,6 @@ import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import java.util.HashMap;
-import java.util.Map;
-import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
 import com.fusi24.pangreksa.web.repo.FwPagesRepository;
@@ -34,7 +32,7 @@ import java.util.List;
 @PageTitle("Pages")
 @Menu(order = 8, icon = "vaadin:clipboard-check", title = "Pages")
 @RolesAllowed("PAGES")
-public class RefactorPagesView extends Main {
+public class PagesView extends Main {
 
     public static final String VIEW_NAME = "Pages";
     private final Grid<FwPages> grid = new Grid<>(FwPages.class, false);
@@ -43,7 +41,7 @@ public class RefactorPagesView extends Main {
     private final PageFilter pageFilter;
 
 
-    public RefactorPagesView(FwPagesRepository pagesRepository) {
+    public PagesView(FwPagesRepository pagesRepository) {
         this.pagesRepository = pagesRepository;
         this.pageFilter = new PageFilter(this::onFilterChanged);
         

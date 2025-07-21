@@ -3,6 +3,7 @@ package com.fusi24.pangreksa.web.view.template;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.web.model.entity.FwPages;
 import com.fusi24.pangreksa.web.repo.FwPagesRepository;
+import com.fusi24.pangreksa.web.view.admin.PagesView;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.Main;
@@ -74,7 +75,7 @@ public class RefactorPageFormView extends Main implements HasUrlParameter<String
         );
         
         // Button layout
-        Button cancelButton = new Button("Cancel", e -> UI.getCurrent().navigate(RefactorPagesView.class));
+        Button cancelButton = new Button("Cancel", e -> UI.getCurrent().navigate(PagesView.class));
         
         HorizontalLayout buttonLayout = new HorizontalLayout(cancelButton, saveButton);
         buttonLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
@@ -182,7 +183,7 @@ public class RefactorPageFormView extends Main implements HasUrlParameter<String
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
                     
                 // Navigate back to list after successful save
-                UI.getCurrent().navigate(RefactorPagesView.class);
+                UI.getCurrent().navigate(PagesView.class);
             }
         } catch (Exception e) {
             Notification.show("Error saving page: " + e.getMessage())
@@ -211,7 +212,7 @@ public class RefactorPageFormView extends Main implements HasUrlParameter<String
 
         // Add back button
         Button backButton = new Button("Back to List", 
-            e -> UI.getCurrent().navigate(RefactorPagesView.class));
+            e -> UI.getCurrent().navigate(PagesView.class));
             
         content.add(error, backButton);
         content.setAlignItems(FlexComponent.Alignment.CENTER);
