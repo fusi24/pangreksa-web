@@ -43,5 +43,9 @@ public class VwAppUserAuth {
     private String pageIcon;
     @Column(name = "is_active")
     private boolean isActive;
+    @Column(name = "page_id")
+    private Long pageId;
+    @Column(name = "menu_id")
+    private Long menuId;
 
 }

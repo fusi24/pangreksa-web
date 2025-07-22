@@ -1,13 +1,17 @@
 package com.fusi24.pangreksa.base.ui.view;
 
+import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Responsibility;
+import com.fusi24.pangreksa.web.model.entity.FwPages;
 import com.fusi24.pangreksa.web.service.AppUserAuthService;
+import com.fusi24.pangreksa.web.view.admin.ResponsibilitiesView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.avatar.AvatarVariant;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
@@ -21,8 +25,11 @@ import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.server.menu.MenuEntry;
 import com.vaadin.flow.spring.security.AuthenticationContext;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -30,18 +37,31 @@ import static com.vaadin.flow.theme.lumo.LumoUtility.*;
 
 @Layout
 @PermitAll // When security is enabled, allow all authenticated users
-@Slf4j
 public final class MainLayout extends AppLayout {
+    private static final Logger log = LoggerFactory.getLogger(MainLayout.class);
     private final AppUserAuthService appUserAuthService;
     private final CurrentUser currentUser;
     private final AuthenticationContext authenticationContext;
+    private ComboBox<Responsibility> responsibilityDropdown;
+
+    VerticalLayout navLayout;
+    List<Responsibility> responsibilityList;
+    AppUserInfo user;
 
     MainLayout(CurrentUser currentUser, AuthenticationContext authenticationContext, AppUserAuthService appUserAuthService) {
         this.currentUser = currentUser;
         this.authenticationContext = authenticationContext;
         this.appUserAuthService = appUserAuthService;
+
+        this.user = currentUser.require();
+        responsibilityList = appUserAuthService.getAllResponsibilitiesFromUsername(user.getUserId().toString());
+
+        navLayout = new VerticalLayout();
+        navLayout.setSizeUndefined();
+        navLayout.setMargin(false);
+
         setPrimarySection(Section.DRAWER);
-        addToDrawer(createHeader(), new Scroller(navWrapper()), createUserMenu());
+        addToDrawer(createHeader(), responsibilitySwitcher(), new Scroller(navLayout), createUserMenu());
     }
 
     private Div createHeader() {
@@ -53,35 +73,36 @@ public final class MainLayout extends AppLayout {
         appName.addClassNames(FontWeight.SEMIBOLD, FontSize.LARGE);
 
         var header = new Div(appLogo, appName);
-        header.addClassNames(Display.FLEX, Padding.MEDIUM, Gap.MEDIUM, AlignItems.CENTER);
+        header.addClassNames(Display.FLEX, Padding.MEDIUM, Gap.MEDIUM, AlignItems.CENTER, LumoUtility.Padding.Top.MEDIUM,
+                LumoUtility.Padding.Right.MEDIUM, LumoUtility.Padding.Bottom.NONE, LumoUtility.Padding.Left.MEDIUM);
         return header;
     }
 
-    private VerticalLayout navWrapper(){
-        var layout = new VerticalLayout();
-        var user = currentUser.require();
-        List<Responsibility> responsibilityList = appUserAuthService.getAllResponsibilitiesFromUsername(user.getUserId().toString());
-        log.info("Create navWrapper using username: {} with Responsibility: {}", user.getUserId(), responsibilityList.size());
+    private Div responsibilitySwitcher(){
+        // Create a dropdown side responsibilities
+        responsibilityDropdown = new ComboBox<>("Responsibility");
+        responsibilityDropdown.setItems(responsibilityList);
+        responsibilityDropdown.setItemLabelGenerator(Responsibility::getResponsibility);
+        responsibilityDropdown.getStyle().setWidth("220px");
+        responsibilityDropdown.setPlaceholder("Select responsibility..");
 
-        responsibilityList.forEach( r -> {
-            log.info( "Create SideNav for responsibility: {}, with {} entries", r.getResponsibility(), r.getMenuEntries().size());
-            SideNav nav = createSideNav(r.getResponsibility(), r.getMenuEntries());
-            layout.add(nav);
+        Div div = new Div(responsibilityDropdown);
+        div.addClassNames(Display.FLEX, Padding.MEDIUM, Gap.MEDIUM, AlignItems.CENTER, LumoUtility.Padding.Top.NONE, LumoUtility.Padding.Right.MEDIUM, LumoUtility.Padding.Bottom.MEDIUM, LumoUtility.Padding.Left.MEDIUM);
+
+        responsibilityDropdown.addValueChangeListener( e -> {
+            UI.getCurrent().getSession().setAttribute("responsibility", e.getValue().getResponsibility());
+            this.navLayout.removeAll();
+            navLayout.add(populateNavigation(e.getValue()));
+            navLayout.addClassNames(LumoUtility.Padding.Top.NONE, LumoUtility.Padding.Right.MEDIUM, LumoUtility.Padding.Bottom.MEDIUM, LumoUtility.Padding.Left.MEDIUM);
         });
 
-        layout.setSizeUndefined();
-        layout.setMargin(false);
-        return layout;
+        return div;
     }
 
-    private SideNav createSideNav(String responsibility, List<MenuEntry> menuEntries) {
+    private SideNav populateNavigation(Responsibility responsibility){
         var nav = new SideNav();
-        nav.addClassNames(Margin.Horizontal.MEDIUM);
 
-        nav.setLabel(responsibility);
-        nav.setCollapsible(true);
-        nav.setExpanded(false);
-        menuEntries.forEach( menuEntry -> {
+        responsibility.getMenuEntries().forEach( menuEntry -> {
             nav.addItem(createSideNavItem(menuEntry));
         });
 
@@ -91,11 +112,14 @@ public final class MainLayout extends AppLayout {
     }
 
     private SideNavItem createSideNavItem(MenuEntry menuEntry) {
+        SideNavItem item;
         if (menuEntry.icon() != null) {
-            return new SideNavItem(menuEntry.title(), menuEntry.path(), new Icon(menuEntry.icon()));
+            item = new SideNavItem(menuEntry.title(), menuEntry.path(), new Icon(menuEntry.icon()));
         } else {
-            return new SideNavItem(menuEntry.title(), menuEntry.path());
+            item = new SideNavItem(menuEntry.title(), menuEntry.path());
         }
+
+        return item;
     }
 
     private Component createUserMenu() {
@@ -114,7 +138,10 @@ public final class MainLayout extends AppLayout {
         userMenuItem.add(user.getFullName());
         if (user.getProfileUrl() != null) {
             userMenuItem.getSubMenu().addItem("View Profile",
-                    event -> UI.getCurrent().getPage().open(user.getProfileUrl()));
+                    event -> {
+                        UI.getCurrent().getPage().open(user.getProfileUrl());
+                        log.info("User {} opened profile URL: {}", user.getUserId(), user.getProfileUrl());
+                    });
         }
         // TODO Add additional items to the user menu if needed
         userMenuItem.getSubMenu().addItem("Logout", event -> authenticationContext.logout());

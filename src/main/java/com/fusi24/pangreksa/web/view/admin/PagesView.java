@@ -1,8 +1,12 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.security.CurrentUser;
+import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.FwPages;
-import com.fusi24.pangreksa.web.view.template.RefactorPageFormView;
+import com.fusi24.pangreksa.web.service.AdminService;
+import com.fusi24.pangreksa.web.service.CommonService;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -25,6 +29,8 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.fusi24.pangreksa.web.repo.FwPagesRepository;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -33,16 +39,33 @@ import java.util.List;
 @Menu(order = 8, icon = "vaadin:clipboard-check", title = "Pages")
 @RolesAllowed("PAGES")
 public class PagesView extends Main {
+    private static final long serialVersionUID = 8L;
+    private static final Logger log = LoggerFactory.getLogger(ResponsibilitiesView.class);
+
+    private final CurrentUser currentUser;
+    private final AdminService adminService;
+    private final CommonService commonService;
 
     public static final String VIEW_NAME = "Pages";
     private final Grid<FwPages> grid = new Grid<>(FwPages.class, false);
     private final FwPagesRepository pagesRepository;
     private ListDataProvider<FwPages> dataProvider;
     private final PageFilter pageFilter;
+    private Authorization auth;
 
-
-    public PagesView(FwPagesRepository pagesRepository) {
+    public PagesView(CurrentUser currentUser, AdminService adminService, CommonService commonService, FwPagesRepository pagesRepository) {
+        this.currentUser = currentUser;
+        this.adminService = adminService;
+        this.commonService = commonService;
         this.pagesRepository = pagesRepository;
+
+        this.auth = commonService.getAuthorization(
+                currentUser.require(),
+                (String) UI.getCurrent().getSession().getAttribute("responsibility"),
+                this.serialVersionUID);
+
+        log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
+
         this.pageFilter = new PageFilter(this::onFilterChanged);
         
         addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
@@ -54,7 +77,10 @@ public class PagesView extends Main {
         
         add(pageFilter);
         configureGrid();
-        loadData();
+
+        if(this.auth.canView) {
+            loadData();
+        }
     }
     
     private void onFilterChanged() {
@@ -83,9 +109,12 @@ public class PagesView extends Main {
             editButton.setTooltipText("Edit page");
             editButton.addClickListener(e -> {
                 getUI().ifPresent(ui -> {
-                    ui.navigate(RefactorPageFormView.class, String.valueOf(page.getId()));
+                    ui.navigate(PageFormView.class, String.valueOf(page.getId()));
                 });
             });
+            if(!this.auth.canEdit) {
+                editButton.setEnabled(false);
+            }
             return editButton;
         }).setHeader("Actions").setAutoWidth(true);
 

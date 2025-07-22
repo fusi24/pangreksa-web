@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 @Slf4j
 @Component
 public class SqlRunner implements ApplicationRunner {
+    public static final boolean RUNNER_STATUS = false;
 
     private final DataSource dataSource;
 
@@ -25,6 +26,10 @@ public class SqlRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
+        if(!RUNNER_STATUS) {
+            return;
+        }
+
         try (Stream<java.nio.file.Path> paths = Files.list(Paths.get("src/main/resources"))) {
             paths.filter(path -> path.toString().endsWith(".sql"))
                  .sorted((p1, p2) -> p1.getFileName().toString().compareTo(p2.getFileName().toString()))

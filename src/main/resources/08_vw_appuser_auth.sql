@@ -12,7 +12,9 @@ AS SELECT row_number() OVER () AS id,
     f6.page_url AS url,
     f5.sort_order,
     f6.page_icon,
-    f3.is_active
+    f3.is_active,
+    f6.id as page_id,
+    f5.id as menu_id
    FROM fw_appuser f,
     fw_appuser_resp f2,
     fw_responsibilities f3,

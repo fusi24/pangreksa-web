@@ -1,9 +1,8 @@
-package com.fusi24.pangreksa.web.view.template;
+package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.web.model.entity.FwPages;
 import com.fusi24.pangreksa.web.repo.FwPagesRepository;
-import com.fusi24.pangreksa.web.view.admin.PagesView;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.Main;
@@ -38,7 +37,7 @@ import java.util.stream.Collectors;
 @Route(value = "page-form-page-access")
 @PageTitle("Page Form")
 @RolesAllowed("PAGE_FORM")
-public class RefactorPageFormView extends Main implements HasUrlParameter<String> {
+public class PageFormView extends Main implements HasUrlParameter<String> {
 
     public static final String VIEW_NAME = "Page Form";
 
@@ -52,7 +51,7 @@ public class RefactorPageFormView extends Main implements HasUrlParameter<String
     private FwPages currentPage;
     private boolean hasError = false;
 
-    public RefactorPageFormView(FwPagesRepository pagesRepository) {
+    public PageFormView(FwPagesRepository pagesRepository) {
         this.pagesRepository = pagesRepository;
         
         addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,

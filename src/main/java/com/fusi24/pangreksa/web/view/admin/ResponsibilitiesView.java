@@ -1,8 +1,11 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.security.CurrentUser;
+import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.*;
-import com.fusi24.pangreksa.web.repo.*;
+import com.fusi24.pangreksa.web.service.AdminService;
+import com.fusi24.pangreksa.web.service.CommonService;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
@@ -16,7 +19,6 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoIcon;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
@@ -38,19 +40,18 @@ import com.vaadin.flow.component.notification.Notification;
 @RolesAllowed("RESPONSIBL")
 //@PermitAll // When security is enabled, allow all authenticated users
 public class ResponsibilitiesView extends Main {
+    private static final long serialVersionUID = 4L;
     private static final Logger log = LoggerFactory.getLogger(ResponsibilitiesView.class);
     private final CurrentUser currentUser;
+    private final AdminService adminService;
+    private final CommonService commonService;
+    private Authorization auth;
 
     public static final String VIEW_NAME = "Responsibilities";
     private VerticalLayout body;
-    private FwResponsibilitiesRepository responsibilitiesRepository;
-    private FwResponsibilitiesMenuRepository responsibilitiesMenuRepository;
-    private FwMenusRepository menusRepository;
-    private FwPagesRepository pagesRepository;
-    private FwAppUserRepository appUserRepository;
-    Button populateButton;
-    Button saveButton;
-    Button addButton;
+    private Button populateButton;
+    private Button saveButton;
+    private Button addButton;
 
     ComboBox<FwResponsibilities> responsibilityDropdown;
     Grid<FwResponsibilitiesMenu> grid;
@@ -58,18 +59,17 @@ public class ResponsibilitiesView extends Main {
 
     private boolean isEdit = false;
 
-    public ResponsibilitiesView(CurrentUser currentUser,
-                                FwResponsibilitiesRepository responsibilitiesRepository,
-                                FwResponsibilitiesMenuRepository responsibilitiesMenuRepository,
-                                FwMenusRepository menusRepository,
-                                FwPagesRepository pagesRepository,
-                                FwAppUserRepository appUserRepository) {
-        this.responsibilitiesRepository = responsibilitiesRepository;
-        this.responsibilitiesMenuRepository = responsibilitiesMenuRepository;
-        this.menusRepository = menusRepository;
-        this.pagesRepository = pagesRepository;
+    public ResponsibilitiesView(CurrentUser currentUser, AdminService adminService, CommonService commonService) {
         this.currentUser = currentUser;
-        this.appUserRepository = appUserRepository;
+        this.adminService = adminService;
+        this.commonService = commonService;
+
+        this.auth = commonService.getAuthorization(
+                currentUser.require(),
+                (String) UI.getCurrent().getSession().getAttribute("responsibility"),
+                this.serialVersionUID);
+
+        log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
 
         addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
                 LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
@@ -79,10 +79,24 @@ public class ResponsibilitiesView extends Main {
         add(addGrid());
 
         setListener();
+        setAuthorization();
+    }
+
+    private void setAuthorization(){
+        if(!this.auth.canView){
+            this.populateButton.setEnabled(false);
+        }
+        if(!this.auth.canCreate){
+            this.addButton.setEnabled(false);
+            this.saveButton.setEnabled(false);
+        }
+        if(!this.auth.canEdit){
+            this.saveButton.setEnabled(false);
+        }
     }
 
     private Grid addGrid(){
-        pagesList = pagesRepository.findAll();
+        pagesList = adminService.findAllPages();
 
         this.grid = new Grid<>(FwResponsibilitiesMenu.class, false);
 
@@ -123,7 +137,7 @@ public class ResponsibilitiesView extends Main {
 //            List<FwPages> pagesList = pagesRepository.findAll();
             pagesDropdown.setItems(pagesList);
             pagesDropdown.setItemLabelGenerator(FwPages::getDescription);
-            pagesDropdown.setWidth("300px");
+            pagesDropdown.setWidth("400px");
             if (menu.getMenu() != null && menu.getMenu().getPage() != null) {
                 pagesDropdown.setValue(menu.getMenu().getPage());
             }
@@ -197,12 +211,14 @@ public class ResponsibilitiesView extends Main {
             deleteButton.addClickListener(e -> {
                 grid.getListDataView().removeItem(menu);
                 if (menu.getId() != null) {
-                    responsibilitiesMenuRepository.delete(menu);
-                    log.debug("Deleted FwResponsibilitiesMenu with ID: {}", menu.getId());
+                    adminService.deleteResponsibilityMenu(menu);
                 }
 
                 this.isEdit = true;
             });
+            if(!this.auth.canDelete){
+                deleteButton.setEnabled(false);
+            }
             return deleteButton;
         })).setHeader("").setFlexGrow(0).setAutoWidth(false);
 
@@ -220,9 +236,7 @@ public class ResponsibilitiesView extends Main {
         saveButton = new Button("Save");
 
         responsibilityDropdown.setItemLabelGenerator(FwResponsibilities::getLabel);
-        responsibilityDropdown.setItems(
-                responsibilitiesRepository.findByIsActiveTrue()
-        );
+        responsibilityDropdown.setItems(adminService.findActiveResponsibilities());
 
         responsibilityDropdown.getStyle().setWidth("300px");
 
@@ -249,10 +263,10 @@ public class ResponsibilitiesView extends Main {
 
         populateButton.addClickListener(event -> {
             if (!this.isEdit){
-                this.isEdit = false;
-                List<FwResponsibilitiesMenu> fwResponsibilitiesMenu = responsibilitiesMenuRepository.findByResponsibility(responsibilityDropdown.getValue());
+                List<FwResponsibilitiesMenu> fwResponsibilitiesMenu = adminService.findByResponsibilityMenu(responsibilityDropdown.getValue());
                 log.debug("Selected Responsibility: {} get menus {}", responsibilityDropdown.getValue().getLabel(), fwResponsibilitiesMenu.size());
                 grid.setItems(fwResponsibilitiesMenu);
+                this.isEdit = false;
             } else {
                 Notification.show("Please save your changes before populating the grid.");
             }
@@ -281,44 +295,12 @@ public class ResponsibilitiesView extends Main {
 
         saveButton.addClickListener(event -> {
             var user = currentUser.require();
-            var appUser = appUserRepository.findByUsername(user.getUserId().toString())
-                    .orElseThrow(() -> new IllegalStateException("User not found: " + user.getUserId()));
 
             if (this.isEdit) {
                 List<FwResponsibilitiesMenu> items = grid.getListDataView().getItems().toList();
                 items.forEach(i -> {
-                    log.debug("Data {} {} {} {} {} {}",
-                            i.getMenu().getSortOrder(),
-                            i.getMenu().getLabel(),
-                            i.getMenu().getPage().getDescription().length(),
-                            i.getMenu().getCanView(),
-                            i.getMenu().getCanEdit(),
-                            i.getMenu().getCanDelete());
-
-                    FwMenus fwMenus = null;
-
-                    // Save each menu item
-                    if (i.getMenu().getId() == null) {
-                        i.getMenu().setCreatedBy(appUser);
-                        i.getMenu().setUpdatedBy(appUser);
-                        fwMenus = menusRepository.save(i.getMenu());
-                        log.debug("New Menu saved with ID: {}", fwMenus.getId());
-                    } else {
-                        i.getMenu().setUpdatedBy(appUser);
-                        menusRepository.saveAndFlush(i.getMenu());
-                    }
-
-                    // Save the responsibilities menu item
-                    if (i.getId() == null) {
-                        i.setMenu(fwMenus);
-                        i.setCreatedBy(appUser);
-                        i.setUpdatedBy(appUser);
-                        i.setResponsibility(responsibilityDropdown.getValue());
-                        responsibilitiesMenuRepository.save(i);
-                    } else {
-                        i.setUpdatedBy(appUser);
-                        responsibilitiesMenuRepository.saveAndFlush(i);
-                    }
+                    i.setResponsibility(responsibilityDropdown.getValue());
+                    adminService.saveResponsibilityMenu(i, user);
                 });
 
                 this.isEdit = false;
