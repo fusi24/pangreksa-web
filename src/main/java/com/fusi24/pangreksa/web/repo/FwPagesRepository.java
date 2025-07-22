@@ -21,9 +21,9 @@ public interface FwPagesRepository extends JpaRepository<FwPages, Long> {
     List<FwPages> findByPageUrl(String pageUrl);
     
     // Cari berdasarkan pageUrl dan description (case-insensitive contains)
-    @Query("SELECT p FROM FwPages p WHERE " +
-           "(:url IS NULL OR LOWER(p.pageUrl) LIKE LOWER(CONCAT('%', :url, '%'))) AND " +
-           "(:description IS NULL OR LOWER(p.description) LIKE LOWER(CONCAT('%', :description, '%')))")
+    @Query("select p from FwPages p where " +
+           "(:url is null or lower(p.pageUrl) like '%' || lower(:url) || '%') and " +
+           "(:description is null or lower(p.description) like '%' || lower(:description) || '%')")
     List<FwPages> findByUrlContainingAndDescriptionContainingIgnoreCase(
             @Param("url") String url,
             @Param("description") String description

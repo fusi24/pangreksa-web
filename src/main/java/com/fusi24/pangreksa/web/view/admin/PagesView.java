@@ -132,8 +132,8 @@ public class PagesView extends Main {
     private void fetchData(String urlFilter, String descriptionFilter) {
         // Fetch filtered data from the database
         List<FwPages> filteredPages = pagesRepository.findByUrlContainingAndDescriptionContainingIgnoreCase(
-            urlFilter,
-            descriptionFilter
+            urlFilter != null ? urlFilter : "",
+            descriptionFilter != null ? descriptionFilter : ""
         );
         
         // Update the data provider with the filtered results
