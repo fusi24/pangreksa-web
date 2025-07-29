@@ -18,17 +18,20 @@ public class AdminService {
     private final FwMenusRepository menusRepository;
     private final FwPagesRepository pagesRepository;
     private final FwAppUserRepository appUserRepository;
+    private final FwAppuserRespRepository appuserRespRepository;
 
     public AdminService(FwResponsibilitiesRepository responsibilitiesRepository,
                         FwResponsibilitiesMenuRepository responsibilitiesMenuRepository,
                         FwMenusRepository menusRepository,
                         FwPagesRepository pagesRepository,
-                        FwAppUserRepository appUserRepository) {
+                        FwAppUserRepository appUserRepository,
+                        FwAppuserRespRepository appuserRespRepository) {
         this.responsibilitiesRepository = responsibilitiesRepository;
         this.responsibilitiesMenuRepository = responsibilitiesMenuRepository;
         this.menusRepository = menusRepository;
         this.pagesRepository = pagesRepository;
         this.appUserRepository = appUserRepository;
+        this.appuserRespRepository = appuserRespRepository;
     }
 
     public List<FwPages> findAllPages(){
@@ -45,12 +48,31 @@ public class AdminService {
     }
 
     public List<FwResponsibilitiesMenu> findByResponsibilityMenu(FwResponsibilities responsibility) {
-        return responsibilitiesMenuRepository.findByResponsibility(responsibility);
+        return responsibilitiesMenuRepository.findByResponsibility(responsibility)
+            .stream()
+            .sorted((a, b) -> Integer.compare(
+                a.getMenu().getSortOrder(),
+                b.getMenu().getSortOrder()
+            ))
+            .toList();
     }
 
     public FwAppUser findAppUserByUserId(String userId) {
         return appUserRepository.findByUsername(userId)
                 .orElseThrow(() -> new IllegalStateException("User not found: " + userId));
+    }
+
+    public FwAppUser findAppUserById(Long id) {
+        return appUserRepository.findById(id)
+                .orElseThrow(() -> new IllegalStateException("User not found with ID: " + id));
+    }
+
+    public List<FwAppUser> findAllAppUsersByKeyword(String keyword) {
+        return appUserRepository.findAllByUsernameOrNicknameContainingIgnoreCaseOrderByUsernameAsc(keyword);
+    }
+
+    public List<FwAppUser> findAllAppUsers() {
+        return appUserRepository.findAllByOrderByUsernameAsc();
     }
 
     public void saveResponsibilityMenu(FwResponsibilitiesMenu rm, AppUserInfo user) {
@@ -90,5 +112,40 @@ public class AdminService {
         }
 
         log.debug("Saved FwResponsibilitiesMenu with ID: {}", rm.getId());
+    }
+
+    public FwAppUser saveAppUser(FwAppUser user, AppUserInfo appUserInfo) {
+        var appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
+
+        if(user.getId() == null) {
+            user.setCreatedBy(appUser);
+            user.setUpdatedBy(appUser);
+        } else {
+            user.setUpdatedBy(appUser);
+        }
+
+        return appUserRepository.save(user);
+    }
+
+    public List<FwAppuserResp> findAppUserRespByUser(FwAppUser appUser) {
+        return appuserRespRepository.findByAppuser(appUser);
+    }
+
+    public void saveAppUserResp(FwAppuserResp appuserResp, AppUserInfo appUserInfo) {
+        var appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
+
+        if(appuserResp.getId() == null) {
+            appuserResp.setCreatedBy(appUser);
+            appuserResp.setUpdatedBy(appUser);
+        } else {
+            appuserResp.setUpdatedBy(appUser);
+        }
+
+        appuserRespRepository.save(appuserResp);
+    }
+
+    public void deleteAppUserResp(FwAppuserResp appuserResp) {
+        appuserRespRepository.delete(appuserResp);
+        log.debug("Deleted FwAppuserResp with ID: {}", appuserResp.getId());
     }
 }

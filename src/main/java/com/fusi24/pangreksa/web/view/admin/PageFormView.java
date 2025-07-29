@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 
 @Route(value = "page-form-page-access")
 @PageTitle("Page Form")
-@RolesAllowed("PAGE_FORM")
+@RolesAllowed({"PAGE_FORM","PAGES"})
 public class PageFormView extends Main implements HasUrlParameter<String> {
 
     public static final String VIEW_NAME = "Page Form";

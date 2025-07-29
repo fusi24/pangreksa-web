@@ -2,10 +2,11 @@ package com.fusi24.pangreksa.web.service;
 
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.web.model.Authorization;
+import com.fusi24.pangreksa.web.model.entity.FwAppUser;
 import com.fusi24.pangreksa.web.model.entity.FwMenus;
 import com.fusi24.pangreksa.web.model.entity.VwAppUserAuth;
+import com.fusi24.pangreksa.web.repo.FwAppUserRepository;
 import com.fusi24.pangreksa.web.repo.FwMenusRepository;
-import com.fusi24.pangreksa.web.repo.FwPagesRepository;
 import com.fusi24.pangreksa.web.repo.VwAppUserAuthRepository;
 import org.springframework.stereotype.Service;
 
@@ -13,11 +14,12 @@ import org.springframework.stereotype.Service;
 public class CommonService {
     private final FwMenusRepository menusRepository;
     private final VwAppUserAuthRepository appUserAuthRepository;
+    private final FwAppUserRepository fwAppUserRepository;
 
-    public CommonService(FwMenusRepository menusRepository, VwAppUserAuthRepository appUserAuthRepository) {
+    public CommonService(FwMenusRepository menusRepository, VwAppUserAuthRepository appUserAuthRepository, FwAppUserRepository fwAppUserRepository) {
         this.menusRepository = menusRepository;
         this.appUserAuthRepository = appUserAuthRepository;
-
+        this.fwAppUserRepository = fwAppUserRepository;
     }
 
     public Authorization getAuthorization(AppUserInfo user, String responsibility, Long pageId) {
@@ -34,5 +36,9 @@ public class CommonService {
                     fwMenus.getCanEdit(),
                     fwMenus.getCanDelete());
         }
+    }
+
+    public FwAppUser getLoginUser(String username) {
+        return fwAppUserRepository.findByUsername(username).orElse(new FwAppUser());
     }
 }

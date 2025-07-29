@@ -24,6 +24,7 @@ import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
 import com.fusi24.pangreksa.web.repo.FwPagesRepository;
@@ -33,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Route("pages-page-access")
 @PageTitle("Pages")
@@ -52,6 +54,7 @@ public class PagesView extends Main {
     private ListDataProvider<FwPages> dataProvider;
     private final PageFilter pageFilter;
     private Authorization auth;
+    private List<String> availableRoutes;
 
     public PagesView(CurrentUser currentUser, AdminService adminService, CommonService commonService, FwPagesRepository pagesRepository) {
         this.currentUser = currentUser;
@@ -65,6 +68,8 @@ public class PagesView extends Main {
                 this.serialVersionUID);
 
         log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
+
+        getAvailableRoutes();
 
         this.pageFilter = new PageFilter(this::onFilterChanged);
         
@@ -82,7 +87,19 @@ public class PagesView extends Main {
             loadData();
         }
     }
-    
+
+    private void getAvailableRoutes() {
+        this.availableRoutes = RouteConfiguration.forApplicationScope()
+                .getAvailableRoutes()
+                .stream()
+                .map(routeData -> "/" + routeData.getTemplate())
+                .collect(Collectors.toList());
+
+//        for(String route : availableRoutes) {
+//            log.info("Available route: {}", route);
+//        }
+    }
+
     private void onFilterChanged() {
         fetchData(
             pageFilter.getUrlFilterValue(),
@@ -91,6 +108,12 @@ public class PagesView extends Main {
     }
 
     private void configureGrid() {
+
+        grid.addColumn(FwPages::getId)
+                .setHeader("ID")
+                .setSortable(true)
+                .setAutoWidth(true);
+
         grid.addColumn(FwPages::getPageUrl)
                 .setHeader("URL")
                 .setSortable(true)
@@ -99,6 +122,19 @@ public class PagesView extends Main {
         grid.addColumn(FwPages::getDescription)
                 .setHeader("Description")
                 .setSortable(true)
+                .setAutoWidth(true);
+
+        grid.addComponentColumn(page -> {
+                    String url = page.getPageUrl();
+
+                    boolean available = availableRoutes != null && availableRoutes.stream().
+                            anyMatch(route -> route.contains(url));
+                    Icon icon = available ? VaadinIcon.CHECK_CIRCLE_O.create() : VaadinIcon.CLOSE_SMALL.create();
+                    icon.getStyle().set("color", available ? "green" : "#d3d3d3"); // green and light grey
+                    return icon;
+                })
+                .setHeader("Available")
+                .setSortable(false)
                 .setAutoWidth(true);
                 
         // Add Action column with edit button
@@ -163,8 +199,12 @@ public class PagesView extends Main {
             
             Button filterButton = new Button("Filter", new Icon(VaadinIcon.SLIDERS));
             filterButton.addClickListener(e -> showFilterDialog());
+
+            filterButton.getStyle().setWidth("150px");
+            Button populate = new Button("Populate");
+            populate.setEnabled(false);
+            filterLayout.add(populate, filterButton);
             
-            filterLayout.add(filterButton);
             add(filterLayout);
             
             // Initialize filters with default values
@@ -223,4 +263,3 @@ public class PagesView extends Main {
         }
     }
 }
-

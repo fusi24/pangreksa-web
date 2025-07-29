@@ -24,7 +24,8 @@ import java.time.LocalDateTime;
 public class FwAppUser extends AuditableEntity<FwAppUser> implements AppUserInfo{
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "global_fw_seq")
+    @SequenceGenerator(name = "global_fw_seq", sequenceName = "global_fw_seq", allocationSize = 1)
     private Long id;
 
     @Column(length = 50, nullable = false)
@@ -54,6 +55,14 @@ public class FwAppUser extends AuditableEntity<FwAppUser> implements AppUserInfo
     // Optional column: raw password (NOT recommended in production)
     @Column(name = "password", length = 255)
     private String password;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "person_id", nullable = true)
+    private HrPerson person;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", nullable = true)
+    private HrCompany company;
 
     @Override
     public UserId getUserId() {

@@ -14,7 +14,8 @@ import lombok.*;
 public class FwResponsibilitiesMenu  extends AuditableEntity<FwResponsibilities>{
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "global_fw_seq")
+    @SequenceGenerator(name = "global_fw_seq", sequenceName = "global_fw_seq", allocationSize = 1)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)

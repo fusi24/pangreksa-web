@@ -24,6 +24,7 @@ import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
@@ -149,7 +150,7 @@ public class ResponsibilitiesView extends Main {
                 }
             });
             return pagesDropdown;
-        })).setHeader("Pages").setFlexGrow(1).setAutoWidth(true);
+        })).setHeader("Pages").setFlexGrow(1).setWidth("400px");
 
         // Can View editable
         grid.addColumn(new ComponentRenderer<>(menu -> {
@@ -262,13 +263,14 @@ public class ResponsibilitiesView extends Main {
         });
 
         populateButton.addClickListener(event -> {
-            if (!this.isEdit){
+            if (!this.isEdit && !responsibilityDropdown.isEmpty()){
                 List<FwResponsibilitiesMenu> fwResponsibilitiesMenu = adminService.findByResponsibilityMenu(responsibilityDropdown.getValue());
                 log.debug("Selected Responsibility: {} get menus {}", responsibilityDropdown.getValue().getLabel(), fwResponsibilitiesMenu.size());
-                grid.setItems(fwResponsibilitiesMenu);
+                // Ensure the list is mutable to allow addItem/removeItem
+                grid.setItems(new ArrayList<>(fwResponsibilitiesMenu));
                 this.isEdit = false;
             } else {
-                Notification.show("Please save your changes before populating the grid.");
+                Notification.show("Please select responsibility before populating the grid.");
             }
         });
 
@@ -290,6 +292,7 @@ public class ResponsibilitiesView extends Main {
             newRm.setMenu(fwMenu);
             newRm.setResponsibility(this.responsibilityDropdown.getValue());
             grid.getListDataView().addItem(newRm);
+
             this.isEdit = true;
         });
 
@@ -304,6 +307,8 @@ public class ResponsibilitiesView extends Main {
                 });
 
                 this.isEdit = false;
+
+                Notification.show("Changes saved successfully.");
             }
         });
     }

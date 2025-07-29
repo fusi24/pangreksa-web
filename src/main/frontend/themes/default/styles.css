@@ -1,2 +1,5 @@
-
 @import url("dev-login.css");
+
+.no-dropdown-icon::part(toggle-button) {
+    display: none;
+}

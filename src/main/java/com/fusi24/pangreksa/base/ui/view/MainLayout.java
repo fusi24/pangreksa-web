@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 
 import static com.vaadin.flow.theme.lumo.LumoUtility.*;
 
@@ -59,6 +60,7 @@ public final class MainLayout extends AppLayout {
         navLayout = new VerticalLayout();
         navLayout.setSizeUndefined();
         navLayout.setMargin(false);
+        navLayout.addClassNames(Padding.Top.NONE, Padding.Right.MEDIUM, Padding.Bottom.MEDIUM, Padding.Left.MEDIUM);
 
         setPrimarySection(Section.DRAWER);
         addToDrawer(createHeader(), responsibilitySwitcher(), new Scroller(navLayout), createUserMenu());
@@ -86,14 +88,26 @@ public final class MainLayout extends AppLayout {
         responsibilityDropdown.getStyle().setWidth("220px");
         responsibilityDropdown.setPlaceholder("Select responsibility..");
 
+        String resp = (String) UI.getCurrent().getSession().getAttribute("responsibility");
+        if (resp != null) {
+            Responsibility rData = Objects.requireNonNull(responsibilityList.stream()
+                    .filter(r -> r.getResponsibility().equals(resp))
+                    .findFirst()
+                    .orElse(null));
+            responsibilityDropdown.setValue(rData);
+
+            this.navLayout.removeAll();
+            navLayout.add(populateNavigation(rData));
+        }
+
         Div div = new Div(responsibilityDropdown);
-        div.addClassNames(Display.FLEX, Padding.MEDIUM, Gap.MEDIUM, AlignItems.CENTER, LumoUtility.Padding.Top.NONE, LumoUtility.Padding.Right.MEDIUM, LumoUtility.Padding.Bottom.MEDIUM, LumoUtility.Padding.Left.MEDIUM);
+        div.addClassNames(Display.FLEX, Padding.MEDIUM, Gap.MEDIUM, AlignItems.CENTER, Padding.Top.NONE, Padding.Right.MEDIUM, Padding.Bottom.MEDIUM, Padding.Left.MEDIUM);
 
         responsibilityDropdown.addValueChangeListener( e -> {
             UI.getCurrent().getSession().setAttribute("responsibility", e.getValue().getResponsibility());
+            log.debug("Responsibility changed to: {}", e.getValue().getResponsibility());
             this.navLayout.removeAll();
             navLayout.add(populateNavigation(e.getValue()));
-            navLayout.addClassNames(LumoUtility.Padding.Top.NONE, LumoUtility.Padding.Right.MEDIUM, LumoUtility.Padding.Bottom.MEDIUM, LumoUtility.Padding.Left.MEDIUM);
         });
 
         return div;
@@ -102,9 +116,12 @@ public final class MainLayout extends AppLayout {
     private SideNav populateNavigation(Responsibility responsibility){
         var nav = new SideNav();
 
-        responsibility.getMenuEntries().forEach( menuEntry -> {
-            nav.addItem(createSideNavItem(menuEntry));
-        });
+        // Sort menu entries by order ascending before adding
+        responsibility.getMenuEntries().stream()
+            .sorted((a, b) -> Double.compare(a.order(), b.order()))
+            .forEach(menuEntry -> {
+                nav.addItem(createSideNavItem(menuEntry));
+            });
 
         nav.setWidthFull();
 
@@ -148,5 +165,4 @@ public final class MainLayout extends AppLayout {
 
         return userMenu;
     }
-
 }
