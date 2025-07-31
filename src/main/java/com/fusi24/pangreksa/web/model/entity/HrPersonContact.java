@@ -9,7 +9,9 @@ import lombok.*;
 
 @Entity
 @Table(name = "hr_contact")
-@Data
+@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class HrPersonContact extends AuditableEntity<HrPersonContact>{

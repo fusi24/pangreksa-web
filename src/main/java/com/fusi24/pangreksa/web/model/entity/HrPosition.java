@@ -5,7 +5,9 @@ import lombok.*;
 
 @Entity
 @Table(name = "hr_position")
-@Data
+@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class HrPosition extends AuditableEntity<HrPosition> {

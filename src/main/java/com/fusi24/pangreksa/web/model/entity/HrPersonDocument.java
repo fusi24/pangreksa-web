@@ -7,7 +7,9 @@ import lombok.*;
 
 @Entity
 @Table(name = "hr_document")
-@Data
+@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class HrPersonDocument extends AuditableEntity<HrPersonDocument>  {

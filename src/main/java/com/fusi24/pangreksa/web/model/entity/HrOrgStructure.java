@@ -3,13 +3,11 @@ package com.fusi24.pangreksa.web.model.entity;
 import com.fusi24.pangreksa.web.model.enumerate.OrgStructureEnum;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.io.Serializable;
-import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "hr_org_structure")
-@Data
+@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class HrOrgStructure extends AuditableEntity<HrOrgStructure> {

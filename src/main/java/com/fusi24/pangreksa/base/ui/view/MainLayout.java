@@ -5,6 +5,7 @@ import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Responsibility;
 import com.fusi24.pangreksa.web.model.entity.FwPages;
 import com.fusi24.pangreksa.web.service.AppUserAuthService;
+import com.fusi24.pangreksa.web.service.SystemService;
 import com.fusi24.pangreksa.web.view.admin.ResponsibilitiesView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
@@ -13,6 +14,7 @@ import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.avatar.AvatarVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -33,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 import static com.vaadin.flow.theme.lumo.LumoUtility.*;
 
@@ -43,16 +46,18 @@ public final class MainLayout extends AppLayout {
     private final AppUserAuthService appUserAuthService;
     private final CurrentUser currentUser;
     private final AuthenticationContext authenticationContext;
+    private final SystemService systemService;
     private ComboBox<Responsibility> responsibilityDropdown;
 
     VerticalLayout navLayout;
     List<Responsibility> responsibilityList;
     AppUserInfo user;
 
-    MainLayout(CurrentUser currentUser, AuthenticationContext authenticationContext, AppUserAuthService appUserAuthService) {
+    MainLayout(CurrentUser currentUser, AuthenticationContext authenticationContext, AppUserAuthService appUserAuthService, SystemService systemService) {
         this.currentUser = currentUser;
         this.authenticationContext = authenticationContext;
         this.appUserAuthService = appUserAuthService;
+        this.systemService = systemService;
 
         this.user = currentUser.require();
         responsibilityList = appUserAuthService.getAllResponsibilitiesFromUsername(user.getUserId().toString());
@@ -67,11 +72,24 @@ public final class MainLayout extends AppLayout {
     }
 
     private Div createHeader() {
-        // TODO Replace with real application logo and name
-        var appLogo = VaadinIcon.CUBES.create();
-        appLogo.addClassNames(TextColor.PRIMARY, IconSize.LARGE);
+        // Try to fetch logo URL from system
+        String logoUrl = systemService.getStringAppLogo();
+        Component appLogo;
+        if (logoUrl != null && (
+                logoUrl.toLowerCase().endsWith(".png") ||
+                logoUrl.toLowerCase().endsWith(".jpg") ||
+                logoUrl.toLowerCase().endsWith(".jpeg"))) {
+            Image img = new Image(logoUrl, "App Logo");
+            img.setHeight("40px");
+            img.setWidth("40px");
+            appLogo = img;
+        } else {
+            appLogo = VaadinIcon.CUBES.create();
+            appLogo.addClassNames(TextColor.PRIMARY, IconSize.LARGE);
+        }
 
-        var appName = new Span("Pangreksa");
+        String name = systemService.getStringAppName();
+        var appName = new Span( !name.equals("") ? name : "Pangreksa");
         appName.addClassNames(FontWeight.SEMIBOLD, FontSize.LARGE);
 
         var header = new Div(appLogo, appName);

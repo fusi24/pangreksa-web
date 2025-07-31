@@ -6,7 +6,9 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "hr_company")
-@Data
+@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class HrCompany extends AuditableEntity<HrCompany> {

@@ -3,12 +3,13 @@ package com.fusi24.pangreksa.web.model.entity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 import lombok.*;
 
 @Entity
 @Table(name = "hr_address")
-@Data
+@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class HrPersonAddress extends AuditableEntity<HrPersonAddress>{

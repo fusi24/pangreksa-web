@@ -17,3 +17,4 @@ HrCompany
 HrOrgStructure
 HrPersonPosition
 HrPosition
+FwSystem

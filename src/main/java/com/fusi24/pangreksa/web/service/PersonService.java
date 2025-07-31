@@ -1,5 +1,6 @@
 package com.fusi24.pangreksa.web.service;
 
+import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.repo.*;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ public class PersonService {
     private final HrPersonAddressRepository hrPersonAddressRepository;
     private final HrPersonEducationRepository hrPersonEducationRepository;
     private final HrPersonDocumentRepository hrPersonDocumentRepository;
+    private final FwAppUserRepository appUserRepository;
 
     private final HrPersonPositionRepository hrPersonPositionRepository;
     private final HrCompanyRepository hrCompanyRepository;
@@ -34,7 +36,8 @@ public class PersonService {
                          HrPersonEducationRepository educationRepository,
                          HrPersonDocumentRepository documentRepository,
                          HrPersonPositionRepository hrPersonPositionRepository,
-                         HrCompanyRepository hrCompanyRepository) {
+                         HrCompanyRepository hrCompanyRepository,
+                         FwAppUserRepository appUserRepository) {
         this.hrPersonRespository = personRepository;
         this.hrPersonContactRepository = contactRepository;
         this.hrPersonAddressRepository = addressRepository;
@@ -42,6 +45,12 @@ public class PersonService {
         this.hrPersonDocumentRepository = documentRepository;
         this.hrPersonPositionRepository = hrPersonPositionRepository;
         this.hrCompanyRepository = hrCompanyRepository;
+        this.appUserRepository = appUserRepository;
+    }
+
+    private FwAppUser findAppUserByUserId(String userId) {
+        return appUserRepository.findByUsername(userId)
+                .orElseThrow(() -> new IllegalStateException("User not found: " + userId));
     }
 
     public void workingWithPerson(HrPerson person, FwAppUser user) {
@@ -275,5 +284,18 @@ public class PersonService {
             return new ArrayList<HrCompany>();
         }
         return hrCompanyRepository.findByKeyword(keyword, pageable);
+    }
+
+    public HrPersonPosition savePersonPosition(HrPersonPosition personPosition, AppUserInfo appUserInfo) {
+        var appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
+
+        if(personPosition.getId() == null) {
+            personPosition.setCreatedBy(appUser);
+            personPosition.setUpdatedBy(appUser);
+        } else {
+            personPosition.setUpdatedBy(appUser);
+        }
+
+        return hrPersonPositionRepository.save(personPosition);
     }
 }

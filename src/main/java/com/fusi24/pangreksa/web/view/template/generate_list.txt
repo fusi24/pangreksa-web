@@ -32,3 +32,6 @@ TambahKaryawan
 Settings
 UserManagement
 UserForm
+CreateUser
+ResponsibilitiesMenu
+UploadDemo

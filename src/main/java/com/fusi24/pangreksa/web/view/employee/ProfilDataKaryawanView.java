@@ -1,16 +1,16 @@
 package com.fusi24.pangreksa.web.view.employee;
 
-import com.fusi24.pangreksa.web.model.entity.HrCompany;
-import com.fusi24.pangreksa.web.model.entity.HrPersonPosition;
-import com.fusi24.pangreksa.web.model.entity.HrPosition;
+import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.service.CompanyService;
+import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.datepicker.DatePicker;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.combobox.ComboBox;
-import com.fusi24.pangreksa.web.model.entity.HrPerson;
 import com.fusi24.pangreksa.web.service.PersonService;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -22,6 +22,7 @@ import com.fusi24.pangreksa.web.service.CommonService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.Main;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
@@ -204,8 +205,92 @@ public class ProfilDataKaryawanView extends Main {
             assignButton.setIcon(VaadinIcon.WORKPLACE.create());
             assignButton.getElement().setAttribute("title", "Assign to Company");
             assignButton.addClickListener(e -> {
-                // Assign person to company
+                Dialog dialog = new Dialog();
+
+                HrCompany company = companyDropdown.getValue();
+
+                VerticalLayout dialogLayout = new VerticalLayout();
+                ComboBox<HrOrgStructure> orgStructureDropdown = new ComboBox<>("Org. Structure");
+                ComboBox<HrPosition> positionDropdown = new ComboBox<>("Position");
+                DatePicker startDatePicker = new DatePicker("Start Date");
+                DatePicker endDatePicker = new DatePicker("End Date");
+                Checkbox isPrimaryCheckbox = new Checkbox("Is Primary");
+                Checkbox isActingCheckbox = new Checkbox("Is Acting");
+
+                ComboBox<HrPerson> requestedByDropdown = new ComboBox<>("Requested By");
+                requestedByDropdown.setItemLabelGenerator(p -> p.getFirstName() + " " + (p.getLastName() != null ? p.getLastName() : ""));
+                requestedByDropdown.setPlaceholder("Unassigned");
+                requestedByDropdown.setClearButtonVisible(true);
+
+                requestedByDropdown.setItems(query -> {
+                    String filter = query.getFilter().orElse("");
+                    int offset = query.getOffset();
+                    int limit = query.getLimit(); // not used in this example, but can be used for pagination
+                    log.debug("Searching persons with filter: {}", filter);
+                    return personService.findPersonByKeyword(filter).stream();
+                } );
+
+                positionDropdown.setItemLabelGenerator(HrPosition::getName);
+                positionDropdown.setEnabled(false);
+                requestedByDropdown.setWidth("400px");
+
+                orgStructureDropdown.setItems(companyService.getAllOrgStructuresInCompany(company));
+                orgStructureDropdown.setItemLabelGenerator(HrOrgStructure::getName);
+                orgStructureDropdown.setWidth("400px");
+
+                orgStructureDropdown.addValueChangeListener( event -> {
+                    positionDropdown.setItems(Collections.emptyList());
+                    List<HrPosition> positions = companyService.getAllPositionsInOrganization(company, event.getValue());
+                    log.debug("found {} positions",positions.size());
+                    if (!positions.isEmpty()) {
+                        positionDropdown.setItems(positions);
+                        positionDropdown.setEnabled(true);
+                    } else {
+                        positionDropdown.setEnabled(false);
+                    }
+                });
+
+                positionDropdown.setWidth("400px");
+
+                HorizontalLayout buttonLayout = new HorizontalLayout();
+                Button cancelButton = new Button("Cancel", event -> dialog.close());
+                Button saveButton = new Button("Save");
+
+                if(!this.auth.canEdit){
+                    saveButton.setEnabled(false);
+                }
+
+                saveButton.addClickListener(event -> {
+                    log.debug("Saving Org Structure {} and Position {} to Person {}",
+                            orgStructureDropdown.getValue(), positionDropdown.getValue(), person.getFirstName());
+
+                    // Create HrPersonPosition using builder
+                    HrPersonPosition personPosition = HrPersonPosition.builder()
+                            .person(person)
+                            .position(positionDropdown.getValue())
+                            .startDate(startDatePicker.getValue())
+                            .endDate(endDatePicker.getValue())
+                            .isActing(isActingCheckbox.getValue())
+                            .isPrimary(isPrimaryCheckbox.getValue())
+                            .requestedBy(requestedByDropdown.getValue())
+                            .company(company)
+                            .build();
+
+                    personService.savePersonPosition(personPosition, currentUser.require());
+
+                    dialog.close();
+                });
+
+                buttonLayout.add(cancelButton, saveButton);
+                dialogLayout.add(orgStructureDropdown, positionDropdown,
+                        new HorizontalLayout(startDatePicker, endDatePicker),
+                        new HorizontalLayout(isPrimaryCheckbox, isActingCheckbox),
+                        requestedByDropdown,
+                        buttonLayout);
+                dialog.add(dialogLayout);
+                dialog.open();
             });
+
             if(!this.auth.canEdit){
                 assignButton.setEnabled(false);
             }
