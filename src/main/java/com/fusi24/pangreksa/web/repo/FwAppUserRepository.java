@@ -31,6 +31,7 @@ public interface FwAppUserRepository extends JpaRepository<FwAppUser, Long> {
     Optional<FwAppUser> findById(@NotNull Long id);
 
     // Cari user berdasarkan username
+    @EntityGraph(attributePaths = {"person","company"})
     Optional<FwAppUser> findByUsername(String username);
 
     // Cari user berdasarkan email

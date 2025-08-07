@@ -56,5 +56,8 @@ public class HrPerson extends AuditableEntity<HrPerson> {
 
     @Column(name = "ktp_number", length = 16, unique = true)
     private String ktpNumber;
+
+    @Column(name = "photo_file", length = 150, nullable = true)
+    private String photoFilename;
 }
 

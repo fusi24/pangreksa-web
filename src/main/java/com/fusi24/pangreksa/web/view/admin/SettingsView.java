@@ -16,6 +16,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.virtuallist.VirtualList;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
@@ -71,6 +72,8 @@ public class SettingsView extends Main {
         addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
                 LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
 
+        this.setHeightFull();
+
         add(new ViewToolbar(VIEW_NAME));
         createBody();
 
@@ -88,6 +91,8 @@ public class SettingsView extends Main {
         this.body = new VerticalLayout();
         body.setPadding(false);
         body.setSpacing(false);
+
+        body.setHeightFull();
 
         // Inisiasi toolbar Master
         toolbarLayoutMaster = new HorizontalLayout();
@@ -140,9 +145,12 @@ public class SettingsView extends Main {
                         break;
                     }
                     case "INT": {
-                        NumberField tf = new NumberField();
-                        tf.setValue(system.getIntVal() != null ? Double.valueOf(system.getIntVal()) : 0L);
-                        tf.addValueChangeListener(e -> system.setIntVal(e.getValue() != null ? (int) Math.round(e.getValue()) : null));
+                        IntegerField tf = new IntegerField();
+                        tf.setStepButtonsVisible(true);
+                        tf.setMin(0);
+                        tf.setMax(100);
+                        tf.setValue(system.getIntVal() != null ? system.getIntVal() : 0);
+                        tf.addValueChangeListener(e -> system.setIntVal(e.getValue() != null ? e.getValue() : null));
                         component = tf;
                         break;
                     }

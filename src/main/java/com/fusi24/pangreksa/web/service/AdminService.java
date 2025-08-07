@@ -47,6 +47,10 @@ public class AdminService {
         return responsibilitiesRepository.findByIsActiveTrue();
     }
 
+    public List<FwResponsibilities> findAllResponsibilities(){
+        return responsibilitiesRepository.findAll();
+    }
+
     public List<FwResponsibilitiesMenu> findByResponsibilityMenu(FwResponsibilities responsibility) {
         return responsibilitiesMenuRepository.findByResponsibility(responsibility)
             .stream()
@@ -147,5 +151,18 @@ public class AdminService {
     public void deleteAppUserResp(FwAppuserResp appuserResp) {
         appuserRespRepository.delete(appuserResp);
         log.debug("Deleted FwAppuserResp with ID: {}", appuserResp.getId());
+    }
+
+    public FwResponsibilities saveResponsibility(FwResponsibilities responsibility, AppUserInfo appUserInfo) {
+        var appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
+
+        if (responsibility.getId() == null) {
+            responsibility.setCreatedBy(appUser);
+            responsibility.setUpdatedBy(appUser);
+        } else {
+            responsibility.setUpdatedBy(appUser);
+        }
+
+        return responsibilitiesRepository.save(responsibility);
     }
 }

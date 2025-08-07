@@ -1,6 +1,8 @@
 package com.fusi24.pangreksa.web.repo;
 
 import com.fusi24.pangreksa.web.model.entity.FwResponsibilities;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -9,6 +11,10 @@ import java.util.Optional;
 
 @Repository
 public interface FwResponsibilitiesRepository extends JpaRepository<FwResponsibilities, Long> {
+
+    @EntityGraph( attributePaths = {"createdBy", "updatedBy"})
+    @NotNull
+    List<FwResponsibilities> findAll();
 
     // Cari responsibility berdasarkan label (exact)
     Optional<FwResponsibilities> findByIsActiveTrueAndLabel(String label);

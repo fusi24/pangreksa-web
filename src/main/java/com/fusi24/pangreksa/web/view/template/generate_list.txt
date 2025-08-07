@@ -35,3 +35,7 @@ UserForm
 CreateUser
 ResponsibilitiesMenu
 UploadDemo
+LeaveBalanceData
+LeaveRequest
+LeaveApproval
+LeaveBalanceManagement

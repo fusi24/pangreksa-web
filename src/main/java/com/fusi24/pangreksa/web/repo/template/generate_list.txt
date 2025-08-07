@@ -18,3 +18,7 @@ HrOrgStructure
 HrPersonPosition
 HrPosition
 FwSystem
+HrLeaveApplication
+HrLeaveBalance
+HrLeaveGenerationLog
+HrLeaveRequestLog

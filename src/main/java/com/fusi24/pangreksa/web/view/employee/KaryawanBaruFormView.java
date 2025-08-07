@@ -1,10 +1,10 @@
 package com.fusi24.pangreksa.web.view.employee;
 
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.Div;
 
 import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.service.PersonService;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
@@ -29,12 +29,17 @@ import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.router.*;
+import com.vaadin.flow.server.StreamResource;
+import com.vaadin.flow.server.streams.InMemoryUploadHandler;
+import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -43,6 +48,8 @@ import java.net.http.HttpResponse;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -83,6 +90,12 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
     Button clearButtonOnTab;
     Button saveButtonOnTab;
+
+    private Image photoPreview;
+    private VerticalLayout avatarLayout;
+    // To store byte[] of uploaded image
+    AtomicReference<byte[]> uploadedImageBytes = new AtomicReference<>();
+
 
     // Person Fields
     private TextField firstName = new TextField("First Name");
@@ -206,6 +219,17 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         toolbarLayoutDetail.setJustifyContentMode(JustifyContentMode.END);
         toolbarLayoutDetail.setMaxWidth("200px");
 
+        // Photo
+        avatarLayout = new VerticalLayout();
+        avatarLayout.setWidth(CIRCLE_PX);
+        avatarLayout.setHeight(CIRCLE_PX);
+        avatarLayout.setMargin(true);
+        avatarLayout.setWidth("180px");
+        //aligment center
+        avatarLayout.setJustifyContentMode(JustifyContentMode.CENTER);
+        avatarLayout.getStyle().set("background-color", "#f0f0f0");
+        avatarLayout.getStyle().set("border-radius", "10%"); // Makes it perfectly round
+
         createPersonForm();
 
         this.tabSheet = new TabSheet();
@@ -222,7 +246,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         createEducationForm();
         createDocumentForm();
 
-        HorizontalLayout masterLayout = new HorizontalLayout(personFormLayout, toolbarLayoutMaster);
+        HorizontalLayout masterLayout = new HorizontalLayout(createAvatarUploadLayout(), personFormLayout, toolbarLayoutMaster);
         masterLayout.setWidthFull();
         masterLayout.setHeight("350px");
         masterLayout.setAlignItems(FlexComponent.Alignment.START);
@@ -277,6 +301,83 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                 religion,
                 marriage
         );
+    }
+
+    private static final String CIRCLE_PX = "200px";
+
+    private VerticalLayout  createAvatarUploadLayout() {
+        VerticalLayout photoLayout = new VerticalLayout();
+        photoLayout.setMinWidth("250px");
+        photoLayout.setWidth("300px");
+        photoLayout.setSpacing(false);
+//        photoLayout.setHeightFull();
+        // set photoLayout bacground to gray
+//        photoLayout.getStyle().set("background-color", "#f0f0f0");
+
+        this.photoPreview = new Image();
+        photoPreview.setVisible(false);
+
+        InMemoryUploadHandler inMemoryHandler = UploadHandler.inMemory(
+                (metadata, data) -> {
+                    // Get other information about the file.
+                    String fileName = metadata.fileName();
+                    String mimeType = metadata.contentType();
+                    long contentLength = metadata.contentLength();
+
+                    log.debug("got filename: {}, mimeType: {}, contentLength: {}", fileName, mimeType, contentLength);
+
+                    photoPreview.removeAll();
+
+                    // Create image from byte array
+                    StreamResource imageResource = new StreamResource(
+                            UUID.randomUUID() + ".png", // Use PNG or your real format
+                            () -> new ByteArrayInputStream(data)
+                    );
+
+//                    // Update image source with the uploaded file data
+//                    UI ui = UI.getCurrent();
+//                    ui.access(() -> {
+                        photoPreview.removeAll();
+                        photoPreview = new Image(imageResource, fileName);
+                        photoPreviewCosmetics();
+
+                        this.avatarLayout.removeAll();
+                        avatarLayout.add(photoPreview);
+
+                        // Store to uploadedImageBytes
+                        uploadedImageBytes.set(data);
+//                    });
+
+                    // Do something with the file data...
+                    // processFile(data, fileName);
+                });
+
+        Upload upload = new Upload(inMemoryHandler);
+        upload.setWidthFull();
+        upload.setAcceptedFileTypes(
+                "image/png",
+                "image/jpeg",
+                "image/jpg",
+                "image/gif",
+                "image/webp",
+                "image/bmp",
+                "image/svg+xml",
+                "image/tiff"
+        );
+        upload.setMaxFiles(1);
+        upload.setMaxFileSize(1 * 1024 * 1024); // 1 MB
+
+        photoLayout.add(avatarLayout, upload);
+        return photoLayout;
+    }
+
+    private void photoPreviewCosmetics() {
+        photoPreview.setWidth(CIRCLE_PX);
+        photoPreview.setHeight(CIRCLE_PX);
+        photoPreview.getStyle().set("border-radius", "10%"); // Makes it perfectly round
+        photoPreview.getStyle().set("object-fit", "cover"); // Ensures it fills the circle properly
+        photoPreview.getStyle().set("box-shadow", "0 4px 8px rgba(0, 0, 0, 0.2)");
+        photoPreview.getStyle().set("margin-left", "-25px");
     }
 
     private final  String RESP_1 = "400px";
@@ -797,6 +898,27 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                     new java.util.Random().nextInt(100_000_000),
                     new java.util.Random().nextInt(100_000_000))); // dummy value
 
+            // Get photo URL and download image
+            String photo_url = user.path("picture").path("large").asText("");
+            // get image byte[] from photo_url and put on uploadedImageBytes
+            HttpResponse<byte[]> photoResponse = client.send(
+                    HttpRequest.newBuilder().uri(URI.create(photo_url)).build(),
+                    HttpResponse.BodyHandlers.ofByteArray()
+            );
+            uploadedImageBytes.set(photoResponse.body());
+
+            // Update photo preview
+            photoPreview.removeAll();
+            StreamResource imageResource = new StreamResource(
+                    UUID.randomUUID() + ".png", // Use PNG or your real format
+                    () -> new ByteArrayInputStream(uploadedImageBytes.get())
+            );
+
+            photoPreview = new Image(imageResource, "Random User Photo");
+            photoPreviewCosmetics();
+            this.avatarLayout.removeAll();
+            avatarLayout.add(photoPreview);
+
             // Address Fields
             JsonNode loc = user.path("location");
             String address = loc.path("street").path("number").asInt() + " " +
@@ -856,6 +978,18 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         person.setMarriage(marriage.getValue());
         person.setKtpNumber(ktpNumber.getValue());
 
+        // Upload file if available
+        if (uploadedImageBytes.get() != null) {
+            // Delete
+            if (person.getPhotoFilename() != null && !person.getPhotoFilename().isEmpty()) {
+                personService.deletePhoto(person.getPhotoFilename());
+            }
+            // Upload
+            String filename = "photo_" + UUID.randomUUID() + ".png";
+            personService.uploadPhoto(uploadedImageBytes.get(), filename);
+            person.setPhotoFilename(filename);
+        }
+
         var user = currentUser.require();
         FwAppUser appUser = commonService.getLoginUser(user.getUserId().toString());
 
@@ -888,6 +1022,12 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
             religion.setValue(null);
             marriage.setValue(null);
             ktpNumber.setValue("");
+
+            uploadedImageBytes.set(null);
+            if (photoPreview != null) {
+                photoPreview.setVisible(false);
+                this.avatarLayout.removeAll();
+            }
         }
 
         if (address) {
@@ -979,6 +1119,21 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
             religion.setValue(personData.getReligion());
             marriage.setValue(personData.getMarriage());
             ktpNumber.setValue(personData.getKtpNumber() != null ? personData.getKtpNumber() : "");
+
+            // Load photo if available
+            if (personData.getPhotoFilename() != null && !personData.getPhotoFilename().isEmpty()) {
+                log.debug("Getting photo from path: {}", personData.getPhotoFilename());
+
+                // Load image file from photoPath as in memory byte array
+                byte[] imageBytes = personService.getPhotoAsByteArray(personData.getPhotoFilename());
+                this.photoPreview = new Image(new StreamResource(
+                        personData.getPhotoFilename(),
+                        () -> new ByteArrayInputStream(imageBytes)
+                ), "Photo for " + personData.getFirstName());
+                photoPreviewCosmetics();
+                this.avatarLayout.removeAll();
+                this.avatarLayout.add(photoPreview);
+            }
 
 
             // Populate the form fields with the loaded data

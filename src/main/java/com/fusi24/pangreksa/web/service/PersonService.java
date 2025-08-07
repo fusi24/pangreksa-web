@@ -8,9 +8,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class PersonService {
@@ -20,6 +26,7 @@ public class PersonService {
     private final HrPersonEducationRepository hrPersonEducationRepository;
     private final HrPersonDocumentRepository hrPersonDocumentRepository;
     private final FwAppUserRepository appUserRepository;
+    private final FwSystemRepository systemRepository;
 
     private final HrPersonPositionRepository hrPersonPositionRepository;
     private final HrCompanyRepository hrCompanyRepository;
@@ -30,6 +37,8 @@ public class PersonService {
 
     private static final int NO_RETRIEVE = 10;
 
+    private String PERSON_PHOTO_PATH;
+
     public PersonService(HrPersonRespository personRepository,
                          HrPersonContactRepository contactRepository,
                          HrPersonAddressRepository addressRepository,
@@ -37,7 +46,8 @@ public class PersonService {
                          HrPersonDocumentRepository documentRepository,
                          HrPersonPositionRepository hrPersonPositionRepository,
                          HrCompanyRepository hrCompanyRepository,
-                         FwAppUserRepository appUserRepository) {
+                         FwAppUserRepository appUserRepository,
+                         FwSystemRepository systemRepository) {
         this.hrPersonRespository = personRepository;
         this.hrPersonContactRepository = contactRepository;
         this.hrPersonAddressRepository = addressRepository;
@@ -46,11 +56,73 @@ public class PersonService {
         this.hrPersonPositionRepository = hrPersonPositionRepository;
         this.hrCompanyRepository = hrCompanyRepository;
         this.appUserRepository = appUserRepository;
+        this.systemRepository =  systemRepository;
+
+        PERSON_PHOTO_PATH = systemRepository.findById(UUID.fromString("a4b91eca-9367-4b90-8ac2-71115817056f")).orElseThrow().getStringVal();
+    }
+
+    public byte[] getPhotoAsByteArray(String filename) {
+        // check the file exists in the physical path, and return byte array
+        String filePath = PERSON_PHOTO_PATH + File.separator + filename;
+        File file = new File(filePath);
+        if (file.exists()) {
+            try {
+                return Files.readAllBytes(file.toPath());
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to read photo file: " + e.getMessage(), e);
+            }
+        } else {
+            throw new IllegalStateException("File not found: " + filePath);
+        }
+    }
+
+    public String getPersonPhotoPath(String filename) {
+        // check the file exists in the physical path, and return full path with PERSON_PHOTO_PATH
+        String filePath = PERSON_PHOTO_PATH + File.separator + filename;
+        File file = new File(filePath);
+        if (file.exists()) {
+            return filePath;
+        } else {
+            throw new IllegalStateException("File not found: " + filePath);
+        }
     }
 
     private FwAppUser findAppUserByUserId(String userId) {
         return appUserRepository.findByUsername(userId)
                 .orElseThrow(() -> new IllegalStateException("User not found: " + userId));
+    }
+
+    public Boolean deletePhoto(String filename) {
+        // delete from physical path
+        String filePath = PERSON_PHOTO_PATH + File.separator + filename;
+        File file = new File(filePath);
+        if (file.exists()) {
+            return file.delete();
+        } else {
+            throw new IllegalStateException("File not found: " + filePath);
+        }
+    }
+
+    public Boolean uploadPhoto(byte[] uploadedImageBytes, String filename) {
+        // upload to physical path
+        String filePath = PERSON_PHOTO_PATH + File.separator + filename;
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(uploadedImageBytes)) {
+            File file = new File(filePath);
+            // Use REPLACE_EXISTING to overwrite if file already exists
+            Files.copy(inputStream, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+            if (!file.exists()) {
+                File parent = file.getParentFile();
+                if (parent != null && !parent.exists()) {
+                    parent.mkdirs();
+                }
+                return file.createNewFile();
+            }
+
+            return false;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to upload photo: " + e.getMessage(), e);
+        }
     }
 
     public void workingWithPerson(HrPerson person, FwAppUser user) {
@@ -297,5 +369,25 @@ public class PersonService {
         }
 
         return hrPersonPositionRepository.save(personPosition);
+    }
+
+    public HrPerson getManager(AppUserInfo appUserInfo) {
+        var appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
+        HrCompany company = appUser.getCompany();
+        HrPerson person = appUser.getPerson();
+        HrPersonPosition personPosition = hrPersonPositionRepository.findCurrentPositionsByCompanyAndPerson(company, person, LocalDate.now());
+        if (personPosition == null) {
+            return null;
+        }
+        HrPosition managerPosition = personPosition.getPosition().getReportsTo();
+        if (managerPosition == null) {
+            return null;
+        }
+        // find manger that has position in the same company
+        List<HrPersonPosition> managerPositionsList = hrPersonPositionRepository.findByCompanyAndPosition(company, managerPosition);
+        if (managerPositionsList == null) {
+            return null;
+        }
+        return managerPositionsList.get(0).getPerson();
     }
 }

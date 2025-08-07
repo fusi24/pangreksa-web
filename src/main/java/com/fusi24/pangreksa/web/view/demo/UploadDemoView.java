@@ -10,9 +10,7 @@ import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.SystemService;
-import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Main;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -23,15 +21,14 @@ import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
-import com.vaadin.flow.server.streams.InMemoryUploadHandler;
-import com.vaadin.flow.server.streams.UploadHandler;
+import com.vaadin.flow.server.streams.*;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
-import java.util.Arrays;
+import java.io.File;
 import java.util.UUID;
 
 @Route("upload-demo-page-access")
@@ -68,6 +65,7 @@ public class UploadDemoView extends Main {
         log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
 
         this.DATA_PATH = systemService.getStringDataPath();
+        checkDataPath();
 
         addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
                 LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
@@ -109,20 +107,41 @@ public class UploadDemoView extends Main {
         uploadLayout.setHeight("300px");
         uploadLayout.getStyle().set("border", "1px dashed #888");
 
-        InMemoryUploadHandler inMemoryHandler = UploadHandler.inMemory(
-                (metadata, data) -> {
-                    // Get other information about the file.
-                    String fileName = metadata.fileName();
-                    String mimeType = metadata.contentType();
-                    long contentLength = metadata.contentLength();
+//        InMemoryUploadHandler inMemoryHandler = UploadHandler.inMemory(
+//                (metadata, data) -> {
+//                    // Get other information about the file.
+//                    String fileName = metadata.fileName();
+//                    String mimeType = metadata.contentType();
+//                    long contentLength = metadata.contentLength();
+//
+//                    log.debug("got filename: {}, mimeType: {}, contentLength: {}", fileName, mimeType, contentLength);
+//
+//                    // Do something with the file data...
+//                    // processFile(data, fileName);
+//                });
 
-                    log.debug("got filename: {}, mimeType: {}, contentLength: {}", fileName, mimeType, contentLength);
+        // FileFactory expects a single String argument (fileName)
+        FileFactory fileFactory = fileName -> {
+            //grab extension from fileName.fileName()
+            String extension = fileName.fileName().substring(fileName.fileName().lastIndexOf(".") + 1);
+            String newFileName = UUID.randomUUID() + "." + extension; // Generate a unique file name
+            log.debug("File extension: {} new Filename: {}", extension, newFileName);
 
-                    // Do something with the file data...
-                    // processFile(data, fileName);
-                });
+            return new File(DATA_PATH + File.separator + newFileName);
+        };
 
-        Upload upload = new Upload(inMemoryHandler);
+        FileUploadHandler fileHandler = UploadHandler.toFile( (e,f) -> {
+            // Get other information about the file.
+            String fileName = e.fileName();
+            String mimeType = e.contentType();
+            long contentLength = e.contentLength();
+
+            log.debug("got filename: {}, mimeType: {}, contentLength: {}", fileName, mimeType, contentLength);
+        }, fileFactory);
+
+        Upload upload = new Upload(fileHandler);
+
+//        Upload upload = new Upload(inMemoryHandler);
         upload.setWidthFull();
 
         uploadLayout.add(upload);
@@ -192,5 +211,21 @@ public class UploadDemoView extends Main {
         // Add listeners for UI components here
         // For example, you can add a click listener to a button
         // saveButton.addClickListener(event -> savePage());
+    }
+
+    private void checkDataPath(){
+        // Check data path on physical storage DATA_PATH
+        // If not exists, then create the folder recursively
+        File dataDir = new File(DATA_PATH);
+        if (!dataDir.exists()) {
+            boolean created = dataDir.mkdirs();
+            if (created) {
+                log.info("Data directory created: {}", DATA_PATH);
+            } else {
+                log.error("Failed to create data directory: {}", DATA_PATH);
+            }
+        } else {
+            log.info("Data directory already exists: {}", DATA_PATH);
+        }
     }
 }
