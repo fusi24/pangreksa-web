@@ -2,6 +2,7 @@ package com.fusi24.pangreksa.web.repo;
 
 import com.fusi24.pangreksa.web.model.entity.HrLeaveApplication;
 import com.fusi24.pangreksa.web.model.entity.HrPerson;
+import com.fusi24.pangreksa.web.model.enumerate.LeaveStatusEnum;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -22,9 +23,10 @@ public interface HrLeaveApplicationRepository extends JpaRepository<HrLeaveAppli
     );
 
     @EntityGraph(attributePaths = {"employee", "submittedTo", "approvedBy"})
-    List<HrLeaveApplication> findBySubmittedToAndSubmittedAtBetweenOrderBySubmittedAtDesc(
-            HrPerson employee,
+    List<HrLeaveApplication> findBySubmittedToAndSubmittedAtBetweenAndStatusInOrderBySubmittedAtDesc(
+            HrPerson submittedTo,
             LocalDateTime startDateTime,
-            LocalDateTime endDateTime
+            LocalDateTime endDateTime,
+            List<LeaveStatusEnum> statuses
     );
 }

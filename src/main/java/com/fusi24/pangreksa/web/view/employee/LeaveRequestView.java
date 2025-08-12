@@ -1,9 +1,11 @@
 package com.fusi24.pangreksa.web.view.employee;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrLeaveApplication;
+import com.fusi24.pangreksa.web.model.entity.HrLeaveBalance;
 import com.fusi24.pangreksa.web.model.entity.HrPerson;
 import com.fusi24.pangreksa.web.model.enumerate.LeaveStatusEnum;
 import com.fusi24.pangreksa.web.model.enumerate.LeaveTypeEnum;
@@ -31,6 +33,7 @@ import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 
@@ -242,6 +245,25 @@ public class LeaveRequestView extends Main {
 
                 dialog.close();
                 requestButton.setEnabled(true);
+            }
+        });
+
+        leaveType.addValueChangeListener(e-> {
+            //getLeaveBalance
+            if (leaveType.getValue() != null) {
+                // Get the leave balance for the current user and selected leave type
+                AppUserInfo appUser = currentUser.require();
+                HrLeaveBalance leaveBalance = leaveService.getLeaveBalance(appUser, LocalDate.now().getYear(), leaveType.getValue());
+
+                if(e.getValue().equals(LeaveTypeEnum.CUTI))
+                    leaveType.setHelperText("You have " + (leaveBalance != null ? leaveBalance.getRemainingDays() : 0) + " days left for " + leaveType.getValue().name());
+                else leaveType.setHelperText(null);
+
+                if (leaveBalance.getRemainingDays() <= 0) {
+                    submitButton.setEnabled(false);
+                } else {
+                    submitButton.setEnabled(true);
+                }
             }
         });
 

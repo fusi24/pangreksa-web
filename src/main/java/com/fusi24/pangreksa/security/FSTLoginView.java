@@ -44,7 +44,7 @@ class FSTLoginView extends Main implements BeforeEnterObserver{
 
         var exampleUsers = new Div(new Div("Use the following details to login"));
         exampleUsers.add(createSampleUserCard("Medisa Aris Ginanjar", "medisa","123"));
-        exampleUsers.add(createSampleUserCard("Rizky Fadillah", "rizky","123"));
+        exampleUsers.add(createSampleUserCard("Singgih Yunanto", "singgih","singgih"));
         exampleUsers.addClassNames("dev-users");
 
         var contentDiv = new Div(login, exampleUsers);

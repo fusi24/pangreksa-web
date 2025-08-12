@@ -2,6 +2,7 @@ package com.fusi24.pangreksa.web.service;
 
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.web.model.entity.*;
+import com.fusi24.pangreksa.web.model.enumerate.LeaveStatusEnum;
 import com.fusi24.pangreksa.web.model.enumerate.LeaveTypeEnum;
 import com.fusi24.pangreksa.web.repo.*;
 import org.slf4j.Logger;
@@ -124,24 +125,41 @@ public class LeaveService {
     public HrLeaveApplication saveApplication(HrLeaveApplication application, AppUserInfo appUserInfo) {
         FwAppUser appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
 
-        if (application.getId() == null) {
-            application.setCreatedBy(appUser);
-            application.setCreatedAt(LocalDateTime.now());
-            application.setUpdatedBy(appUser);
-            application.setUpdatedAt(LocalDateTime.now());
-            application.setCompany(appUser.getCompany());
-            application.setEmployee(appUser.getPerson());
-            application.setSubmittedAt(LocalDateTime.now());
-        } else {
-            application.setUpdatedBy(appUser);
-            application.setUpdatedAt(LocalDateTime.now());
-        }
+        switch (application.getStatus().toString()) {
+            case "APPROVED":
+                if (application.getId() != null) {
+                    application.setUpdatedBy(appUser);
+                    application.setUpdatedAt(LocalDateTime.now());
+                    application.setApprovedBy(appUser.getPerson());
+                    application.setApprovedAt(LocalDateTime.now());
+                }
+                break;
+            case "REJECTED":
+                if (application.getId() != null) {
+                    application.setUpdatedBy(appUser);
+                    application.setUpdatedAt(LocalDateTime.now());
+                }
+                break;
+            default:
+                if (application.getId() == null) {
+                    application.setCreatedBy(appUser);
+                    application.setCreatedAt(LocalDateTime.now());
+                    application.setUpdatedBy(appUser);
+                    application.setUpdatedAt(LocalDateTime.now());
+                    application.setCompany(appUser.getCompany());
+                    application.setEmployee(appUser.getPerson());
+                    application.setSubmittedAt(LocalDateTime.now());
+                } else {
+                    application.setUpdatedBy(appUser);
+                    application.setUpdatedAt(LocalDateTime.now());
+                }
 
-        // Calculate total days
-        if (application.getStartDate() != null && application.getEndDate() != null) {
-            application.setTotalDays((int) (application.getEndDate().toEpochDay() - application.getStartDate().toEpochDay()) + 1);
-        } else {
-            application.setTotalDays(0);
+                // Calculate total days
+                if (application.getStartDate() != null && application.getEndDate() != null) {
+                    application.setTotalDays((int) (application.getEndDate().toEpochDay() - application.getStartDate().toEpochDay()) + 1);
+                } else {
+                    application.setTotalDays(0);
+                }
         }
 
         log.debug("Saving leave application for person: {}, leave type: {}, start date: {}, end date: {}",
@@ -164,6 +182,41 @@ public class LeaveService {
         int months = systemRepository.findById(UUID.fromString("3ef1d277-7a3a-40b1-98d5-0df3e89dcd96")).orElseThrow().getIntVal();
         // create current date minus months
         LocalDateTime currentDateMinusMonths = LocalDateTime.now().minusMonths(months);
-        return leaveApplicationRepository.findBySubmittedToAndSubmittedAtBetweenOrderBySubmittedAtDesc(user.getPerson(), currentDateMinusMonths, LocalDateTime.now());
+        return leaveApplicationRepository.findBySubmittedToAndSubmittedAtBetweenAndStatusInOrderBySubmittedAtDesc(
+                user.getPerson(),
+                currentDateMinusMonths,
+                LocalDateTime.now(),
+                List.of(LeaveStatusEnum.SUBMITTED)
+        );
+    }
+
+    public HrLeaveBalance getLeaveBalance(AppUserInfo appUser, int year, LeaveTypeEnum leaveType) {
+        FwAppUser user = this.findAppUserByUserId(appUser.getUserId().toString());
+        return leaveBalanceRepository.findByEmployeeAndYearAndLeaveTypeAndCompany(
+                user.getPerson(),
+                year,
+                leaveType,
+                user.getCompany()
+        );
+    }
+
+    public Boolean updateLeaveBalance(HrLeaveApplication application, AppUserInfo appUserInfo) {
+        FwAppUser appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
+
+        HrLeaveBalance leaveBalance = leaveBalanceRepository.findByEmployeeAndYearAndLeaveTypeAndCompany(
+                application.getEmployee(),
+                application.getStartDate().getYear(),
+                application.getLeaveType(),
+                application.getCompany()
+        );
+
+        if (application.getStatus() == LeaveStatusEnum.APPROVED) {
+            leaveBalance.setUsedDays(leaveBalance.getUsedDays() + application.getTotalDays());
+            leaveBalance.setUpdatedBy(appUser);
+            leaveBalance.setUpdatedAt(LocalDateTime.now());
+            leaveBalanceRepository.save(leaveBalance);
+        }
+
+        return true;
     }
 }

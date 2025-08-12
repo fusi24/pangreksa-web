@@ -4,12 +4,28 @@ import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrLeaveApplication;
+import com.fusi24.pangreksa.web.model.entity.HrPerson;
+import com.fusi24.pangreksa.web.model.enumerate.LeaveStatusEnum;
+import com.fusi24.pangreksa.web.model.enumerate.LeaveTypeEnum;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.LeaveService;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.datepicker.DatePicker;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Main;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.PasswordField;
+import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -19,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.List;
 
 @Route("leave-approval-page-access")
 @PageTitle("Leave Approval")
@@ -86,8 +103,123 @@ public class LeaveApprovalView extends Main {
         leaveAppGrid.addColumn(HrLeaveApplication::getLeaveType).setHeader("Type").setSortable(true);
         leaveAppGrid.addColumn(HrLeaveApplication::getStartDate).setHeader("Start Date").setSortable(true);
         leaveAppGrid.addColumn(HrLeaveApplication::getTotalDays).setHeader("Total Days").setSortable(true);
+        leaveAppGrid.addColumn(HrLeaveApplication::getStatus).setHeader("Status").setSortable(true);
+
+        // Action column with delete button (icon only, no title)
+        leaveAppGrid.addColumn(new ComponentRenderer<>(leaveApplication -> {
+            // View & Edit button
+            Button viewRequestButton = new Button();
+            viewRequestButton.setIcon(VaadinIcon.NEWSPAPER.create());
+            viewRequestButton.getElement().setAttribute("title", "View Request");
+
+            if(!this.auth.canEdit){
+                viewRequestButton.setEnabled(false);
+            }
+
+            viewRequestButton.addClickListener(e -> {
+
+                openRequestDialog(leaveApplication);
+
+            });
+
+            if(!this.auth.canDelete){
+                viewRequestButton.setEnabled(false);
+            }
+
+            HorizontalLayout actionLayout = new HorizontalLayout(viewRequestButton);
+            return actionLayout;
+
+        })).setHeader("").setFlexGrow(1).setAutoWidth(false);
 
         return leaveAppGrid;
+    }
+
+    private void openRequestDialog(HrLeaveApplication leaveApp) {
+        Dialog dialog = new Dialog("Leave Form");
+        dialog.setWidth("600px");
+
+        Span nameSpan = new Span("");
+
+        FormLayout formLayout = new FormLayout();
+        formLayout.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 1),
+                new FormLayout.ResponsiveStep("600px", 2)
+        );
+
+        ComboBox<LeaveTypeEnum> leaveType = new ComboBox<>("Leave Type");
+        leaveType.setItemLabelGenerator(LeaveTypeEnum::name);
+
+        DatePicker startDate = new DatePicker("Start Date");
+        DatePicker endDate = new DatePicker("End Date");
+
+        TextArea reason = new TextArea("Reason");
+        reason.setWidthFull();
+        reason.setHeight("15em");
+
+        Button cancelButton = new Button("Cancel");
+        Button approveButton = new Button("Approve");
+        Button rejectButton = new Button("Reject");
+
+        //create horizontal layout for buttons, align and justify right
+        HorizontalLayout buttonLayout = new HorizontalLayout(rejectButton, approveButton, cancelButton);
+        buttonLayout.setWidthFull();
+        buttonLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+        buttonLayout.setAlignItems(FlexComponent.Alignment.END);
+
+        formLayout.add(
+                leaveType, startDate, endDate, reason
+        );
+
+        if(leaveApp.getId() != null) {
+            nameSpan = new Span(leaveApp.getEmployee().getFirstName() + " " + leaveApp.getEmployee().getLastName());
+            leaveType.setItems(leaveApp.getLeaveType());
+            leaveType.setValue(leaveApp.getLeaveType());
+            startDate.setValue(leaveApp.getStartDate());
+            endDate.setValue(leaveApp.getEndDate());
+            reason.setValue(leaveApp.getReason());
+            leaveType.setReadOnly(true);
+            startDate.setReadOnly(true);
+            endDate.setReadOnly(true);
+            reason.setReadOnly(true);
+        }
+
+        cancelButton.addClickListener(e -> {
+            dialog.close();
+        });
+
+        rejectButton.addClickListener(e-> {
+            if (this.auth.canEdit){
+                leaveApp.setStatus(LeaveStatusEnum.REJECTED);
+
+                saveLeaveApplication(leaveApp);
+
+                dialog.close();
+            }
+        });
+
+        approveButton.addClickListener(e-> {
+            if (this.auth.canEdit){
+                leaveApp.setStatus(LeaveStatusEnum.APPROVED);
+
+                saveLeaveApplication(leaveApp);
+
+                dialog.close();
+            }
+        });
+
+        dialog.add(nameSpan, formLayout,buttonLayout); // Placeholder for actual content
+
+        dialog.open();
+    }
+
+    private void saveLeaveApplication(HrLeaveApplication request){
+        log.debug("Submitting leave request: {} {} {}", currentUser.require().getUserId(), request.getLeaveType(), request.getStatus().toString());
+
+        request = leaveService.saveApplication(request, currentUser.require());
+        leaveService.updateLeaveBalance(request, currentUser.require());
+        populateGrid();
+
+
     }
 
     private void populateGrid(){
