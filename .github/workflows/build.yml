@@ -23,6 +23,11 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      # Step 2.5: Replace FSTSecurityConfig.java from /opt/source
+      - name: Replace FSTSecurityConfig.java
+        run: |
+          cp /opt/source/FSTSecurityConfig.java src/main/java/com/fusi24/pangreksa/security/FSTSecurityConfig.java
+
       # Step 3: Copy application.properties from /opt/source
       - name: Add cloud DB application.properties
         run: |
