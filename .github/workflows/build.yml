@@ -30,7 +30,7 @@ jobs:
 
       # Step 4: Build JAR with Maven (skip tests)
       - name: Build with Maven
-        run: mvn -B clean package -DskipTests
+        run: mvn -B clean package -DskipTests -Pproduction
 
       # Step 5: Save artifact for next stage
       - name: Upload JAR artifact
