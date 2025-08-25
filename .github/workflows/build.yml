@@ -1,0 +1,33 @@
+name: Build JAR with Cloud DB Properties
+
+on:
+  workflow_dispatch:   # manual trigger
+  push:
+    branches:
+      - main           # or change to your branch
+
+jobs:
+  build:
+    runs-on: [self-hosted, ubuntu-github-runner-01]
+
+    steps:
+      # Step 1: Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up JDK 21
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # Step 3: Copy application.properties from /opt/source
+      - name: Add cloud DB application.properties
+        run: |
+          cp /opt/source/application.properties_cloud_db src/main/resources/application.properties
+
+      # Step 4: Build JAR with Maven (skip tests)
+      - name: Build with Maven
+        run: mvn -B clean package -DskipTests
