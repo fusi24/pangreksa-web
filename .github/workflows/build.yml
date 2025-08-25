@@ -71,7 +71,7 @@ jobs:
       # Step 5: Kill old Java process if running
       - name: Kill old Java process
         run: |
-          ssh root@cloudserver "pkill -f 'web-1.0' || true"
+          ssh -o StrictHostKeyChecking=no root@cloudserver "pkill -f 'web-1.0'" || true
 
       # Step 6: Run JAR on remote with nohup (prod profile)
       - name: Run JAR on remote
