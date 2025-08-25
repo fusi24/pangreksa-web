@@ -38,7 +38,7 @@ jobs:
         with:
           name: built-jar
           path: target/web-1.0-SNAPSHOT.jar
-
+  
   deploy:
     runs-on: self-hosted
     needs: build   # only run if build succeeds
@@ -68,7 +68,14 @@ jobs:
         run: |
           scp target/${{ env.JAR_NAME }} root@cloudserver:~
 
-      # Step 5: Run JAR on remote with nohup
+      # Step 5: Kill old Java process if running
+      - name: Kill old Java process
+        run: |
+          ssh root@cloudserver "pkill -f 'web-1.0' || true"
+
+      # Step 6: Run JAR on remote with nohup (prod profile)
       - name: Run JAR on remote
         run: |
-          ssh root@cloudserver "nohup java -jar ~/$(echo ${{ env.JAR_NAME }}) > ~/run.log 2>&1 &"
+          ssh root@cloudserver "nohup java -jar ~/$(echo ${{ env.JAR_NAME }}) --spring.profiles.active=prod > ~/run.log 2>&1 &"
+
+  
