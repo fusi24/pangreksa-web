@@ -31,3 +31,44 @@ jobs:
       # Step 4: Build JAR with Maven (skip tests)
       - name: Build with Maven
         run: mvn -B clean package -DskipTests
+
+      # Step 5: Save artifact for next stage
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-jar
+          path: target/web-1.0-SNAPSHOT.jar
+
+  deploy:
+    runs-on: self-hosted
+    needs: build   # only run if build succeeds
+
+    steps:
+      # Step 1: Download the JAR artifact
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: built-jar
+          path: target
+
+      # Step 2: Rename JAR with timestamp
+      - name: Rename JAR with timestamp
+        run: |
+          ts=$(date +'%Y%m%d%H%M%S')
+          mv target/web-1.0-SNAPSHOT.jar target/web-1.0-${ts}.jar
+          echo "JAR_NAME=web-1.0-${ts}.jar" >> $GITHUB_ENV
+
+      # Step 3: Delete old JARs on remote machine
+      - name: Delete old JARs on remote
+        run: |
+          ssh root@cloudserver "rm -f ~/web-1.0-*.jar"
+
+      # Step 4: Copy new JAR to remote
+      - name: Copy JAR to remote
+        run: |
+          scp target/${{ env.JAR_NAME }} root@cloudserver:~
+
+      # Step 5: Run JAR on remote with nohup
+      - name: Run JAR on remote
+        run: |
+          ssh root@cloudserver "nohup java -jar ~/$(echo ${{ env.JAR_NAME }}) > ~/run.log 2>&1 &"
