@@ -3,6 +3,7 @@ package com.fusi24.pangreksa.web.view.employee;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
+import com.fusi24.pangreksa.web.model.entity.HrLeaveAbsenceTypes;
 import com.fusi24.pangreksa.web.model.entity.HrLeaveApplication;
 import com.fusi24.pangreksa.web.model.entity.HrPerson;
 import com.fusi24.pangreksa.web.model.enumerate.LeaveStatusEnum;
@@ -100,7 +101,7 @@ public class LeaveApprovalView extends Main {
         //add column
         leaveAppGrid.addColumn(HrLeaveApplication::getSubmittedAt).setHeader("Submitted").setSortable(true);
         leaveAppGrid.addColumn(l -> l.getEmployee().getFirstName() + " " +l.getEmployee().getLastName()).setHeader("Requestor").setSortable(true);
-        leaveAppGrid.addColumn(HrLeaveApplication::getLeaveType).setHeader("Type").setSortable(true);
+        leaveAppGrid.addColumn(l -> l.getLeaveAbsenceType().getLabel()).setHeader("Type").setSortable(true);
         leaveAppGrid.addColumn(HrLeaveApplication::getStartDate).setHeader("Start Date").setSortable(true);
         leaveAppGrid.addColumn(HrLeaveApplication::getTotalDays).setHeader("Total Days").setSortable(true);
         leaveAppGrid.addColumn(HrLeaveApplication::getStatus).setHeader("Status").setSortable(true);
@@ -146,8 +147,8 @@ public class LeaveApprovalView extends Main {
                 new FormLayout.ResponsiveStep("600px", 2)
         );
 
-        ComboBox<LeaveTypeEnum> leaveType = new ComboBox<>("Leave Type");
-        leaveType.setItemLabelGenerator(LeaveTypeEnum::name);
+        ComboBox<HrLeaveAbsenceTypes> leaveType = new ComboBox<>("Leave Type");
+        leaveType.setItemLabelGenerator(HrLeaveAbsenceTypes::getLabel);
 
         DatePicker startDate = new DatePicker("Start Date");
         DatePicker endDate = new DatePicker("End Date");
@@ -172,8 +173,8 @@ public class LeaveApprovalView extends Main {
 
         if(leaveApp.getId() != null) {
             nameSpan = new Span(leaveApp.getEmployee().getFirstName() + " " + leaveApp.getEmployee().getLastName());
-            leaveType.setItems(leaveApp.getLeaveType());
-            leaveType.setValue(leaveApp.getLeaveType());
+            leaveType.setItems(leaveApp.getLeaveAbsenceType());
+            leaveType.setValue(leaveApp.getLeaveAbsenceType());
             startDate.setValue(leaveApp.getStartDate());
             endDate.setValue(leaveApp.getEndDate());
             reason.setValue(leaveApp.getReason());
@@ -213,7 +214,7 @@ public class LeaveApprovalView extends Main {
     }
 
     private void saveLeaveApplication(HrLeaveApplication request){
-        log.debug("Submitting leave request: {} {} {}", currentUser.require().getUserId(), request.getLeaveType(), request.getStatus().toString());
+        log.debug("Submitting leave request: {} {} {}", currentUser.require().getUserId(), request.getLeaveAbsenceType().getLabel(), request.getStatus().toString());
 
         request = leaveService.saveApplication(request, currentUser.require());
         leaveService.updateLeaveBalance(request, currentUser.require());

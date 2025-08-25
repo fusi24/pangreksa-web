@@ -11,7 +11,6 @@ LokasiForm
 CatatanKehadiranKaryawan
 CutiIzinList
 CutiIzinForm
-KalendarKerja
 KalendarKerjaForm
 AbsensiKaryawanList
 AbsensiKaryawanForm
@@ -39,3 +38,14 @@ LeaveBalanceData
 LeaveRequest
 LeaveApproval
 LeaveBalanceManagement
+GlobalLeaveAbsenceManagement
+KalendarKerja
+CatatanKehadiran
+AbsensiList
+KomponenGaji
+FormKomponenGaji
+CutiIzin
+FormCutiIzin
+KalenderKerja
+FormKalenderKerja
+BpjsPajak

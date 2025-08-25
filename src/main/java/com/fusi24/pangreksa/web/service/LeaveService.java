@@ -24,19 +24,28 @@ public class LeaveService {
     private final FwSystemRepository systemRepository;
     private final HrLeaveGenerationLogRepository leaveGenerationLogRepository;
     private final HrLeaveApplicationRepository leaveApplicationRepository;
-
-    private Map<String, Integer> leaveTypeDaysMap;
+    private final HrLeaveAbsenceTypesRepository leaveAbsenceTypesRepository;
 
     public LeaveService(HrPersonPositionRepository personPositionRepository, HrLeaveBalanceRepository leaveBalanceRepository,FwAppUserRepository appUserRepository,
-                        FwSystemRepository systemRepository, HrLeaveGenerationLogRepository leaveGenerationLogRepository, HrLeaveApplicationRepository leaveApplicationRepository) {
+                        FwSystemRepository systemRepository, HrLeaveGenerationLogRepository leaveGenerationLogRepository, HrLeaveApplicationRepository leaveApplicationRepository,
+                        HrLeaveAbsenceTypesRepository leaveAbsenceTypesRepository) {
         this.personPositionRepository = personPositionRepository;
         this.leaveBalanceRepository = leaveBalanceRepository;
         this.appUserRepository = appUserRepository;
         this.systemRepository = systemRepository;
         this.leaveGenerationLogRepository = leaveGenerationLogRepository;
         this.leaveApplicationRepository = leaveApplicationRepository;
+        this.leaveAbsenceTypesRepository = leaveAbsenceTypesRepository;
 
-        setLeaveTypeDaysMap();
+        this.getLeaveAbsenceTypesList();
+    }
+
+    public List<HrLeaveAbsenceTypes> findAllLeaveAbsenceTypesList() {
+        return leaveAbsenceTypesRepository.findAllByOrderBySortOrderAsc();
+    }
+
+    public List<HrLeaveAbsenceTypes> getLeaveAbsenceTypesList() {
+     return leaveAbsenceTypesRepository.findAllByIsEnableTrueOrderBySortOrderAsc();
     }
 
     public List<HrLeaveGenerationLog> getLeaveGenerationLogs(HrCompany company) {
@@ -56,18 +65,6 @@ public class LeaveService {
                 .orElseThrow(() -> new IllegalStateException("User not found: " + userId));
     }
 
-    private void setLeaveTypeDaysMap(){
-        this.leaveTypeDaysMap = Map.of(
-                LeaveTypeEnum.CUTI.toString(), systemRepository.findById(UUID.fromString("85270560-2051-431e-9ce4-5c8e4a7373e0")).orElseThrow().getIntVal(),
-                LeaveTypeEnum.CUTI_KHUSUS.toString(), systemRepository.findById(UUID.fromString("b675d92c-fd4c-45fc-b075-49ec13e23e00")).orElseThrow().getIntVal(),
-                LeaveTypeEnum.IZIN.toString(), systemRepository.findById(UUID.fromString("ac02cdb9-190c-44ac-b7ff-bd502e86d6e0")).orElseThrow().getIntVal(),
-                LeaveTypeEnum.SAKIT.toString(), systemRepository.findById(UUID.fromString("85fa7773-dc20-4b8d-95cd-ae5d4c8fe143")).orElseThrow().getIntVal(),
-                LeaveTypeEnum.MELAHIRKAN.toString(), systemRepository.findById(UUID.fromString("455c35d9-f299-4af1-9ca4-c5ec3bb8d2c4")).orElseThrow().getIntVal(),
-                LeaveTypeEnum.LIBUR_NASIONAL.toString(), systemRepository.findById(UUID.fromString("526efa2b-74df-42a9-8c4b-cb45280c284f")).orElseThrow().getIntVal(),
-                LeaveTypeEnum.PERJALANAN_DINAS.toString(), systemRepository.findById(UUID.fromString("bdcef9a1-9c9f-488f-a35e-5589123e0611")).orElseThrow().getIntVal()
-        );
-    }
-
     public void generateLeaveBalanceData(HrCompany company, int year, AppUserInfo appUserInfo ) {
         var appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
 
@@ -85,20 +82,22 @@ public class LeaveService {
 
         List<HrPersonPosition> personPositionList = personPositionRepository.findActivePersonsNotInLeaveBalanceByCompanyAndYear(company, year);
         //get list of leave types
-        List<LeaveTypeEnum> leaveTypes = Arrays.asList(LeaveTypeEnum.values());
+//        List<LeaveTypeEnum> leaveTypes = Arrays.asList(LeaveTypeEnum.values());
         for (HrPersonPosition personPosition : personPositionList) {
             log.debug("Generating leave balance for person: {} in company: {} for year: {}",
                     personPosition.getPerson().getFirstName() + " " + personPosition.getPerson().getLastName(), company.getName(), year);
 
-            for (LeaveTypeEnum leaveType : leaveTypes) {
+            List<HrLeaveAbsenceTypes> leaveAbsenceTypesList = leaveAbsenceTypesRepository.findAllByIsEnableTrueOrderBySortOrderAsc();
+
+            for (HrLeaveAbsenceTypes leaveAbsenceType : leaveAbsenceTypesList) {
                 HrPerson person = personPosition.getPerson();
                 HrLeaveBalance leaveBalance = HrLeaveBalance.builder()
                         .employee(person)
                         .company(company)
                         .year(year)
-                        .leaveType(leaveType)
+                        .leaveAbsenceType(leaveAbsenceType)
                         .generationLog(generationLog)
-                        .allocatedDays(leaveTypeDaysMap.get(leaveType.toString()))
+                        .allocatedDays(leaveAbsenceType.getMaxAllowedDays())
                         .usedDays(0)
                         .build();
 
@@ -110,7 +109,7 @@ public class LeaveService {
                 leaveBalance = leaveBalanceRepository.save(leaveBalance);
 
                 log.debug("Saving leave balance for person: {}, leave type: {}, allocated days: {}",
-                        person.getFirstName() + " " + person.getLastName(), leaveType, leaveBalance.getAllocatedDays());
+                        person.getFirstName() + " " + person.getLastName(), leaveAbsenceType.getLeaveAbsenceType(), leaveBalance.getAllocatedDays());
 
                 if (leaveBalance.getId() != null) {
                     dataGenerated++;
@@ -164,7 +163,7 @@ public class LeaveService {
 
         log.debug("Saving leave application for person: {}, leave type: {}, start date: {}, end date: {}",
                 application.getEmployee().getFirstName() + " " + application.getEmployee().getLastName(),
-                application.getLeaveType(), application.getStartDate(), application.getEndDate());
+                application.getLeaveAbsenceType().getLabel(), application.getStartDate(), application.getEndDate());
 
         return leaveApplicationRepository.save(application);
     }
@@ -190,12 +189,21 @@ public class LeaveService {
         );
     }
 
-    public HrLeaveBalance getLeaveBalance(AppUserInfo appUser, int year, LeaveTypeEnum leaveType) {
+    public HrLeaveBalance getLeaveBalance(AppUserInfo appUser, int year, HrLeaveAbsenceTypes leaveAbsenceType) {
         FwAppUser user = this.findAppUserByUserId(appUser.getUserId().toString());
-        return leaveBalanceRepository.findByEmployeeAndYearAndLeaveTypeAndCompany(
+        return leaveBalanceRepository.findByEmployeeAndYearAndLeaveAbsenceTypeAndCompany(
                 user.getPerson(),
                 year,
-                leaveType,
+                leaveAbsenceType,
+                user.getCompany()
+        );
+    }
+
+    public List<HrLeaveBalance> getAllLeaveBalance(AppUserInfo appUser, int year) {
+        FwAppUser user = this.findAppUserByUserId(appUser.getUserId().toString());
+        return leaveBalanceRepository.findByEmployeeAndYearAndCompany(
+                user.getPerson(),
+                year,
                 user.getCompany()
         );
     }
@@ -203,10 +211,10 @@ public class LeaveService {
     public Boolean updateLeaveBalance(HrLeaveApplication application, AppUserInfo appUserInfo) {
         FwAppUser appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
 
-        HrLeaveBalance leaveBalance = leaveBalanceRepository.findByEmployeeAndYearAndLeaveTypeAndCompany(
+        HrLeaveBalance leaveBalance = leaveBalanceRepository.findByEmployeeAndYearAndLeaveAbsenceTypeAndCompany(
                 application.getEmployee(),
                 application.getStartDate().getYear(),
-                application.getLeaveType(),
+                application.getLeaveAbsenceType(),
                 application.getCompany()
         );
 
@@ -218,5 +226,21 @@ public class LeaveService {
         }
 
         return true;
+    }
+
+    public HrLeaveAbsenceTypes saveLeaveAbsenceType(HrLeaveAbsenceTypes leaveAbsenceType, AppUserInfo appUserInfo) {
+        FwAppUser appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
+
+        if (leaveAbsenceType.getId() == null) {
+            leaveAbsenceType.setCreatedBy(appUser);
+            leaveAbsenceType.setCreatedAt(LocalDateTime.now());
+            leaveAbsenceType.setUpdatedBy(appUser);
+            leaveAbsenceType.setUpdatedAt(LocalDateTime.now());
+        } else {
+            leaveAbsenceType.setUpdatedBy(appUser);
+            leaveAbsenceType.setUpdatedAt(LocalDateTime.now());
+        }
+
+        return leaveAbsenceTypesRepository.save(leaveAbsenceType);
     }
 }

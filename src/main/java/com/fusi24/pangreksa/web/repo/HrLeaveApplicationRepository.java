@@ -15,14 +15,14 @@ public interface HrLeaveApplicationRepository extends JpaRepository<HrLeaveAppli
     // Find by referenceId
     //List<HrLeaveApplication> findByReferenceId(Long referenceId);
 
-    @EntityGraph(attributePaths = {"employee", "submittedTo", "approvedBy"})
+    @EntityGraph(attributePaths = {"employee", "submittedTo", "approvedBy","leaveAbsenceType"})
     List<HrLeaveApplication> findByEmployeeAndSubmittedAtBetweenOrderBySubmittedAtDesc(
             HrPerson employee,
             LocalDateTime startDateTime,
             LocalDateTime endDateTime
     );
 
-    @EntityGraph(attributePaths = {"employee", "submittedTo", "approvedBy"})
+    @EntityGraph(attributePaths = {"employee", "submittedTo", "approvedBy","leaveAbsenceType"})
     List<HrLeaveApplication> findBySubmittedToAndSubmittedAtBetweenAndStatusInOrderBySubmittedAtDesc(
             HrPerson submittedTo,
             LocalDateTime startDateTime,

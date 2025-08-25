@@ -25,9 +25,9 @@ public class HrLeaveApplication extends AuditableEntity<HrLeaveApplication> {
     @JoinColumn(name = "employee_id", nullable = false)
     private HrPerson employee;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "leave_type", nullable = false, length = 10)
-    private LeaveTypeEnum leaveType;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "leave_absence_type_id", nullable = false)
+    private HrLeaveAbsenceTypes leaveAbsenceType;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;

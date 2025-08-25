@@ -1,5 +1,8 @@
 package com.fusi24.pangreksa.web.view.employee;
 
+import com.fusi24.pangreksa.web.model.entity.HrLeaveAbsenceTypes;
+import com.vaadin.flow.component.card.Card;
+import com.vaadin.flow.component.html.Span;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
@@ -8,7 +11,6 @@ import com.fusi24.pangreksa.web.model.entity.HrLeaveApplication;
 import com.fusi24.pangreksa.web.model.entity.HrLeaveBalance;
 import com.fusi24.pangreksa.web.model.entity.HrPerson;
 import com.fusi24.pangreksa.web.model.enumerate.LeaveStatusEnum;
-import com.fusi24.pangreksa.web.model.enumerate.LeaveTypeEnum;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.LeaveService;
 import com.fusi24.pangreksa.web.service.PersonService;
@@ -34,8 +36,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Route("leave-request-page-access")
 @PageTitle("Leave Request")
@@ -60,6 +64,8 @@ public class LeaveRequestView extends Main {
     Button requestButton;
     Grid<HrLeaveApplication> leaveAppGrid;
 
+    List<HrLeaveAbsenceTypes> leaveAbsenceTypesList;
+
     public LeaveRequestView(CurrentUser currentUser, CommonService commonService, PersonService personService, LeaveService leaveService) {
         this.currentUser = currentUser;
         this.commonService = commonService;
@@ -79,6 +85,8 @@ public class LeaveRequestView extends Main {
         add(new ViewToolbar(VIEW_NAME));
         createBody();
 
+        this.leaveAbsenceTypesList = leaveService.getLeaveAbsenceTypesList();
+
         setListener();
         setAuthorization();
     }
@@ -91,8 +99,17 @@ public class LeaveRequestView extends Main {
 
     private void createBody() {
         this.body = new VerticalLayout();
-//        body.setPadding(false);
-//        body.setSpacing(false);
+
+        HorizontalLayout horizontalLayoutDashboard = new HorizontalLayout();
+        horizontalLayoutDashboard.setWidth("150px");
+        horizontalLayoutDashboard.setWidthFull();
+
+        List<HrLeaveBalance> leaveBalances = leaveService.getAllLeaveBalance(currentUser.require(), LocalDate.now().getYear());
+
+        for (HrLeaveBalance leaveBalance : leaveBalances) {
+            if (leaveBalance.getUsedDays() > 0)
+                horizontalLayoutDashboard.add(createDashboardCard(leaveBalance.getLeaveAbsenceType().getLabel(), String.valueOf(leaveBalance.getUsedDays())));
+        }
 
         // Inisiasi toolbar Master
         toolbarLayoutMaster = new HorizontalLayout();
@@ -107,8 +124,8 @@ public class LeaveRequestView extends Main {
         toolbarLayoutMaster.add(requestButton);
 //        toolbarLayoutMaster.add(createContent());
         toolbarLayoutMaster.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+        body.add(horizontalLayoutDashboard, toolbarLayoutMaster, gridLeaveApplication());
 
-        body.add(toolbarLayoutMaster, gridLeaveApplication());
 
         populateGrid();
 
@@ -119,7 +136,7 @@ public class LeaveRequestView extends Main {
         leaveAppGrid = new Grid<>(HrLeaveApplication.class, false);
         //add column
         leaveAppGrid.addColumn(HrLeaveApplication::getSubmittedAt).setHeader("Submitted").setSortable(true);
-        leaveAppGrid.addColumn(HrLeaveApplication::getLeaveType).setHeader("Type").setSortable(true);
+        leaveAppGrid.addColumn( l -> l.getLeaveAbsenceType().getLabel()).setHeader("Type").setSortable(true);
         leaveAppGrid.addColumn(HrLeaveApplication::getStartDate).setHeader("Start Date").setSortable(true);
         leaveAppGrid.addColumn(HrLeaveApplication::getTotalDays).setHeader("Total Days").setSortable(true);
         leaveAppGrid.addColumn(l -> l.getSubmittedTo().getFirstName() + " " +l.getSubmittedTo().getLastName()).setHeader("Approver").setSortable(true);
@@ -149,9 +166,9 @@ public class LeaveRequestView extends Main {
                 new FormLayout.ResponsiveStep("600px", 2)
         );
 
-        ComboBox<LeaveTypeEnum> leaveType = new ComboBox<>("Leave Type");
-        leaveType.setItems(LeaveTypeEnum.values());
-        leaveType.setItemLabelGenerator(Enum::name);
+        ComboBox<HrLeaveAbsenceTypes> leaveAbsenceTypeDropdown = new ComboBox<>("Leave Type");
+        leaveAbsenceTypeDropdown.setItems(leaveAbsenceTypesList);
+        leaveAbsenceTypeDropdown.setItemLabelGenerator(HrLeaveAbsenceTypes::getLabel);
 
         DatePicker startDate = new DatePicker("Start Date");
         DatePicker endDate = new DatePicker("End Date");
@@ -200,7 +217,7 @@ public class LeaveRequestView extends Main {
         buttonLayout.setAlignItems(FlexComponent.Alignment.END);
 
         formLayout.add(
-                leaveType, startDate, endDate,
+                leaveAbsenceTypeDropdown, startDate, endDate,
                 submittedToCombo, reason
                 );
 
@@ -217,7 +234,7 @@ public class LeaveRequestView extends Main {
         generateReasonButton.addClickListener(e -> {
             reason.setValue(new String());
             // Replace placeholders with actual values: TYPE, FROM_DATE, TO_DATE, ALASAN, PERSON
-            reasonTemplate[0] = reasonTemplate[0].replace("[TYPE]", leaveType.getValue() != null ? leaveType.getValue().name() : "[TYPE]");
+            reasonTemplate[0] = reasonTemplate[0].replace("[TYPE]", leaveAbsenceTypeDropdown.getValue() != null ? leaveAbsenceTypeDropdown.getValue().getLabel() : "[TYPE]");
             reasonTemplate[0] = reasonTemplate[0].replace("[FROM_DATE]", startDate.getValue() != null ? startDate.getValue().toString() : "[FROM_DATE]");
             reasonTemplate[0] = reasonTemplate[0].replace("[TO_DATE]", endDate.getValue() != null ? endDate.getValue().toString() : "[TO_DATE]");
             reason.setValue(reasonTemplate[0]);
@@ -227,7 +244,8 @@ public class LeaveRequestView extends Main {
         submitButton.addClickListener(e-> {
             if (this.auth.canCreate){
                 HrLeaveApplication request = HrLeaveApplication.builder()
-                        .leaveType(leaveType.getValue())
+//                        .leaveAbsenceTypeDropdown(leaveAbsenceTypeDropdown.getValue())
+                        .leaveAbsenceType(leaveAbsenceTypeDropdown.getValue())
                         .startDate(startDate.getValue())
                         .endDate(endDate.getValue())
                         .reason(reason.getValue())
@@ -235,7 +253,7 @@ public class LeaveRequestView extends Main {
                         .submittedTo(finalSubmittedToCombo.getValue())
                         .build();
 
-                log.debug("Submitting leave request: {} {} {}", currentUser.require().getUserId(), request.getLeaveType(), request.getStatus().toString());
+                log.debug("Submitting leave request: {} {} {}", currentUser.require().getUserId(), request.getLeaveAbsenceType().getLabel(), request.getStatus().toString());
 
                 request = leaveService.saveApplication(request, currentUser.require());
                 if (request.getId() != null) {
@@ -248,16 +266,16 @@ public class LeaveRequestView extends Main {
             }
         });
 
-        leaveType.addValueChangeListener(e-> {
+        leaveAbsenceTypeDropdown.addValueChangeListener(e-> {
             //getLeaveBalance
-            if (leaveType.getValue() != null) {
+            if (leaveAbsenceTypeDropdown.getValue() != null) {
                 // Get the leave balance for the current user and selected leave type
                 AppUserInfo appUser = currentUser.require();
-                HrLeaveBalance leaveBalance = leaveService.getLeaveBalance(appUser, LocalDate.now().getYear(), leaveType.getValue());
+                HrLeaveBalance leaveBalance = leaveService.getLeaveBalance(appUser, LocalDate.now().getYear(), leaveAbsenceTypeDropdown.getValue());
 
-                if(e.getValue().equals(LeaveTypeEnum.CUTI))
-                    leaveType.setHelperText("You have " + (leaveBalance != null ? leaveBalance.getRemainingDays() : 0) + " days left for " + leaveType.getValue().name());
-                else leaveType.setHelperText(null);
+                if(e.getValue().getId() == 1)
+                    leaveAbsenceTypeDropdown.setHelperText("You have " + (leaveBalance != null ? leaveBalance.getRemainingDays() : 0) + " days left for " + leaveAbsenceTypeDropdown.getValue().getLabel());
+                else leaveAbsenceTypeDropdown.setHelperText(null);
 
                 if (leaveBalance.getRemainingDays() <= 0) {
                     submitButton.setEnabled(false);
@@ -286,6 +304,41 @@ public class LeaveRequestView extends Main {
         Notification.show("Leave request submitted successfully!");
     }
 
+    private Card createDashboardCard(String stringTitle, String stringValue) {
+        // Format stringValue
+        String formattedTitle = Arrays.stream(stringTitle.split("_"))
+                .map(s -> s.isEmpty() ? s :
+                        Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase())
+                .collect(Collectors.joining(" "));
+
+        Card card = new Card();
+//        card.addThemeVariants(CardVariant.LUMO_ELEVATED);
+        card.setMinWidth("150px");
+        card.setHeight("75px");
+        // Title
+        Span cardTitle = new Span(formattedTitle);
+        cardTitle.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        cardTitle.getStyle().set("text-align", "center");
+        cardTitle.getStyle().set("display", "block");
+        cardTitle.getStyle().set("margin", "auto");
+        card.setTitle(cardTitle);
+        // Card Value
+        Span cardValue = new Span(stringValue);
+        cardValue.getStyle().set("text-align", "center");
+        cardValue.getStyle().set("display", "block");
+        cardValue.getStyle().set("margin", "auto");
+        // Layout inside card
+        VerticalLayout cardContent = new VerticalLayout(cardValue);
+        cardContent.setAlignItems(FlexComponent.Alignment.CENTER);
+        cardContent.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        cardContent.setSizeFull();
+        cardContent.setPadding(false);
+        cardContent.setSpacing(false);
+
+        card.add(cardContent);
+        return card;
+    }
+
     private HrPerson getManager(){
         var user = currentUser.require();
         return personService.getManager(user);
@@ -297,4 +350,3 @@ public class LeaveRequestView extends Main {
         // saveButton.addClickListener(event -> savePage());
     }
 }
-

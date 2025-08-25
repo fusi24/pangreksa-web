@@ -123,7 +123,7 @@ public class LeaveBalanceDataView extends Main {
         this.leaveGenerationLogGrid = new Grid<>(HrLeaveGenerationLog.class, false);
         leaveGenerationLogGrid.addColumn(log -> log.getCompany().getName()).setHeader("Company");
         leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getYear).setHeader("Year");
-        leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getDataGenerated).setHeader("No. Data");
+        leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getDataGenerated).setHeader("Total Data");
         leaveGenerationLogGrid.addColumn(log -> log.getCreatedBy().getUsername()).setHeader("Created By");
         leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getCreatedAt).setHeader("Created At");
         leaveGenerationLogGrid.setWidthFull();
@@ -141,7 +141,7 @@ public class LeaveBalanceDataView extends Main {
                 int year = this.yearDropdown.getValue();
                 Long leaveServerCount = leaveService.countLeaveBalanceRowPerCompany(company, year);
                 Long personCount = leaveService.countPersonPerCompany(company, year);
-                int leaveTypeCount = LeaveTypeEnum.values().length;
+                int leaveTypeCount = leaveService.getLeaveAbsenceTypesList().size();
 
                 log.debug("Leave Balance Data for Company: {}, Year: {}, Leave Count: {}, Person Count: {}",
                         company.getName(), year, leaveServerCount, personCount);

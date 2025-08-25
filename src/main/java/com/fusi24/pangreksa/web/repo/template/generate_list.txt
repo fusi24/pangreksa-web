@@ -22,3 +22,5 @@ HrLeaveApplication
 HrLeaveBalance
 HrLeaveGenerationLog
 HrLeaveRequestLog
+HrLeaveAbsenceTypes
+HrCompanyCalendar

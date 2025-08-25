@@ -20,9 +20,9 @@ public class HrLeaveBalance extends AuditableEntity<HrLeaveBalance>{
     @Column(name = "year", nullable = false)
     private int year;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "leave_type", nullable = false, length = 20)
-    private LeaveTypeEnum leaveType;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "leave_absence_type_id", nullable = false)
+    private HrLeaveAbsenceTypes leaveAbsenceType;
 
     @Column(name = "allocated_days")
     private int allocatedDays = 0;
