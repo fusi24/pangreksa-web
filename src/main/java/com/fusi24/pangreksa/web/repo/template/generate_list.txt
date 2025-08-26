@@ -24,3 +24,4 @@ HrLeaveGenerationLog
 HrLeaveRequestLog
 HrLeaveAbsenceTypes
 HrCompanyCalendar
+HrSalaryBaseLevel

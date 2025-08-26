@@ -12,5 +12,8 @@ import java.util.List;
 public interface FwSystemRepository extends JpaRepository<FwSystem, UUID> {
     @Query("SELECT s FROM FwSystem s ORDER BY s.sortOrder ASC")
     List<FwSystem> findAllOrderBySortOrderAsc();
+
+    @Query("SELECT s FROM FwSystem s WHERE s.id IN :ids ORDER BY s.sortOrder ASC")
+    List<FwSystem> findByIdInOrderBySortOrderAsc(List<UUID> ids);
 }
 

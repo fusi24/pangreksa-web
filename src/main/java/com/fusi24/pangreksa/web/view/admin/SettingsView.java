@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.util.DatePickerUtil;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.FwSystem;
@@ -17,7 +18,6 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
-import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.virtuallist.VirtualList;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Menu;
@@ -148,7 +148,7 @@ public class SettingsView extends Main {
                         IntegerField tf = new IntegerField();
                         tf.setStepButtonsVisible(true);
                         tf.setMin(0);
-                        tf.setMax(100);
+                        tf.setMax( system.getIntVal() > 100 ? 100000000 : 100);
                         tf.setValue(system.getIntVal() != null ? system.getIntVal() : 0);
                         tf.addValueChangeListener(e -> system.setIntVal(e.getValue() != null ? e.getValue() : null));
                         component = tf;
@@ -156,6 +156,7 @@ public class SettingsView extends Main {
                     }
                     case "DATE": {
                         DatePicker dp = new DatePicker();
+                        dp.setI18n(DatePickerUtil.getIndonesianI18n());
                         dp.setValue(system.getDateVal() != null ? system.getDateVal() : null);
                         dp.addValueChangeListener(e -> system.setDateVal(e.getValue()));
                         component = dp;

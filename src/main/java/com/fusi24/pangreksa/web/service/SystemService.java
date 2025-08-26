@@ -24,6 +24,15 @@ public class SystemService {
         return systemRepository.findAllOrderBySortOrderAsc();
     }
 
+    public List<FwSystem> findSystemsByIds(List<String> idStrings) {
+        log.debug("Fetching systems ordered by idStrings: {}", idStrings.size());
+
+        // create list of UUIDs from list of strings
+        List<UUID> ids = idStrings.stream().map(UUID::fromString).toList();
+
+        return systemRepository.findByIdInOrderBySortOrderAsc(ids);
+    }
+
     public FwSystem findSystemById(UUID id) {
         log.debug("Fetching system with ID: {}", id);
         return systemRepository.findById(id)

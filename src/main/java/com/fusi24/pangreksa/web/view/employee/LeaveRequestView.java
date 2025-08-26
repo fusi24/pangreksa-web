@@ -1,5 +1,6 @@
 package com.fusi24.pangreksa.web.view.employee;
 
+import com.fusi24.pangreksa.base.util.DatePickerUtil;
 import com.fusi24.pangreksa.web.model.entity.HrLeaveAbsenceTypes;
 import com.vaadin.flow.component.card.Card;
 import com.vaadin.flow.component.html.Span;
@@ -172,6 +173,9 @@ public class LeaveRequestView extends Main {
 
         DatePicker startDate = new DatePicker("Start Date");
         DatePicker endDate = new DatePicker("End Date");
+
+        startDate.setI18n(DatePickerUtil.getIndonesianI18n());
+        endDate.setI18n(DatePickerUtil.getIndonesianI18n());
 
         TextArea reason = new TextArea("Reason");
         reason.setWidthFull();

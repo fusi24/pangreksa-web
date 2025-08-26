@@ -1,5 +1,6 @@
 package com.fusi24.pangreksa.web.view.employee;
 
+import com.fusi24.pangreksa.base.util.DatePickerUtil;
 import com.vaadin.flow.component.grid.Grid;
 
 import com.fusi24.pangreksa.web.model.entity.*;
@@ -278,6 +279,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         nationality.setItems(NationalityEnum.values());
         religion.setItems(ReligionEnum.values());
         marriage.setItems(MarriageEnum.values());
+        dob.setI18n(DatePickerUtil.getIndonesianI18n());
 
         // Create the FormLayout
         personFormLayout = new FormLayout();

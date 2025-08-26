@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.employee;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.util.DatePickerUtil;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrLeaveAbsenceTypes;
@@ -152,6 +153,9 @@ public class LeaveApprovalView extends Main {
 
         DatePicker startDate = new DatePicker("Start Date");
         DatePicker endDate = new DatePicker("End Date");
+
+        startDate.setI18n(DatePickerUtil.getIndonesianI18n());
+        endDate.setI18n(DatePickerUtil.getIndonesianI18n());
 
         TextArea reason = new TextArea("Reason");
         reason.setWidthFull();
