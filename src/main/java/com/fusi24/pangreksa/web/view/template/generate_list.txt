@@ -49,3 +49,8 @@ FormCutiIzin
 KalenderKerja
 FormKalenderKerja
 BpjsPajak
+CompanyCalendar
+CompanyCalendarManagement
+CompanyCalendar
+CompanyCalendarManagement
+GlobalPersonData

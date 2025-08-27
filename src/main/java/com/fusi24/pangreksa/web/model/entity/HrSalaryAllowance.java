@@ -30,4 +30,8 @@ public class HrSalaryAllowance extends AuditableEntity<HrSalaryAllowance>{
 
     @Column(name = "end_date")
     private LocalDate endDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", nullable = false)
+    private HrCompany company;
 }

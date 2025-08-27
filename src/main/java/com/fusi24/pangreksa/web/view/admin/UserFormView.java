@@ -311,86 +311,6 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
         responsibilityLayout.add(gridAppUserResp, responsibilityFromLayout);
     }
 
-    private void setListener() {
-        saveButton.addClickListener(e -> {
-            this.appUser = this.appUser != null ? this.appUser : new FwAppUser();
-
-            if (this.appUser.getPasswordHash() == null && passwordConfirmation.isEmpty()) {
-                Notification.show("You need to set a password");
-                return;
-            }
-
-            if (this.appUser.getPasswordHash() == null && (username.isEmpty() || password.isEmpty() || passwordConfirmation.isEmpty())) {
-                Notification.show("Username, Password and Password Confirmation are required");
-                return;
-            }
-
-            if (this.appUser.getPasswordHash() == null && !password.getValue().equals(passwordConfirmation.getValue())) {
-                Notification.show("Password and Password Confirmation do not match");
-                return;
-            }
-
-            // Save the user
-            appUser.setUsername(username.getValue());
-            if(this.appUser.getPasswordHash() != null && !passwordConfirmation.isEmpty()) {
-                appUser.setPassword(password.getValue());
-                appUser.setPasswordHash(password.getValue());
-            }
-            appUser.setEmail(email.getValue());
-            appUser.setNickname(nickname.getValue());
-            appUser.setIsActive(isActive.getValue());
-            appUser.setPerson(personCombo.getValue());
-            appUser.setCompany(companyCombo.getValue());
-
-            this.appUser = adminService.saveAppUser(appUser, currentUser.require());
-            this.appUserRespList = gridAppUserResp.getListDataView().getItems().toList();
-
-            // Save responsibilities
-            for (FwAppuserResp resp : appUserRespList) {
-                resp.setAppuser(this.appUser);
-                adminService.saveAppUserResp(resp, currentUser.require());
-            }
-
-            Notification.show("User and Responsibilities saved successfully");
-            clearGrid(true, true);
-            clearForm(true, true);
-        });
-
-        clearButton.addClickListener(e -> {
-            clearGrid(true, true);
-            clearForm(true, true);
-        });
-
-        clearButtonOnTab.addClickListener( e -> {
-            int tabNo = tabSheet.getSelectedIndex();
-            switch (tabNo) {
-                case 0 -> clearForm(false, true); // Responsibilities
-            }
-        });
-
-        saveButtonOnTab.addClickListener( e -> {
-            int tabNo = tabSheet.getSelectedIndex();
-            switch (tabNo) {
-                case 0 -> {
-
-                    //find in gridAppUserResp, if there is already a responsibility with the same id, do not add it again
-                    if (appUserRespList.stream().anyMatch(resp -> resp.getResponsibility().getId().equals(responsibilityDropdown.getValue().getId()))) {
-                        Notification.show("Responsibility already exists in the list");
-                        return;
-                    }
-
-                    FwAppuserResp appUserResp = new FwAppuserResp();
-                    appUserResp.setResponsibility(responsibilityDropdown.getValue());
-
-                    appUserRespList.add(appUserResp);
-                    gridAppUserResp.setItems(appUserRespList);
-
-                    clearForm(false, true);
-                }
-            }
-        });
-    }
-
     private void clearForm(boolean form, boolean responsibilities) {
         if (form){
             username.clear();
@@ -451,5 +371,89 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
             clearForm(true, true);
             clearGrid(true, true);
         }
+    }
+
+    private void setListener() {
+        saveButton.addClickListener(e -> {
+            this.appUser = this.appUser != null ? this.appUser : new FwAppUser();
+
+            if (this.appUser.getPasswordHash() == null) {
+                if (passwordConfirmation.isEmpty()){
+                    Notification.show("You need to set a password");
+                    return;
+                } else if (username.isEmpty() || password.isEmpty() || passwordConfirmation.isEmpty()) {
+                    Notification.show("Username, Password and Password Confirmation are required");
+                    return;
+                } else if ( !password.getValue().equals(passwordConfirmation.getValue()) ) {
+                    Notification.show("Password and Password Confirmation do not match");
+                    return;
+                }
+            }
+
+            // Save the user
+            appUser.setUsername(username.getValue());
+            // Update password for existing user only if password field is not empty
+            if(this.appUser.getPasswordHash() != null && !passwordConfirmation.isEmpty()) {
+                appUser.setPassword(password.getValue());
+                appUser.setPasswordHash(password.getValue());
+            } else
+            // Update password for new user
+            {
+                appUser.setPassword(passwordConfirmation.getValue());
+                appUser.setPasswordHash(passwordConfirmation.getValue());
+            }
+            appUser.setEmail(email.getValue());
+            appUser.setNickname(nickname.getValue());
+            appUser.setIsActive(isActive.getValue());
+            appUser.setPerson(personCombo.getValue());
+            appUser.setCompany(companyCombo.getValue());
+
+            this.appUser = adminService.saveAppUser(appUser, currentUser.require());
+            this.appUserRespList = gridAppUserResp.getListDataView().getItems().toList();
+
+            // Save responsibilities
+            for (FwAppuserResp resp : appUserRespList) {
+                resp.setAppuser(this.appUser);
+                adminService.saveAppUserResp(resp, currentUser.require());
+            }
+
+            Notification.show("User and Responsibilities saved successfully");
+            clearGrid(true, true);
+            clearForm(true, true);
+        });
+
+        clearButton.addClickListener(e -> {
+            clearGrid(true, true);
+            clearForm(true, true);
+        });
+
+        clearButtonOnTab.addClickListener( e -> {
+            int tabNo = tabSheet.getSelectedIndex();
+            switch (tabNo) {
+                case 0 -> clearForm(false, true); // Responsibilities
+            }
+        });
+
+        saveButtonOnTab.addClickListener( e -> {
+            int tabNo = tabSheet.getSelectedIndex();
+            switch (tabNo) {
+                case 0 -> {
+
+                    //find in gridAppUserResp, if there is already a responsibility with the same id, do not add it again
+                    if (appUserRespList.stream().anyMatch(resp -> resp.getResponsibility().getId().equals(responsibilityDropdown.getValue().getId()))) {
+                        Notification.show("Responsibility already exists in the list");
+                        return;
+                    }
+
+                    FwAppuserResp appUserResp = new FwAppuserResp();
+                    appUserResp.setResponsibility(responsibilityDropdown.getValue());
+
+                    appUserRespList.add(appUserResp);
+                    gridAppUserResp.setItems(appUserRespList);
+
+                    clearForm(false, true);
+                }
+            }
+        });
     }
 }

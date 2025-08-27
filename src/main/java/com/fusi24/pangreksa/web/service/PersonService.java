@@ -3,6 +3,9 @@ package com.fusi24.pangreksa.web.service;
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.repo.*;
+import com.fusi24.pangreksa.web.view.employee.ProfilDataKaryawanView;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.PageRequest;
@@ -20,6 +23,8 @@ import java.util.UUID;
 
 @Service
 public class PersonService {
+    private static final Logger log = LoggerFactory.getLogger(PersonService.class);
+
     private final HrPersonRespository hrPersonRespository;
     private final HrPersonContactRepository hrPersonContactRepository;
     private final HrPersonAddressRepository hrPersonAddressRepository;
@@ -263,9 +268,29 @@ public class PersonService {
         }
 
         List<HrPersonPosition> positions = hrPersonPositionRepository.findByCompany(this.hrCompany);
-//        if (positions.isEmpty()) {
-//            log.info("No positions found for the selected company");
-//        }
+
+        return positions; // Assuming you want the first position, adjust as needed
+    }
+
+    public List<HrPersonPosition> getPersonHasPositionInCompanyByOrgStructure(HrCompany company, HrOrgStructure orgStructure) {
+        List<HrPersonPosition> positions = hrPersonPositionRepository.findByCompanyAndPosition_OrgStructure(company, orgStructure);
+
+        return positions; // Assuming you want the first position, adjust as needed
+    }
+
+    public List<HrPersonPosition> getPersonHasPositionInCompanyByPosition(HrCompany company, HrPosition position) {
+        List<HrPersonPosition> positions = this.getPersonHasPositionInCompanyByOrgStructure(company, position.getOrgStructure());
+        log.debug("Found {} person. try to filter with orgStructure {}", positions.size(), position.getOrgStructure().getName());
+
+        return positions
+                .stream()
+                .filter(p -> p.getPosition().getId().equals(position.getId()))
+                .toList(); // Java 16+ (or use .collect(Collectors.toList()) for older versions)
+    }
+
+    public List<HrPersonPosition> getPersonHasPositionInCompanyByKeyword(HrCompany company, String keyword, int pageNumber, int pageSize) {
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        List<HrPersonPosition> positions = hrPersonPositionRepository.searchByPersonKeyword(company, keyword, pageable);
 
         return positions; // Assuming you want the first position, adjust as needed
     }

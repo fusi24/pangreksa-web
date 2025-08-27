@@ -14,6 +14,6 @@ import java.util.List;
 public interface HrPositionRepository extends JpaRepository<HrPosition, Long> {
     // Find by referenceId
     //List<HrPosition> findByReferenceId(Long referenceId);
-    @EntityGraph(attributePaths = {"company"})
+    @EntityGraph(attributePaths = {"company","orgStructure"})
     List<HrPosition> findByCompanyAndOrgStructure(HrCompany company, HrOrgStructure orgStructure);
 }

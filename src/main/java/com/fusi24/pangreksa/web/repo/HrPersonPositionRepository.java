@@ -1,9 +1,7 @@
 package com.fusi24.pangreksa.web.repo;
 
-import com.fusi24.pangreksa.web.model.entity.HrCompany;
-import com.fusi24.pangreksa.web.model.entity.HrPerson;
-import com.fusi24.pangreksa.web.model.entity.HrPersonPosition;
-import com.fusi24.pangreksa.web.model.entity.HrPosition;
+import com.fusi24.pangreksa.web.model.entity.*;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -36,6 +34,27 @@ public interface HrPersonPositionRepository extends JpaRepository<HrPersonPositi
 
     @EntityGraph(attributePaths = {"person","position","position.orgStructure","company","requestedBy"})
     List<HrPersonPosition> findByCompanyAndPosition(HrCompany company, HrPosition position);
+
+    @EntityGraph(attributePaths = {"person","position","position.orgStructure","company","requestedBy"})
+    List<HrPersonPosition> findByCompanyAndPosition_OrgStructure(HrCompany company, HrOrgStructure orgStructure);
+
+    @EntityGraph(attributePaths = {"person","position","position.orgStructure","company","requestedBy"})
+    @Query("""
+    SELECT p
+    FROM HrPersonPosition p
+    WHERE p.company = :company
+      AND (
+          LOWER(p.person.firstName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+          OR LOWER(p.person.middleName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+          OR LOWER(p.person.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+          OR p.person.ktpNumber LIKE CONCAT('%', :keyword, '%')
+      )
+""")
+    List<HrPersonPosition> searchByPersonKeyword(
+            @Param("company") HrCompany company,
+            @Param("keyword") String keyword,
+            Pageable pageable
+    );
 
     @Query("""
     SELECT COUNT(DISTINCT p.person.id)

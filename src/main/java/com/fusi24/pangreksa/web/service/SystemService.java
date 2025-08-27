@@ -55,4 +55,12 @@ public class SystemService {
     public String getStringDataPath() {
         return findSystemById(UUID.fromString("a4b91eca-9367-4b90-8ac2-71115817056f")).getStringVal();
     }
+
+    public int getMaxSearchResult(){
+        return findSystemById(UUID.fromString("f56c31fb-f1c0-4660-adc5-1a458fccb969")).getIntVal();
+    }
+
+    public int getMinSearchLength(){
+        return findSystemById(UUID.fromString("f56c31fb-f1c0-4660-adc5-1a458fccb970")).getIntVal();
+    }
 }

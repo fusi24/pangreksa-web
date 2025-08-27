@@ -25,3 +25,5 @@ HrLeaveRequestLog
 HrLeaveAbsenceTypes
 HrCompanyCalendar
 HrSalaryBaseLevel
+HrSalaryAllowance
+HrSalaryAllowancePackage

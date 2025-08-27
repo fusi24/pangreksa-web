@@ -1,10 +1,9 @@
 package com.fusi24.pangreksa.web.service;
 
 import com.fusi24.pangreksa.security.AppUserInfo;
-import com.fusi24.pangreksa.web.model.entity.FwAppUser;
-import com.fusi24.pangreksa.web.model.entity.HrSalaryAllowance;
-import com.fusi24.pangreksa.web.model.entity.HrSalaryBaseLevel;
+import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.repo.FwAppUserRepository;
+import com.fusi24.pangreksa.web.repo.HrSalaryPositionAllowanceRepository;
 import com.fusi24.pangreksa.web.repo.HrSalaryAllowanceRepository;
 import com.fusi24.pangreksa.web.repo.HrSalaryBaseLevelRepository;
 import org.slf4j.Logger;
@@ -20,14 +19,24 @@ public class PayrollService {
 
     private final HrSalaryBaseLevelRepository hrSalaryBaseLevelRepository;
     private final HrSalaryAllowanceRepository hrSalaryAllowanceRepository;
+    private final HrSalaryPositionAllowanceRepository hrSalaryPositionAllowanceRepository;
     private final FwAppUserRepository appUserRepository;
 
     public PayrollService(HrSalaryBaseLevelRepository hrSalaryBaseLevelRepository,
                           FwAppUserRepository appUserRepository,
-                          HrSalaryAllowanceRepository hrSalaryAllowanceRepository) {
+                          HrSalaryAllowanceRepository hrSalaryAllowanceRepository,
+                          HrSalaryPositionAllowanceRepository hrSalaryAllowancePackageRepository) {
         this.hrSalaryBaseLevelRepository = hrSalaryBaseLevelRepository;
         this.appUserRepository = appUserRepository;
         this.hrSalaryAllowanceRepository = hrSalaryAllowanceRepository;
+        this.hrSalaryPositionAllowanceRepository = hrSalaryAllowancePackageRepository;
+    }
+
+    private FwAppUser appUser;
+
+    public void setUser(AppUserInfo appUserInfo) {
+        FwAppUser appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
+        this.appUser = appUser;
     }
 
     private FwAppUser findAppUserByUserId(String userId) {
@@ -36,24 +45,34 @@ public class PayrollService {
     }
 
     public List<HrSalaryBaseLevel> getAllSalaryBaseLevels(boolean includeInactive) {
-        if (includeInactive)
-            return hrSalaryBaseLevelRepository.findAllByOrderByLevelCodeAsc();
-        else
-            return hrSalaryBaseLevelRepository.findByEndDateIsNullOrderByLevelCodeAsc();
-    }
+        if (appUser == null) {
+            throw new IllegalStateException("App user is not set. Please call setUser() before using this method.");
+        }
 
+        if (includeInactive)
+            return hrSalaryBaseLevelRepository.findByCompanyOrderByLevelCodeAsc(appUser.getCompany());
+        else
+            return hrSalaryBaseLevelRepository.findByCompanyAndEndDateIsNullOrderByLevelCodeAsc(appUser.getCompany());
+    }
 
     public List<HrSalaryAllowance> getAllSalaryAllowances(boolean includeInactive) {
         if (includeInactive)
-            return hrSalaryAllowanceRepository.findAllByOrderByNameAsc();
+            return hrSalaryAllowanceRepository.findByCompanyOrderByNameAsc(appUser.getCompany());
         else
-            return hrSalaryAllowanceRepository.findByEndDateIsNullOrderByNameAsc();
+            return hrSalaryAllowanceRepository.findByCompanyAndEndDateIsNullOrderByNameAsc(appUser.getCompany());
+    }
+
+    public List<HrSalaryPositionAllowance> getSalaryPositionAllowancesByPosition(HrPosition position, boolean includeInactive) {
+        if (includeInactive)
+            return hrSalaryPositionAllowanceRepository.findByPositionAndCompanyOrderByUpdatedAtAsc(position, appUser.getCompany());
+        else
+            return hrSalaryPositionAllowanceRepository.findByPositionAndCompanyAndEndDateIsNullOrderByUpdatedAtAsc(position, appUser.getCompany());
     }
 
     public HrSalaryBaseLevel saveSalaryBaseLevel(HrSalaryBaseLevel salaryBaseLevel, AppUserInfo appUserInfo) {
         FwAppUser appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
 
-        if (salaryBaseLevel.getId() != null) {
+        if (salaryBaseLevel.getId() == null) {
             salaryBaseLevel.setCreatedBy(appUser);
             salaryBaseLevel.setUpdatedBy(appUser);
             salaryBaseLevel.setCreatedAt(LocalDateTime.now());
@@ -69,7 +88,7 @@ public class PayrollService {
     public HrSalaryAllowance saveSalaryAllowance(HrSalaryAllowance salaryAllowance, AppUserInfo appUserInfo) {
         FwAppUser appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
 
-        if (salaryAllowance.getId() != null) {
+        if (salaryAllowance.getId() == null) {
             salaryAllowance.setCreatedBy(appUser);
             salaryAllowance.setUpdatedBy(appUser);
             salaryAllowance.setCreatedAt(LocalDateTime.now());
@@ -82,4 +101,19 @@ public class PayrollService {
         return hrSalaryAllowanceRepository.save(salaryAllowance);
     }
 
+    public HrSalaryPositionAllowance saveSalaryPositionAllowance(HrSalaryPositionAllowance salaryPositionAllowance, AppUserInfo appUserInfo) {
+        FwAppUser appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
+
+        if (salaryPositionAllowance.getId() == null) {
+            salaryPositionAllowance.setCreatedBy(appUser);
+            salaryPositionAllowance.setUpdatedBy(appUser);
+            salaryPositionAllowance.setCreatedAt(LocalDateTime.now());
+            salaryPositionAllowance.setUpdatedAt(LocalDateTime.now());
+        } else {
+            salaryPositionAllowance.setUpdatedBy(appUser);
+            salaryPositionAllowance.setUpdatedAt(LocalDateTime.now());
+        }
+
+        return hrSalaryPositionAllowanceRepository.save(salaryPositionAllowance);
+    }
 }
