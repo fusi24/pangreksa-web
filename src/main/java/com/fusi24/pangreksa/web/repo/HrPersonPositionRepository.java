@@ -100,4 +100,6 @@ public interface HrPersonPositionRepository extends JpaRepository<HrPersonPositi
             @Param("company") HrCompany company,
             @Param("year") int year
     );
+
+    HrPersonPosition findFirstByPersonId(Long personId);
 }

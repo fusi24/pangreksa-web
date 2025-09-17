@@ -946,7 +946,8 @@ public class KomponenGajiView extends Main {
         });
 
         withInactivePositionAllowance.addValueChangeListener( e-> {
-            populatePositionAllowanceGrid(positionGrid.getSelectedItems().iterator().next(), orgStructureGrid.getSelectedItems().iterator().next());
+            if(positionGrid.getSelectedItems().iterator().hasNext() && orgStructureGrid.getSelectedItems().iterator().hasNext())
+                populatePositionAllowanceGrid(positionGrid.getSelectedItems().iterator().next(), orgStructureGrid.getSelectedItems().iterator().next());
         });
 
         calcullationDateTF.addValueChangeListener( e-> {

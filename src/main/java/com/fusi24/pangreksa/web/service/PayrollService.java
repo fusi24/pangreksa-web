@@ -2,14 +2,15 @@ package com.fusi24.pangreksa.web.service;
 
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.web.model.entity.*;
-import com.fusi24.pangreksa.web.repo.FwAppUserRepository;
-import com.fusi24.pangreksa.web.repo.HrSalaryPositionAllowanceRepository;
-import com.fusi24.pangreksa.web.repo.HrSalaryAllowanceRepository;
-import com.fusi24.pangreksa.web.repo.HrSalaryBaseLevelRepository;
+import com.fusi24.pangreksa.web.repo.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,6 +22,24 @@ public class PayrollService {
     private final HrSalaryAllowanceRepository hrSalaryAllowanceRepository;
     private final HrSalaryPositionAllowanceRepository hrSalaryPositionAllowanceRepository;
     private final FwAppUserRepository appUserRepository;
+
+    @Autowired
+    private HrPayrollRepository hrPayrollRepository;
+
+    @Autowired
+    private SystemService systemService;
+
+    @Autowired
+    private HrPayrollCalculationRepository hrPayrollCalculationRepository;
+
+    @Autowired
+    private HrTaxBracketRepository hrTaxBracketRepository;
+
+    @Autowired
+    private HrSalaryEmployeeLevelRepository hrSalaryEmployeeLevelRepository;
+
+    @Autowired
+    private HrPersonPositionRepository hrPersonPositionRepository;
 
     public PayrollService(HrSalaryBaseLevelRepository hrSalaryBaseLevelRepository,
                           FwAppUserRepository appUserRepository,
@@ -115,5 +134,160 @@ public class PayrollService {
         }
 
         return hrSalaryPositionAllowanceRepository.save(salaryPositionAllowance);
+    }
+
+    public HrPayroll savePayroll(HrPayroll data, AppUserInfo userInfo) {
+        FwAppUser appUser = this.findAppUserByUserId(userInfo.getUserId().toString());
+
+        // Set createdBy and createdAt for new records
+        if (data.getId() == null) {
+            data.setCreatedBy(appUser);
+            data.setCreatedAt(LocalDateTime.now());
+        }
+
+        // Always set updatedBy and updatedAt when saving (both new and existing)
+        data.setUpdatedBy(appUser);
+        data.setUpdatedAt(LocalDateTime.now());
+
+        HrPayroll saved = hrPayrollRepository.save(data);
+
+        // Trigger payroll calculation
+        calculatePayroll(saved);
+
+        return saved;
+    }
+
+    @Transactional
+    public HrPayrollCalculation calculatePayroll(HrPayroll payrollInput) {
+        // 1. Fetch configs
+        BigDecimal bpjsHealthRate = systemService.getConfigNumericValue("Persentase Tarif BPJS Kesehatan (%)").divide(BigDecimal.valueOf(100)); // 1% → 0.01
+        BigDecimal bpjsJhtRate = systemService.getConfigNumericValue("Persentase Tarif BPJS JHT (%)").divide(BigDecimal.valueOf(100)); // 2% → 0.02
+        BigDecimal bpjsJpRate = systemService.getConfigNumericValue("Persentase Tarif BPJS JP (%)").divide(BigDecimal.valueOf(100)); // 1% → 0.01
+
+        BigDecimal bpjsHealthCap = systemService.getConfigNumericValue("Batas Upah BPJS Kesehatan");
+        BigDecimal bpjsJpCap = systemService.getConfigNumericValue("Batas Upah BPJS JP");
+
+        // Determine PTKP based on employee's tax status (assuming you have it in HrPerson)
+        // status pajak dapet darimana? asumsi TKO semua
+//        String taxStatus = payrollInput.getPerson().getTaxStatus(); // e.g., "TK/0"
+        String taxStatus = null;
+        BigDecimal ptkp = switch (taxStatus) {
+            case "TK/0" -> systemService.getConfigNumericValue("PTKP TK0");
+            case "TK/1" -> systemService.getConfigNumericValue("PTKP TK1"); // ← Add this key if needed
+            case "K/0" -> systemService.getConfigNumericValue("PTKP K0");
+            // ... add more cases as needed
+            default -> systemService.getConfigNumericValue("PTKP TK0"); // fallback
+        };
+
+        String roundingRule = systemService.getConfigStringValue("PEMBULATAN PKP"); // e.g., "FLOOR"
+
+        HrSalaryEmployeeLevel salaryEmployeeLevel = hrSalaryEmployeeLevelRepository.findByAppUser_Id(appUser.getId()).orElseThrow(() -> new RuntimeException("Salary Employee Level not found"));
+        HrPersonPosition personPosition = hrPersonPositionRepository.findFirstByPersonId(payrollInput.getPerson().getId());
+        List<HrSalaryPositionAllowance> allowances = hrSalaryPositionAllowanceRepository.findByPositionAndCompanyOrderByUpdatedAtAsc(personPosition.getPosition(), personPosition.getCompany());
+
+        // 2. Calculate Gross
+        BigDecimal baseSalary = salaryEmployeeLevel.getBaseLevel().getBaseSalary();
+        BigDecimal fixedAllowance = BigDecimal.valueOf(allowances.stream().mapToDouble(p -> p.getAllowance().getAmount().doubleValue()).sum());
+        BigDecimal variableAllowances = payrollInput.getVariableAllowances() != null ? payrollInput.getVariableAllowances() : BigDecimal.ZERO;
+        BigDecimal overtimeAmount = payrollInput.getOvertimeAmount() != null ? payrollInput.getOvertimeAmount() : BigDecimal.ZERO;
+        BigDecimal annualBonus = payrollInput.getAnnualBonus() != null ? payrollInput.getAnnualBonus() : BigDecimal.ZERO;
+
+        BigDecimal grossSalary = baseSalary
+                .add(fixedAllowance)
+                .add(variableAllowances)
+                .add(overtimeAmount)
+                .add(annualBonus);
+
+        // 3. Calculate BPJS Deductions (capped)
+        BigDecimal bpjsHealthBase = grossSalary.compareTo(bpjsHealthCap) > 0 ? bpjsHealthCap : grossSalary;
+        BigDecimal bpjsHealthDeduction = bpjsHealthBase.multiply(bpjsHealthRate);
+
+        BigDecimal bpjsJhtDeduction = grossSalary.multiply(bpjsJhtRate); // no cap for JHT (as per common practice)
+
+        BigDecimal bpjsJpBase = grossSalary.compareTo(bpjsJpCap) > 0 ? bpjsJpCap : grossSalary;
+        BigDecimal bpjsJpDeduction = bpjsJpBase.multiply(bpjsJpRate);
+
+        // 4. Annual Income Before Tax
+        BigDecimal annualIncomeBeforeTax = grossSalary.multiply(BigDecimal.valueOf(12));
+
+        // 5. Taxable Income Calculation
+        BigDecimal annualTaxableIncome = annualIncomeBeforeTax.subtract(ptkp);
+        if (annualTaxableIncome.compareTo(BigDecimal.ZERO) < 0) {
+            annualTaxableIncome = BigDecimal.ZERO;
+        }
+
+        // Apply rounding rule to monthly taxable income
+        BigDecimal monthlyTaxableIncome = annualTaxableIncome.divide(BigDecimal.valueOf(12), 0, RoundingMode.DOWN); // default: FLOOR
+
+        if ("CEILING".equalsIgnoreCase(roundingRule)) {
+            monthlyTaxableIncome = annualTaxableIncome.divide(BigDecimal.valueOf(12), 0, RoundingMode.UP);
+        } else if ("HALF_UP".equalsIgnoreCase(roundingRule)) {
+            monthlyTaxableIncome = annualTaxableIncome.divide(BigDecimal.valueOf(12), 0, RoundingMode.HALF_UP);
+        }
+        // else: FLOOR (default)
+
+        // 6. Calculate PPh 21 using HrTaxBracket
+        BigDecimal pph21Amount = calculatePPh21(monthlyTaxableIncome, annualTaxableIncome);
+
+        // 7. Other Deductions
+        BigDecimal otherDeductions = payrollInput.getOtherDeductions() != null ? payrollInput.getOtherDeductions() : BigDecimal.ZERO;
+        BigDecimal previousThpPaid = payrollInput.getPreviousThpPaid() != null ? payrollInput.getPreviousThpPaid() : BigDecimal.ZERO;
+
+        // 8. Net Take Home Pay
+        BigDecimal netTakeHomePay = grossSalary
+                .subtract(bpjsHealthDeduction)
+                .subtract(bpjsJhtDeduction)
+                .subtract(bpjsJpDeduction)
+                .subtract(pph21Amount)
+                .subtract(otherDeductions)
+                .subtract(previousThpPaid);
+
+        // 9. Build and Save Calculation Result
+
+        HrPayrollCalculation current = hrPayrollCalculationRepository.findFirstByPayrollInputId(payrollInput.getId());
+
+        HrPayrollCalculation calculation = HrPayrollCalculation.builder()
+                .payrollInput(payrollInput)
+                .grossSalary(grossSalary)
+                .bpjsHealthDeduction(bpjsHealthDeduction)
+                .bpjsJhtDeduction(bpjsJhtDeduction)
+                .bpjsJpDeduction(bpjsJpDeduction)
+                .annualIncomeBeforeTax(annualIncomeBeforeTax)
+                .ptkpApplied(ptkp)
+                .taxableIncome(monthlyTaxableIncome)
+                .pph21Amount(pph21Amount)
+                .netTakeHomePay(netTakeHomePay)
+                .calculatedAt(LocalDateTime.now())
+                .notes("Calculated automatically on save")
+                .id(current == null ? null : current.getId())
+                .build();
+
+        return hrPayrollCalculationRepository.save(calculation);
+    }
+
+    private BigDecimal calculatePPh21(BigDecimal monthlyTaxableIncome, BigDecimal annualTaxableIncome) {
+        // Fetch tax brackets ordered by min_income
+        List<HrTaxBracket> brackets = hrTaxBracketRepository.findAllByOrderByMinIncomeAsc();
+
+        BigDecimal annualTax = BigDecimal.ZERO;
+        BigDecimal remaining = annualTaxableIncome;
+
+        for (HrTaxBracket bracket : brackets) {
+            BigDecimal min = bracket.getMinIncome();
+            BigDecimal max = bracket.getMaxIncome() != null ? bracket.getMaxIncome() : new BigDecimal("999999999999");
+            BigDecimal rate = bracket.getTaxRate().divide(BigDecimal.valueOf(100)); // if stored as 5, 15, etc.
+
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
+
+            BigDecimal bracketRange = max.subtract(min);
+            BigDecimal taxableInBracket = remaining.compareTo(bracketRange) > 0 ? bracketRange : remaining;
+
+            BigDecimal taxInBracket = taxableInBracket.multiply(rate);
+            annualTax = annualTax.add(taxInBracket);
+            remaining = remaining.subtract(taxableInBracket);
+        }
+
+        // Return monthly PPh21
+        return annualTax.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
     }
 }
