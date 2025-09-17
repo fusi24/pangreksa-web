@@ -6,6 +6,7 @@ import lombok.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
 
+
 @Entity
 @Table(name = "hr_salary_employee_level")
 @Builder
@@ -43,10 +44,4 @@ public class HrSalaryEmployeeLevel extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by_hsel")
     private FwAppUser updatedBy;
-
-    @Column(name = "created_at_hsel", updatable = false, insertable = false)
-    private Instant createdAt;
-
-    @Column(name = "updated_at_hsel", insertable = false, updatable = false)
-    private Instant updatedAt;
 }
