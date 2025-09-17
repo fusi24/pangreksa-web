@@ -144,7 +144,7 @@ public class EmployeeMappingLevel extends Main {
                     return cb;
                 })).setHeader("Level")
                 .setAutoWidth(true)
-                .setFlexGrow(0);
+                .setFlexGrow(1);
 
         // 3) Kolom Base Salary (read-only)
         grid.addColumn(rowItem -> {
@@ -152,7 +152,7 @@ public class EmployeeMappingLevel extends Main {
                     return formatCurrency(rowItem.getSelectedBaseSalary());
                 }).setHeader("Base Salary")
                 .setAutoWidth(true)
-                .setFlexGrow(0);
+                .setFlexGrow(1);
 
         body.add(row, grid);
         add(body);
