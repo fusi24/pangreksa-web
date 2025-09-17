@@ -4,6 +4,8 @@ import com.fusi24.pangreksa.web.model.entity.HrCompany;
 import com.fusi24.pangreksa.web.model.entity.HrSalaryBaseLevel;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -27,4 +29,17 @@ public interface HrSalaryBaseLevelRepository extends JpaRepository<HrSalaryBaseL
     //find all salary  order by level code asc
     @EntityGraph(attributePaths = {"company"})
     List<HrSalaryBaseLevel> findByCompanyOrderByLevelCodeAsc(HrCompany company);
+
+    // level aktif per tanggal (dan opsional company)
+    @Query("""
+      select b from HrSalaryBaseLevel b
+      where b.startDate <= :today
+        and (b.endDate is null or b.endDate >= :today)
+        and (:companyId is null or b.company.id = :companyId)
+      order by b.levelCode asc
+    """)
+    List<HrSalaryBaseLevel> findActive(@Param("today") LocalDate today,
+                                           @Param("companyId") Long companyId);
+
+
 }
