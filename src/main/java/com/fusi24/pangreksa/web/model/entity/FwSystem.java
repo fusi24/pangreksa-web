@@ -3,7 +3,7 @@ package com.fusi24.pangreksa.web.model.entity;
 import com.fusi24.pangreksa.web.model.enumerate.SystemTypeEnum;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;

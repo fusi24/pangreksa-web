@@ -1,8 +1,8 @@
 package com.fusi24.pangreksa.web.repo;
 
-import com.fusi24.pangreksa.web.model.entity.FwResponsibilitiesMenu;
-import com.fusi24.pangreksa.web.model.entity.FwResponsibilities;
 import com.fusi24.pangreksa.web.model.entity.FwMenus;
+import com.fusi24.pangreksa.web.model.entity.FwResponsibilities;
+import com.fusi24.pangreksa.web.model.entity.FwResponsibilitiesMenu;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

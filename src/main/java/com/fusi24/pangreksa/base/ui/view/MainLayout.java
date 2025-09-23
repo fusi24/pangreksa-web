@@ -3,10 +3,8 @@ package com.fusi24.pangreksa.base.ui.view;
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Responsibility;
-import com.fusi24.pangreksa.web.model.entity.FwPages;
 import com.fusi24.pangreksa.web.service.AppUserAuthService;
 import com.fusi24.pangreksa.web.service.SystemService;
-import com.fusi24.pangreksa.web.view.admin.ResponsibilitiesView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -29,13 +27,11 @@ import com.vaadin.flow.server.menu.MenuEntry;
 import com.vaadin.flow.spring.security.AuthenticationContext;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.PermitAll;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 import static com.vaadin.flow.theme.lumo.LumoUtility.*;
 

@@ -1,7 +1,6 @@
 package com.fusi24.pangreksa.base.ui.view;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
-
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Main;

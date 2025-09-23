@@ -5,8 +5,9 @@ import com.fusi24.pangreksa.web.model.enumerate.MarriageEnum;
 import com.fusi24.pangreksa.web.model.enumerate.NationalityEnum;
 import com.fusi24.pangreksa.web.model.enumerate.ReligionEnum;
 import jakarta.persistence.*;
-import java.time.LocalDate;
 import lombok.*;
+
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "hr_person")
@@ -59,5 +60,8 @@ public class HrPerson extends AuditableEntity<HrPerson> {
 
     @Column(name = "photo_file", length = 150, nullable = true)
     private String photoFilename;
+
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "person", cascade = CascadeType.DETACH)
+    private HrPersonPosition personPosition;
 }
 

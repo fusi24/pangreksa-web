@@ -4,6 +4,7 @@ import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.FwPages;
+import com.fusi24.pangreksa.web.repo.FwPagesRepository;
 import com.fusi24.pangreksa.web.service.AdminService;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.vaadin.flow.component.UI;
@@ -26,8 +27,6 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-
-import com.fusi24.pangreksa.web.repo.FwPagesRepository;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;

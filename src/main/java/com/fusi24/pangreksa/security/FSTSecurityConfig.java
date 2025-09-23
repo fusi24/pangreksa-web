@@ -1,7 +1,6 @@
 package com.fusi24.pangreksa.security;
 
 import com.fusi24.pangreksa.security.controlcenter.ControlCenterSecurityConfig;
-import com.fusi24.pangreksa.security.dev.SampleUsers;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.server.VaadinServiceInitListener;
 import com.vaadin.flow.spring.security.VaadinAwareSecurityContextHolderStrategyConfiguration;

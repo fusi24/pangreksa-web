@@ -1,8 +1,9 @@
 package com.fusi24.pangreksa.web.model.entity;
 
 import jakarta.persistence.*;
-import java.time.LocalDate;
 import lombok.*;
+
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "hr_person_position")

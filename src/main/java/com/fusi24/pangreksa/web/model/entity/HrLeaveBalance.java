@@ -1,6 +1,5 @@
 package com.fusi24.pangreksa.web.model.entity;
 
-import com.fusi24.pangreksa.web.model.enumerate.LeaveTypeEnum;
 import jakarta.persistence.*;
 import lombok.*;
 

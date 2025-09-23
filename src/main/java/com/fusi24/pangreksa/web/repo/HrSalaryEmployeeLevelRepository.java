@@ -1,9 +1,9 @@
 package com.fusi24.pangreksa.web.repo;
 
+import com.fusi24.pangreksa.web.model.entity.HrSalaryEmployeeLevel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import com.fusi24.pangreksa.web.model.entity.HrSalaryEmployeeLevel;
 
 import java.util.List;
 import java.util.Optional;

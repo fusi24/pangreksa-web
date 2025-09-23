@@ -2,7 +2,6 @@ package com.fusi24.pangreksa.web.repo;
 
 import com.fusi24.pangreksa.web.model.entity.HrCompany;
 import com.fusi24.pangreksa.web.model.entity.HrSalaryAllowance;
-import com.fusi24.pangreksa.web.model.entity.HrSalaryBaseLevel;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

@@ -1,10 +1,7 @@
 package com.fusi24.pangreksa.web.model.entity;
 
 import com.fusi24.pangreksa.web.model.enumerate.ContactTypeEnum;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 import lombok.*;
 
 @Entity

@@ -1,7 +1,9 @@
 package com.fusi24.pangreksa.web.model.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.math.BigDecimal;
-import lombok.*;
 
 @Getter
 @Setter

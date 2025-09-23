@@ -1,9 +1,7 @@
 package com.fusi24.pangreksa.web;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fusi24.pangreksa.web.model.entity.*;
-import com.fusi24.pangreksa.web.model.enumerate.*;
+import com.fusi24.pangreksa.web.model.entity.FwAppUser;
+import com.fusi24.pangreksa.web.model.entity.HrPersonPosition;
 import com.fusi24.pangreksa.web.repo.FwAppUserRepository;
 import com.fusi24.pangreksa.web.service.PersonService;
 import lombok.extern.slf4j.Slf4j;
@@ -12,12 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;

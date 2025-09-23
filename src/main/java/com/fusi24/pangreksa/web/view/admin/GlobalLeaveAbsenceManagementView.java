@@ -3,7 +3,7 @@ package com.fusi24.pangreksa.web.view.admin;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.*;
+import com.fusi24.pangreksa.web.model.entity.HrLeaveAbsenceTypes;
 import com.fusi24.pangreksa.web.model.enumerate.LeaveAbsenceTypeEnum;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.LeaveService;
@@ -28,7 +28,6 @@ import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.StreamSupport;
 

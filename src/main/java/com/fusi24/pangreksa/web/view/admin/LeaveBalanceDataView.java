@@ -1,17 +1,10 @@
 package com.fusi24.pangreksa.web.view.admin;
 
-import com.fusi24.pangreksa.web.model.entity.HrLeaveGenerationLog;
-import com.fusi24.pangreksa.web.model.entity.HrPersonPosition;
-import com.fusi24.pangreksa.web.model.enumerate.LeaveTypeEnum;
-import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.textfield.NumberField;
-import com.vaadin.flow.component.textfield.TextField;
-
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrCompany;
+import com.fusi24.pangreksa.web.model.entity.HrLeaveGenerationLog;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.CompanyService;
 import com.fusi24.pangreksa.web.service.LeaveService;
@@ -19,7 +12,9 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Main;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;

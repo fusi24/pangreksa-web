@@ -3,6 +3,7 @@ package com.fusi24.pangreksa.web.repo;
 import com.fusi24.pangreksa.web.model.entity.VwAppUserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
 import java.util.List;
 
 @Repository

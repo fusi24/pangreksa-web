@@ -4,7 +4,6 @@ import com.fusi24.pangreksa.web.model.entity.HrCompany;
 import com.fusi24.pangreksa.web.model.entity.HrLeaveAbsenceTypes;
 import com.fusi24.pangreksa.web.model.entity.HrLeaveBalance;
 import com.fusi24.pangreksa.web.model.entity.HrPerson;
-import com.fusi24.pangreksa.web.model.enumerate.LeaveTypeEnum;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

@@ -2,6 +2,7 @@ package com.fusi24.pangreksa.web.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDate;
 
 @Entity

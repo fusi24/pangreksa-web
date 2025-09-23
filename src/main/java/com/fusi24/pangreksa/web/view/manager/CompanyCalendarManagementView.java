@@ -4,7 +4,6 @@ import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrCompanyCalendar;
-import com.fusi24.pangreksa.web.model.entity.HrLeaveAbsenceTypes;
 import com.fusi24.pangreksa.web.model.enumerate.CalendarTypeEnum;
 import com.fusi24.pangreksa.web.service.CalendarService;
 import com.fusi24.pangreksa.web.service.CommonService;

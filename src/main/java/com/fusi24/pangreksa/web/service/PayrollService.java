@@ -3,9 +3,13 @@ package com.fusi24.pangreksa.web.service;
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.repo.*;
+import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +44,9 @@ public class PayrollService {
 
     @Autowired
     private HrPersonPositionRepository hrPersonPositionRepository;
+
+    @Autowired
+    private HrPersonRespository hrPersonRespository;
 
     public PayrollService(HrSalaryBaseLevelRepository hrSalaryBaseLevelRepository,
                           FwAppUserRepository appUserRepository,
@@ -170,7 +177,7 @@ public class PayrollService {
         // Determine PTKP based on employee's tax status (assuming you have it in HrPerson)
         // status pajak dapet darimana? asumsi TKO semua
 //        String taxStatus = payrollInput.getPerson().getTaxStatus(); // e.g., "TK/0"
-        String taxStatus = null;
+        String taxStatus = "TK0";
         BigDecimal ptkp = switch (taxStatus) {
             case "TK/0" -> systemService.getConfigNumericValue("PTKP TK0");
             case "TK/1" -> systemService.getConfigNumericValue("PTKP TK1"); // ← Add this key if needed
@@ -289,5 +296,31 @@ public class PayrollService {
 
         // Return monthly PPh21
         return annualTax.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
+    }
+
+    public Page<HrPayroll> getPayrollPage(Pageable pageable, String searchTerm) {
+        if (appUser == null) {
+            throw new IllegalStateException("App user is not set. Please call setUser() before using this method.");
+        }
+
+        String lowerCaseSearchTerm = "%" + searchTerm.toLowerCase() + "%";
+        Specification<HrPayroll> spec = (pathBase, cq, cb) -> {
+            pathBase.fetch("person");
+            Predicate pred = cb.or(cb.like(pathBase.get("person").get("firstName"), lowerCaseSearchTerm),
+                    cb.like(pathBase.get("person").get("lastName"), lowerCaseSearchTerm));
+            return pred;
+        };
+        return hrPayrollRepository.findAll(spec, pageable);
+    }
+
+    public List<HrPerson> getActiveEmployees() {
+        if (appUser == null) {
+            throw new IllegalStateException("App user not set");
+        }
+        return hrPersonRespository.findAll();
+    }
+
+    public HrPayrollCalculation getCalculationByPayrollId(Long payrollId) {
+        return hrPayrollCalculationRepository.findFirstByPayrollInputId(payrollId);
     }
 }

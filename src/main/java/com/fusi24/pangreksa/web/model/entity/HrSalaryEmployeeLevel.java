@@ -3,9 +3,6 @@ package com.fusi24.pangreksa.web.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-
 
 @Entity
 @Table(name = "hr_salary_employee_level")

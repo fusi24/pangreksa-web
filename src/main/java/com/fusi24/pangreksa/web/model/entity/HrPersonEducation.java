@@ -1,14 +1,11 @@
 package com.fusi24.pangreksa.web.model.entity;
 
 import com.fusi24.pangreksa.web.model.enumerate.EducationTypeEnum;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import lombok.*;
 
 @Entity
 @Table(name = "hr_education")

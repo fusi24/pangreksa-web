@@ -1,7 +1,7 @@
 package com.fusi24.pangreksa.web.repo;
 
-import com.fusi24.pangreksa.web.model.entity.FwAppuserResp;
 import com.fusi24.pangreksa.web.model.entity.FwAppUser;
+import com.fusi24.pangreksa.web.model.entity.FwAppuserResp;
 import com.fusi24.pangreksa.web.model.entity.FwResponsibilities;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;

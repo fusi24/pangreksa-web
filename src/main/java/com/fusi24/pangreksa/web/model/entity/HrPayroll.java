@@ -1,9 +1,8 @@
 package com.fusi24.pangreksa.web.model.entity;
 
-import com.fusi24.pangreksa.web.model.entity.AuditableEntity;
-import com.fusi24.pangreksa.web.model.entity.HrPerson;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
