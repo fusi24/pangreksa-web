@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,22 +13,36 @@ public interface HrSalaryEmployeeLevelRepository extends JpaRepository<HrSalaryE
 
     Optional<HrSalaryEmployeeLevel> findByAppUser_Id(Long appUserId);
 
+    /** Closed projection untuk grid */
+    interface UserLevelProjection {
+        Long getUserId();
+        String getDisplayName();
+        Long getCompanyId();
+        Long getSelectedBaseLevelId();
+        String getSelectedLevelCode();
+        BigDecimal getSelectedBaseSalary();
+    }
+
     @Query(value = """
-        select u.id as user_id,
-               u.username,
-               u.email,
-               u.nickname,
-               p.first_name,
-               p.last_name,
-               u.company_id,
-               m.id_hsel,
-               m.id_hsbl,
-               b.level_code,
-               b.base_salary
+        select
+            u.id                                         as userId,
+            -- displayName = first+last (fallback username) + optional (nickname)
+            (
+              case
+                when btrim(coalesce(p.first_name,'') || ' ' || coalesce(p.last_name,'')) = '' then u.username
+                else btrim(coalesce(p.first_name,'') || ' ' || coalesce(p.last_name,''))
+              end
+            ) ||
+            case when coalesce(nullif(u.nickname,''),'') <> '' then ' (' || u.nickname || ')' else '' end
+                                                      as displayName,
+            u.company_id                                 as companyId,
+            m.id_salary                                  as selectedBaseLevelId,
+            b.level_code                                 as selectedLevelCode,
+            b.base_salary                                as selectedBaseSalary
         from fw_appuser u
         left join hr_person p on p.id = u.person_id
-        left join hr_salary_employee_level m on m.id_fu = u.id
-        left join hr_salary_base_level b on b.id = m.id_hsbl
+        left join hr_salary_employee_level m on m.id_fwuser = u.id
+        left join hr_salary_base_level b on b.id = m.id_salary
         where (
             :keyword is null
             or lower(u.username) like lower(concat('%', :keyword, '%'))
@@ -35,8 +50,13 @@ public interface HrSalaryEmployeeLevelRepository extends JpaRepository<HrSalaryE
             or lower(coalesce(p.first_name, '')) like lower(concat('%', :keyword, '%'))
             or lower(coalesce(p.last_name,  '')) like lower(concat('%', :keyword, '%'))
         )
-        order by coalesce(p.first_name, u.username), coalesce(p.last_name, '')
+        order by
+            case
+              when btrim(coalesce(p.first_name,'') || ' ' || coalesce(p.last_name,'')) = '' then u.username
+              else btrim(coalesce(p.first_name,'') || ' ' || coalesce(p.last_name,''))
+            end,
+            coalesce(p.last_name,'')
         """,
             nativeQuery = true)
-    List<Object[]> findUserLevelRows(@Param("keyword") String keyword);
+    List<UserLevelProjection> findUserLevelRows(@Param("keyword") String keyword);
 }

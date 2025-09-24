@@ -3,7 +3,6 @@ package com.fusi24.pangreksa.web.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-
 @Entity
 @Table(name = "hr_salary_employee_level")
 @Builder
@@ -11,34 +10,22 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@AttributeOverrides({
-        @AttributeOverride(name = "createdAt", column = @Column(name = "created_at_hsel", nullable = false)),
-        @AttributeOverride(name = "updatedAt", column = @Column(name = "updated_at_hsel", nullable = false))
-})
-@AssociationOverrides({
-        @AssociationOverride(name = "createdBy", joinColumns = @JoinColumn(name = "created_by_hsel")),
-        @AssociationOverride(name = "updatedBy", joinColumns = @JoinColumn(name = "updated_by_hsel"))
-})
-public class HrSalaryEmployeeLevel extends AuditableEntity {
+public class HrSalaryEmployeeLevel extends AuditableEntity<HrSalaryEmployeeLevel> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_hsel")
-    private Long idHsel;
+    @Column(name = "id") // DDL: id bigserial/identity
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_hsbl", nullable = false)
+    @JoinColumn(name = "id_salary", nullable = false,
+            foreignKey = @ForeignKey(name = "salary_employee_level_on_base_salary_level"))
     private HrSalaryBaseLevel baseLevel;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_fu", nullable = false)
+    @JoinColumn(name = "id_fwuser", nullable = false,
+            foreignKey = @ForeignKey(name = "salary_employee_level_on_fw_user"))
     private FwAppUser appUser;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by_hsel", updatable = false)
-    private FwAppUser createdBy;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "updated_by_hsel")
-    private FwAppUser updatedBy;
+    // created_by, updated_by, created_at, updated_at diwariskan dari AuditableEntity
 }
