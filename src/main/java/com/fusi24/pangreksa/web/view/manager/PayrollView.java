@@ -19,6 +19,8 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -40,7 +42,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 
 @Route("payroll-list-page-access")
@@ -62,6 +69,9 @@ public class PayrollView extends Main {
     private TextField searchField = new TextField();
     private Dialog detailDialog = new Dialog();
     private Dialog addEditDialog = new Dialog();
+
+    private ComboBox<Integer> yearFilter = new ComboBox<>("Year");
+    private ComboBox<Integer> monthFilter = new ComboBox<>("Month");
 
     MutableObject<HrPayroll> mObject = new MutableObject<>();
 
@@ -100,28 +110,76 @@ public class PayrollView extends Main {
         grid.addColumn(HrPayroll::getOtherDeductions).setHeader("Other Deduct.").setWidth("140px");
 //        grid.addColumn(HrPayroll::getNetTakeHomePay).setHeader("Net THP").setWidth("120px"); // Requires join to HrPayrollCalculation
 
-        // Add Detail Button Column
+        // Add Action Buttons Column
         grid.addComponentColumn(payroll -> {
+            HorizontalLayout actions = new HorizontalLayout();
+
             Button detailBtn = new Button("Detail", e -> openDetailDialog(payroll));
             detailBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-            return detailBtn;
-        }).setHeader("Actions");
+            detailBtn.setAriaLabel("View Detail");
+
+            Button recalculateBtn = new Button("Recalculate", e -> {
+                try {
+                    payrollService.calculatePayroll(payroll); // triggers recalculation
+                    Notification.show("Recalculated successfully for " + payroll.getPerson().getFirstName(), 3000, Notification.Position.MIDDLE);
+                    applyFilters(); // optional: refresh to show updated Net THP if displayed
+                } catch (Exception ex) {
+                    Notification.show("Recalculation failed: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
+                    ex.printStackTrace();
+                }
+            });
+            recalculateBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
+            recalculateBtn.setAriaLabel("Recalculate Payroll");
+
+            actions.add(detailBtn, recalculateBtn);
+            actions.setSpacing(true);
+            return actions;
+        }).setHeader("Actions").setWidth("200px");
 
         // Search Field
         searchField.setPlaceholder("Search");
         searchField.setWidth("50%");
         searchField.setClearButtonVisible(true);
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
-        searchField.addValueChangeListener(e -> refreshGrid(e.getValue()));
+//        searchField.addValueChangeListener(e -> refreshGrid(e.getValue()));
 
         // Add Button
         Button addButton = new Button("Add Payroll", e -> openAddEditDialog(null));
         addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
+        // === Year & Month Filters ===
+        yearFilter.setItems(getRecentYears(5));
+        yearFilter.setValue(LocalDate.now().getYear());
+        yearFilter.setClearButtonVisible(true);
+        yearFilter.setWidth("120px");
+//        yearFilter.addValueChangeListener(e -> applyFilters());
+
+        monthFilter.setItems(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+        monthFilter.setItemLabelGenerator(this::getMonthName);
+        monthFilter.setClearButtonVisible(true);
+        monthFilter.setWidth("140px");
+//        monthFilter.addValueChangeListener(e -> applyFilters());
+
+        HorizontalLayout filterBar = new HorizontalLayout(yearFilter, monthFilter);
+        filterBar.setSpacing(true);
+
+        // Add Button
+//        new Button()
+        Button searchButton = new Button(new Icon(VaadinIcon.SEARCH), e -> applyFilters());
+        addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        // Reset Button
+        Button resetButton = new Button(new Icon(VaadinIcon.RECYCLE), e -> {
+            reselFilter();
+            applyFilters();
+        });
+        addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
         // Toolbar
-        HorizontalLayout toolbar = new HorizontalLayout(searchField, addButton);
+        HorizontalLayout toolbar = new HorizontalLayout(filterBar, searchField, searchButton, resetButton, addButton);
         toolbar.setWidthFull();
         toolbar.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        toolbar.expand(addButton);
 
         // Layout
         VerticalLayout layout = new VerticalLayout(toolbar, grid);
@@ -133,11 +191,31 @@ public class PayrollView extends Main {
         add(layout);
 
         // Initial load
-        refreshGrid("");
+        applyFilters();
     }
 
-    private void refreshGrid(String searchTerm) {
-        grid.setItems(payrollService.getPayrollPage(PageRequest.of(0, 50), searchTerm).getContent());
+    private void reselFilter(){
+        yearFilter.clear();
+        monthFilter.clear();
+        searchField.clear();
+    }
+
+    private void applyFilters() {
+        Integer selectedYear = yearFilter.getValue();
+        Integer selectedMonth = monthFilter.getValue();
+        String searchTerm = searchField.getValue();
+
+        if (selectedYear != null && selectedMonth != null) {
+            // Filter by specific year-month
+            LocalDate filterDate = LocalDate.of(selectedYear, selectedMonth, 1);
+            grid.setItems(payrollService.getPayrollPage(PageRequest.of(0, 50), selectedYear, filterDate, searchTerm).getContent());
+        } else if (selectedYear != null) {
+            // Filter by year only
+            grid.setItems(payrollService.getPayrollPage(PageRequest.of(0, 50), selectedYear, null, searchTerm).getContent());
+        } else {
+            // Default: no year/month filter, just search
+            grid.setItems(payrollService.getPayrollPage(PageRequest.of(0, 50), selectedYear, null, searchTerm).getContent());
+        }
     }
 
     private void openDetailDialog(HrPayroll payroll) {
@@ -208,7 +286,7 @@ public class PayrollView extends Main {
 
         PayrollForm form = new PayrollForm(payrollService, employees, currentUser, () -> {
             addEditDialog.close();
-            refreshGrid(searchField.getValue());
+            applyFilters();
         });
 
         if (payroll != null) {
@@ -221,6 +299,20 @@ public class PayrollView extends Main {
         addEditDialog.add(form);
         addEditDialog.setWidth("800px");
         addEditDialog.open();
+    }
+
+    private List<Integer> getRecentYears(int pastYears) {
+        int currentYear = LocalDate.now().getYear();
+        List<Integer> years = new ArrayList<>();
+        for (int i = pastYears; i >= 0; i--) {
+            years.add(currentYear - i);
+        }
+        return years;
+    }
+
+    private String getMonthName(Integer month) {
+        if (month == null) return "";
+        return Month.of(month).getDisplayName(TextStyle.FULL, Locale.ENGLISH);
     }
 
     public static class PayrollForm extends FormLayout {

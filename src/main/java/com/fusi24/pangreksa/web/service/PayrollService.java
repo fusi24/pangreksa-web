@@ -3,6 +3,7 @@ package com.fusi24.pangreksa.web.service;
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.repo.*;
+import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -298,19 +300,52 @@ public class PayrollService {
         return annualTax.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
     }
 
-    public Page<HrPayroll> getPayrollPage(Pageable pageable, String searchTerm) {
+    public Page<HrPayroll> getPayrollPage(Pageable pageable, Integer year, LocalDate month, String searchTerm) {
         if (appUser == null) {
             throw new IllegalStateException("App user is not set. Please call setUser() before using this method.");
         }
 
-        String lowerCaseSearchTerm = "%" + searchTerm.toLowerCase() + "%";
-        Specification<HrPayroll> spec = (pathBase, cq, cb) -> {
-            pathBase.fetch("person");
-            Predicate pred = cb.or(cb.like(pathBase.get("person").get("firstName"), lowerCaseSearchTerm),
-                    cb.like(pathBase.get("person").get("lastName"), lowerCaseSearchTerm));
-            return pred;
-        };
+
+        Specification<HrPayroll> spec = buildBaseSearchSpec(searchTerm);
+        if(year != null) {
+            spec.and((root, query, cb) -> {
+                // Extract YEAR from payrollMonth
+                return cb.equal(cb.function("YEAR", Integer.class, root.get("payrollMonth")), year);
+            });
+        }
+
+        if(month != null) {
+            LocalDate startOfMonth = month.withDayOfMonth(1);
+            LocalDate startOfNextMonth = startOfMonth.plusMonths(1);
+
+            spec.and((root, query, cb) -> {
+                return cb.and(
+                        cb.greaterThanOrEqualTo(root.get("payrollMonth"), startOfMonth),
+                        cb.lessThan(root.get("payrollMonth"), startOfNextMonth)
+                );
+            });
+        }
+
         return hrPayrollRepository.findAll(spec, pageable);
+    }
+
+    private Specification<HrPayroll> buildBaseSearchSpec(String searchTerm) {
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            return (root, query, cb) -> {
+                root.fetch("person"); // always join person
+                return cb.conjunction(); // no filter = match all
+            };
+        }
+
+        String lowerCaseSearchTerm = "%" + searchTerm.toLowerCase() + "%";
+        return (root, query, cb) -> {
+            root.fetch("person");
+            Join<HrPayroll, HrPerson> personJoin = root.join("person");
+            return cb.or(
+                    cb.like(cb.lower(personJoin.get("firstName")), lowerCaseSearchTerm),
+                    cb.like(cb.lower(personJoin.get("lastName")), lowerCaseSearchTerm)
+            );
+        };
     }
 
     public List<HrPerson> getActiveEmployees() {
