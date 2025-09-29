@@ -70,8 +70,8 @@ public class PayrollView extends Main {
     private Dialog detailDialog = new Dialog();
     private Dialog addEditDialog = new Dialog();
 
-    private ComboBox<Integer> yearFilter = new ComboBox<>("Year");
-    private ComboBox<Integer> monthFilter = new ComboBox<>("Month");
+    private ComboBox<Integer> yearFilter = new ComboBox<>();
+    private ComboBox<Integer> monthFilter = new ComboBox<>();
 
     MutableObject<HrPayroll> mObject = new MutableObject<>();
 
@@ -148,12 +148,14 @@ public class PayrollView extends Main {
         addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         // === Year & Month Filters ===
+        yearFilter.setPlaceholder("Year");
         yearFilter.setItems(getRecentYears(5));
         yearFilter.setValue(LocalDate.now().getYear());
         yearFilter.setClearButtonVisible(true);
         yearFilter.setWidth("120px");
 //        yearFilter.addValueChangeListener(e -> applyFilters());
 
+        monthFilter.setPlaceholder("Month");
         monthFilter.setItems(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
         monthFilter.setItemLabelGenerator(this::getMonthName);
         monthFilter.setClearButtonVisible(true);
@@ -163,8 +165,7 @@ public class PayrollView extends Main {
         HorizontalLayout filterBar = new HorizontalLayout(yearFilter, monthFilter);
         filterBar.setSpacing(true);
 
-        // Add Button
-//        new Button()
+        // Search Button
         Button searchButton = new Button(new Icon(VaadinIcon.SEARCH), e -> applyFilters());
         addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
@@ -214,7 +215,7 @@ public class PayrollView extends Main {
             grid.setItems(payrollService.getPayrollPage(PageRequest.of(0, 50), selectedYear, null, searchTerm).getContent());
         } else {
             // Default: no year/month filter, just search
-            grid.setItems(payrollService.getPayrollPage(PageRequest.of(0, 50), selectedYear, null, searchTerm).getContent());
+            grid.setItems(payrollService.getPayrollPage(PageRequest.of(0, 50), null, null, searchTerm).getContent());
         }
     }
 
@@ -297,7 +298,8 @@ public class PayrollView extends Main {
         form.getCancelButton().getElement().addEventListener("click", e -> addEditDialog.close());
 
         addEditDialog.add(form);
-        addEditDialog.setWidth("800px");
+        addEditDialog.setWidth("80%");
+        addEditDialog.setHeight("60%");
         addEditDialog.open();
     }
 
@@ -353,11 +355,14 @@ public class PayrollView extends Main {
             personField.setItemLabelGenerator(p -> p.getFirstName() + " " + p.getLastName());
             personField.setRequired(true);
             personField.setClearButtonVisible(true);
+            personField.setWidthFull();
 
             payrollMonthField.setRequired(true);
             payrollMonthField.setPlaceholder("Select month");
+            payrollMonthField.setWidthFull();
 
             variableAllowancesField.setPrefixComponent(new Div("Rp"));
+            variableAllowancesField.setWidthFull();
 //            variableAllowancesField.setMin(BigDecimal.ZERO);
 //            variableAllowancesField.setStep(BigDecimal.valueOf(1000));
 
@@ -366,19 +371,24 @@ public class PayrollView extends Main {
 //            overtimeHoursField.setStep(BigDecimal.ONE);
 
             overtimeAmountField.setPrefixComponent(new Div("Rp"));
+            overtimeAmountField.setWidthFull();
 //            overtimeAmountField.setMin(BigDecimal.ZERO);
 
             annualBonusField.setPrefixComponent(new Div("Rp"));
+            annualBonusField.setWidthFull();
 //            annualBonusField.setMin(BigDecimal.ZERO);
 
             otherDeductionsField.setPrefixComponent(new Div("Rp"));
+            otherDeductionsField.setWidthFull();
 //            otherDeductionsField.setMin(BigDecimal.ZERO);
 
             previousThpPaidField.setPrefixComponent(new Div("Rp"));
+            previousThpPaidField.setWidthFull();
 //            previousThpPaidField.setMin(BigDecimal.ZERO);
 
             attendanceDaysField.setMin(0);
             attendanceDaysField.setMax(31);
+            attendanceDaysField.setWidthFull();
         }
 
         private void configureBinder() {
@@ -409,12 +419,12 @@ public class PayrollView extends Main {
             HorizontalLayout buttons = new HorizontalLayout(saveButton, cancelButton);
             add(buttons);
 
-            setResponsiveSteps(
-                    new ResponsiveStep("0", 1),
-                    new ResponsiveStep("500px", 2)
-            );
+//            setResponsiveSteps(
+//                    new ResponsiveStep("0", 1),
+//                    new ResponsiveStep("500px", 2)
+//            );
 
-            setMaxWidth("800px");
+//            setMaxWidth("800px");
         }
 
         private void configureActions() {

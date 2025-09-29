@@ -190,7 +190,8 @@ public class PayrollService {
 
         String roundingRule = systemService.getConfigStringValue("PEMBULATAN PKP"); // e.g., "FLOOR"
 
-        HrSalaryEmployeeLevel salaryEmployeeLevel = hrSalaryEmployeeLevelRepository.findByAppUser_Id(appUser.getId()).orElseThrow(() -> new RuntimeException("Salary Employee Level not found"));
+        FwAppUser personUser = appUserRepository.findByPersonId(payrollInput.getPerson().getId()).orElseThrow(() -> new RuntimeException("Person not found"));
+        HrSalaryEmployeeLevel salaryEmployeeLevel = hrSalaryEmployeeLevelRepository.findByAppUserId(personUser.getId()).orElseThrow(() -> new RuntimeException("Salary Employee Level not found"));
         HrPersonPosition personPosition = hrPersonPositionRepository.findFirstByPersonId(payrollInput.getPerson().getId());
         List<HrSalaryPositionAllowance> allowances = hrSalaryPositionAllowanceRepository.findByPositionAndCompanyOrderByUpdatedAtAsc(personPosition.getPosition(), personPosition.getCompany());
 
@@ -305,25 +306,28 @@ public class PayrollService {
             throw new IllegalStateException("App user is not set. Please call setUser() before using this method.");
         }
 
-
         Specification<HrPayroll> spec = buildBaseSearchSpec(searchTerm);
-        if(year != null) {
-            spec.and((root, query, cb) -> {
-                // Extract YEAR from payrollMonth
-                return cb.equal(cb.function("YEAR", Integer.class, root.get("payrollMonth")), year);
-            });
+
+        if (year != null) {
+            LocalDate startOfYear = LocalDate.of(year, 1, 1);
+            LocalDate startOfNextYear = startOfYear.plusYears(1);
+            spec = spec.and((root, query, cb) ->
+                    cb.and(
+                            cb.greaterThanOrEqualTo(root.get("payrollMonth"), startOfYear),
+                            cb.lessThan(root.get("payrollMonth"), startOfNextYear)
+                    )
+            );
         }
 
-        if(month != null) {
+        if (month != null) {
             LocalDate startOfMonth = month.withDayOfMonth(1);
             LocalDate startOfNextMonth = startOfMonth.plusMonths(1);
-
-            spec.and((root, query, cb) -> {
-                return cb.and(
-                        cb.greaterThanOrEqualTo(root.get("payrollMonth"), startOfMonth),
-                        cb.lessThan(root.get("payrollMonth"), startOfNextMonth)
-                );
-            });
+            spec = spec.and((root, query, cb) ->
+                    cb.and(
+                            cb.greaterThanOrEqualTo(root.get("payrollMonth"), startOfMonth),
+                            cb.lessThan(root.get("payrollMonth"), startOfNextMonth)
+                    )
+            );
         }
 
         return hrPayrollRepository.findAll(spec, pageable);

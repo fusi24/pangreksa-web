@@ -13,6 +13,8 @@ public interface HrSalaryEmployeeLevelRepository extends JpaRepository<HrSalaryE
 
     Optional<HrSalaryEmployeeLevel> findByAppUser_Id(Long appUserId);
 
+    Optional<HrSalaryEmployeeLevel> findByAppUserId(Long appUserId);
+
     /** Closed projection untuk grid */
     interface UserLevelProjection {
         Long getUserId();

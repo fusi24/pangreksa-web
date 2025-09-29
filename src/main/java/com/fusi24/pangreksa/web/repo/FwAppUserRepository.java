@@ -36,6 +36,8 @@ public interface FwAppUserRepository extends JpaRepository<FwAppUser, Long> {
     // Cari user berdasarkan email
     Optional<FwAppUser> findByEmail(String email);
 
+    Optional<FwAppUser> findByPersonId(Long id);
+
     // Cek apakah username sudah digunakan
     boolean existsByUsername(String username);
 
