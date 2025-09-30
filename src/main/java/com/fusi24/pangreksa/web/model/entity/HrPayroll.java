@@ -1,5 +1,6 @@
 package com.fusi24.pangreksa.web.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -55,4 +56,8 @@ public class HrPayroll extends AuditableEntity<HrPayroll> {
 
     @Column(name = "prorated_salary")
     private Boolean proratedSalary = Boolean.FALSE;
+
+    @JsonIgnoreProperties(value = "payrollInput", allowSetters = true)
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "payrollInput", cascade = { CascadeType.DETACH, CascadeType.REMOVE })
+    private HrPayrollCalculation calculation;
 }

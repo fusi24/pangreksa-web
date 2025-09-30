@@ -4,6 +4,7 @@ import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.repo.*;
 import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,6 +146,7 @@ public class PayrollService {
         return hrSalaryPositionAllowanceRepository.save(salaryPositionAllowance);
     }
 
+    @Transactional
     public HrPayroll savePayroll(HrPayroll data, AppUserInfo userInfo) {
         FwAppUser appUser = this.findAppUserByUserId(userInfo.getUserId().toString());
 
@@ -164,6 +166,11 @@ public class PayrollService {
         calculatePayroll(saved);
 
         return saved;
+    }
+
+    @Transactional
+    public void deletePayroll(HrPayroll data) {
+        hrPayrollRepository.delete(data);
     }
 
     @Transactional
@@ -305,7 +312,18 @@ public class PayrollService {
         if (appUser == null) {
             throw new IllegalStateException("App user is not set. Please call setUser() before using this method.");
         }
+        
+        Specification<HrPayroll> spec = buildFilterSpec(year, month, searchTerm);
 
+        return hrPayrollRepository.findAll(spec, pageable);
+    }
+
+    public long countPayroll(Integer year, LocalDate month, String searchTerm) {
+        Specification<HrPayroll> spec = buildFilterSpec(year, month, searchTerm);
+        return hrPayrollRepository.count(spec);
+    }
+
+    private Specification<HrPayroll> buildFilterSpec(Integer year, LocalDate month, String searchTerm) {
         Specification<HrPayroll> spec = buildBaseSearchSpec(searchTerm);
 
         if (year != null) {
@@ -330,20 +348,19 @@ public class PayrollService {
             );
         }
 
-        return hrPayrollRepository.findAll(spec, pageable);
+        return spec;
     }
 
     private Specification<HrPayroll> buildBaseSearchSpec(String searchTerm) {
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
             return (root, query, cb) -> {
-                root.fetch("person"); // always join person
-                return cb.conjunction(); // no filter = match all
+                return  cb.conjunction();
             };
         }
 
         String lowerCaseSearchTerm = "%" + searchTerm.toLowerCase() + "%";
         return (root, query, cb) -> {
-            root.fetch("person");
+
             Join<HrPayroll, HrPerson> personJoin = root.join("person");
             return cb.or(
                     cb.like(cb.lower(personJoin.get("firstName")), lowerCaseSearchTerm),
@@ -351,6 +368,8 @@ public class PayrollService {
             );
         };
     }
+
+
 
     public List<HrPerson> getActiveEmployees() {
         if (appUser == null) {

@@ -1,6 +1,8 @@
 package com.fusi24.pangreksa.web.view.manager;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.util.ConfirmationDialogUtil;
+import com.fusi24.pangreksa.base.util.FormattingUtils;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrPayroll;
@@ -30,6 +32,8 @@ import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.data.provider.DataProvider;
+import com.vaadin.flow.data.provider.QuerySortOrder;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
@@ -104,11 +108,20 @@ public class PayrollView extends Main {
         grid.addColumn(payroll -> payroll.getPerson().getFirstName() + " " + payroll.getPerson().getLastName())
                 .setHeader("Employee").setAutoWidth(true);
         grid.addColumn(HrPayroll::getPayrollMonth).setHeader("Payroll Month").setWidth("150px");
-        grid.addColumn(HrPayroll::getVariableAllowances).setHeader("Var. Allowances").setWidth("150px");
-        grid.addColumn(HrPayroll::getOvertimeAmount).setHeader("Overtime").setWidth("120px");
-        grid.addColumn(HrPayroll::getAnnualBonus).setHeader("Bonus").setWidth("120px");
-        grid.addColumn(HrPayroll::getOtherDeductions).setHeader("Other Deduct.").setWidth("140px");
-//        grid.addColumn(HrPayroll::getNetTakeHomePay).setHeader("Net THP").setWidth("120px"); // Requires join to HrPayrollCalculation
+        grid.addColumn(payroll -> FormattingUtils.formatPayrollAmount(payroll.getVariableAllowances()))
+                .setHeader("Var. Allowances")
+                .setWidth("150px");
+        grid.addColumn(payroll -> FormattingUtils.formatPayrollAmount(payroll.getOvertimeAmount()))
+                .setHeader("Overtime")
+                .setWidth("120px");
+        grid.addColumn(payroll -> FormattingUtils.formatPayrollAmount(payroll.getAnnualBonus()))
+                .setHeader("Bonus")
+                .setWidth("120px");
+        grid.addColumn(payroll -> FormattingUtils.formatPayrollAmount(payroll.getOtherDeductions()))
+                .setHeader("Other Deduct.")
+                .setWidth("140px");
+        grid.addColumn(payroll -> payroll.getCalculation() == null ? 0 : FormattingUtils.formatPayrollAmount(payroll.getCalculation().getNetTakeHomePay()))
+                .setHeader("Net THP").setWidth("120px"); // Requires join to HrPayrollCalculation
 
         // Add Action Buttons Column
         grid.addComponentColumn(payroll -> {
@@ -131,10 +144,42 @@ public class PayrollView extends Main {
             recalculateBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
             recalculateBtn.setAriaLabel("Recalculate Payroll");
 
-            actions.add(detailBtn, recalculateBtn);
+            recalculateBtn.setVisible(payroll.getCalculation() == null);
+
+            // 3. Delete Button (using the global utility)
+            Button deleteBtn = new Button(new Icon(VaadinIcon.TRASH));
+            deleteBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);
+            deleteBtn.setTooltipText("Delete Payroll");
+            deleteBtn.setAriaLabel("Delete Payroll");
+
+            deleteBtn.addClickListener(e -> {
+                String personName = payroll.getPerson().getFirstName() + " " + payroll.getPerson().getLastName();
+                String header = "Delete Payroll for " + personName + "?";
+                String message = "Are you sure you want to permanently delete this payroll record? This action cannot be undone.";
+
+                // Call the global utility method
+                ConfirmationDialogUtil.showConfirmation(
+                        header,
+                        message,
+                        "Delete", // The text on the confirm button
+                        // The action to perform on confirmation
+                        event -> {
+                            try {
+                                payrollService.deletePayroll(payroll); // Execute the actual deletion
+                                Notification.show("Payroll deleted successfully for " + personName, 3000, Notification.Position.MIDDLE);
+                                applyFilters(); // Refresh the grid (assuming this is a method in your view)
+                            } catch (Exception ex) {
+                                Notification.show("Deletion failed: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
+                                ex.printStackTrace();
+                            }
+                        }
+                );
+            });
+
+            actions.add(detailBtn, recalculateBtn, deleteBtn);
             actions.setSpacing(true);
             return actions;
-        }).setHeader("Actions").setWidth("200px");
+        }).setHeader("Actions").setAutoWidth(true).setWidth("200px");
 
         // Search Field
         searchField.setPlaceholder("Search");
@@ -144,7 +189,7 @@ public class PayrollView extends Main {
 //        searchField.addValueChangeListener(e -> refreshGrid(e.getValue()));
 
         // Add Button
-        Button addButton = new Button("Add Payroll", e -> openAddEditDialog(null));
+        Button addButton = new Button("Add Payroll", e -> openAddEditDialog(new HrPayroll()));
         addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         // === Year & Month Filters ===
@@ -206,17 +251,43 @@ public class PayrollView extends Main {
         Integer selectedMonth = monthFilter.getValue();
         String searchTerm = searchField.getValue();
 
+        MutableObject<LocalDate> mFilterDate = new MutableObject<>();
         if (selectedYear != null && selectedMonth != null) {
             // Filter by specific year-month
-            LocalDate filterDate = LocalDate.of(selectedYear, selectedMonth, 1);
-            grid.setItems(payrollService.getPayrollPage(PageRequest.of(0, 50), selectedYear, filterDate, searchTerm).getContent());
-        } else if (selectedYear != null) {
-            // Filter by year only
-            grid.setItems(payrollService.getPayrollPage(PageRequest.of(0, 50), selectedYear, null, searchTerm).getContent());
-        } else {
-            // Default: no year/month filter, just search
-            grid.setItems(payrollService.getPayrollPage(PageRequest.of(0, 50), null, null, searchTerm).getContent());
+            mFilterDate.setValue(LocalDate.of(selectedYear, selectedMonth, 1));
         }
+
+        // 1. Create the Data Provider
+        // The fetch callback handles loading a page of data
+        // The count callback handles getting the total number of records
+        DataProvider<HrPayroll, Void> dataProvider = DataProvider.fromCallbacks(
+                // Fetch callback (called when a page is requested)
+                query -> {
+                    int offset = query.getOffset();
+                    int limit = query.getLimit();
+
+                    // Determine sort properties (optional, but good practice)
+                    List<QuerySortOrder> sortOrders = query.getSortOrders();
+                    // Assuming you have a helper method to map Vaadin sort orders to Spring Data sort
+
+                    // Spring Data JPA's PageRequest starts at page 0
+                    int page = offset / limit;
+                    PageRequest pageRequest = PageRequest.of(page, limit);
+
+                    // The PayrollService method should now accept PageRequest instead of a static limit
+                    return payrollService.getPayrollPage(pageRequest, selectedYear, mFilterDate.getValue(), searchTerm)
+                            .getContent().stream();
+                },
+                // Count callback (called to get the total number of items)
+                query -> {
+                    // Your service needs a separate method for counting based on the filters
+                    return (int) payrollService.countPayroll(selectedYear, mFilterDate.getValue(), searchTerm);
+                }
+        );
+
+
+        // 2. Apply the Data Provider to the Grid
+        grid.setDataProvider(dataProvider);
     }
 
     private void openDetailDialog(HrPayroll payroll) {
@@ -400,7 +471,7 @@ public class PayrollView extends Main {
             binder.bind(annualBonusField, HrPayroll::getAnnualBonus, HrPayroll::setAnnualBonus);
             binder.bind(otherDeductionsField, HrPayroll::getOtherDeductions, HrPayroll::setOtherDeductions);
             binder.bind(previousThpPaidField, HrPayroll::getPreviousThpPaid, HrPayroll::setPreviousThpPaid);
-            binder.bind(attendanceDaysField, HrPayroll::getAttendanceDays, HrPayroll::setAttendanceDays);
+            binder.forField(attendanceDaysField).asRequired("Attendance Days is required").bind(HrPayroll::getAttendanceDays, HrPayroll::setAttendanceDays);
 
             binder.readBean(null); // clear
         }
@@ -445,15 +516,15 @@ public class PayrollView extends Main {
         }
 
         public void setPayroll(HrPayroll payroll) {
-            binder.readBean(payroll);
+            binder.setBean(payroll);
         }
 
         public HrPayroll getPayroll() {
             HrPayroll payroll = binder.getBean();
-            if (payroll == null) {
-                payroll = new HrPayroll();
-                binder.setBean(payroll);
-            }
+//            if (payroll == null) {
+//                payroll = new HrPayroll();
+//                binder.setBean(payroll);
+//            }
             return payroll;
         }
 
