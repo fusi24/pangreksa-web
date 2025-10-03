@@ -17,6 +17,7 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Main;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -306,6 +307,13 @@ public class UserManagementView extends Main {
         saveButton.addClickListener( e->{
             // getAll FwAppUser from grid
             List<FwAppUser> usersToSave = gridUsers.getListDataView().getItems().toList();
+
+            FwAppUser hasNoPassword = usersToSave.stream().filter(p -> p.getPassword() == null && p.getPasswordHash() == null).findFirst().orElse(null);
+            if(hasNoPassword != null) {
+                Notification.show("Password is required for User: "+hasNoPassword.getUsername(), 500, Notification.Position.MIDDLE);
+                return;
+            }
+
             // log all user
             usersToSave.forEach(user -> {
                 log.debug("Saving user: {} - {} - {}", user.getUsername(), user.getPerson(), user.getCompany());
