@@ -1,13 +1,16 @@
 package com.fusi24.pangreksa.web.view.admin;
 
+import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.web.model.entity.HrDepartment;
 import com.fusi24.pangreksa.web.repo.HrDepartmentRepo;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Main;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
@@ -15,6 +18,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -28,7 +32,7 @@ import java.util.stream.StreamSupport;
 @Menu(order = 4, icon = "vaadin:clipboard-check", title = "Master Department")
 @RolesAllowed("USERS_MGT")
 public class MasterDepartmentView extends Main {
-
+    public static final String VIEW_NAME = "Master Department";
     private final HrDepartmentRepo departmentRepo;
 
     private final Grid<HrDepartment> grid = new Grid<>(HrDepartment.class);
@@ -42,6 +46,7 @@ public class MasterDepartmentView extends Main {
     private final TextField codeField = new TextField("Code");
     private final TextField nameField = new TextField("Name");
     private final TextField descriptionField = new TextField("Description");
+    private final Checkbox isActiveField = new Checkbox();
     // For simplicity, isActive as checkbox could be added, but we'll skip for brevity
 
     private HrDepartment currentDepartment;
@@ -49,6 +54,10 @@ public class MasterDepartmentView extends Main {
     @Autowired
     public MasterDepartmentView(HrDepartmentRepo departmentRepo) {
         this.departmentRepo = departmentRepo;
+
+        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
+                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+
         configureGrid();
         configureForm();
         addToolbar();
@@ -74,8 +83,21 @@ public class MasterDepartmentView extends Main {
     }
 
     private void configureForm() {
-        form.add(codeField, nameField, descriptionField);
-        binder.bindInstanceFields(this);
+        isActiveField.setLabel("Aktif");
+        form.add(codeField, nameField, descriptionField, isActiveField);
+
+        // Explicitly bind each field
+        binder.forField(codeField)
+                .asRequired("Code is required")
+                .bind(HrDepartment::getCode, HrDepartment::setCode);
+        binder.forField(nameField)
+                .asRequired("Name is required")
+                .bind(HrDepartment::getName, HrDepartment::setName);
+        binder.forField(descriptionField)
+                .bind(HrDepartment::getDescription, HrDepartment::setDescription);
+        binder.forField(isActiveField)
+                .bind(HrDepartment::getIsActive, HrDepartment::setIsActive);
+
         dialog.add(new H3("Department Details"), form);
 
         Button saveButton = new Button("Save", e -> saveDepartment());
@@ -94,6 +116,9 @@ public class MasterDepartmentView extends Main {
         HorizontalLayout toolbar = new HorizontalLayout(searchField, addButton);
         toolbar.setWidthFull();
         searchField.setWidth("300px");
+        toolbar.setVerticalComponentAlignment(FlexComponent.Alignment.END, addButton);
+
+        add(new ViewToolbar(VIEW_NAME));
         add(toolbar);
     }
 
