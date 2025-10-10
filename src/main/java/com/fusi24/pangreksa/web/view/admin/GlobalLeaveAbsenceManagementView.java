@@ -20,11 +20,13 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,7 +129,7 @@ public class GlobalLeaveAbsenceManagementView extends Main {
                     ? lat.getSortOrder(): 0.0);
             sortOrderField.setWidth("80px");
             sortOrderField.addValueChangeListener(e -> {
-                if (lat.getSortOrder() != null) {
+                if (lat.getSortOrder() != null && e.getValue() != null) {
                     lat.setSortOrder(e.getValue().intValue());
                     this.isGridEdit = true;
                     // Optionally persist change here
@@ -141,10 +143,17 @@ public class GlobalLeaveAbsenceManagementView extends Main {
             TextField labelField = new TextField();
             labelField.setValue(lat.getLeaveType());
             labelField.setWidthFull();
+            labelField.setErrorMessage("Type is required");
+            labelField.setManualValidation(true);
+            labelField.setValueChangeMode(ValueChangeMode.EAGER);
             labelField.addValueChangeListener(e -> {
+                boolean valid = StringUtils.isNotBlank(labelField.getValue());
+                labelField.setInvalid(!valid);
+                saveButton.setEnabled(valid);
                 lat.setLeaveType(e.getValue());
                 this.isGridEdit = true;
             });
+
             return labelField;
         })).setHeader("Type").setFlexGrow(0);
 
@@ -153,7 +162,13 @@ public class GlobalLeaveAbsenceManagementView extends Main {
             TextField labelField = new TextField();
             labelField.setValue(lat.getLabel());
             labelField.setWidthFull();
+            labelField.setErrorMessage("Name is required");
+            labelField.setManualValidation(true);
+            labelField.setValueChangeMode(ValueChangeMode.EAGER);
             labelField.addValueChangeListener(e -> {
+                boolean valid = StringUtils.isNotBlank(labelField.getValue());
+                labelField.setInvalid(!valid);
+                saveButton.setEnabled(valid);
                 lat.setLabel(e.getValue());
                 this.isGridEdit = true;
             });
@@ -184,7 +199,13 @@ public class GlobalLeaveAbsenceManagementView extends Main {
             TextField labelField = new TextField();
             labelField.setValue(lat.getDescription());
             labelField.setWidthFull();
+            labelField.setErrorMessage("Description is required");
+            labelField.setManualValidation(true);
+            labelField.setValueChangeMode(ValueChangeMode.EAGER);
             labelField.addValueChangeListener(e -> {
+                boolean valid = StringUtils.isNotBlank(labelField.getValue());
+                labelField.setInvalid(!valid);
+                saveButton.setEnabled(valid);
                 lat.setDescription(e.getValue());
                 this.isGridEdit = true;
             });
