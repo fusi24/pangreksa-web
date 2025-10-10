@@ -14,6 +14,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fusi24.pangreksa.web.model.entity.HrSalaryAllowance;
+import com.fusi24.pangreksa.web.repo.HrSalaryAllowanceRepository;
+
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -59,6 +62,10 @@ public class PayrollService {
         this.appUserRepository = appUserRepository;
         this.hrSalaryAllowanceRepository = hrSalaryAllowanceRepository;
         this.hrSalaryPositionAllowanceRepository = hrSalaryAllowancePackageRepository;
+    }
+
+    public void deleteSalaryAllowance(HrSalaryAllowance data) {
+        hrSalaryAllowanceRepository.delete(data);
     }
 
     private FwAppUser appUser;
@@ -118,6 +125,14 @@ public class PayrollService {
         FwAppUser appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
 
         if (salaryAllowance.getId() == null) {
+            // ===== Tambahan penting untuk record baru =====
+            // Pastikan company ter-set agar lolos query getAllSalaryAllowances(...)
+            if (salaryAllowance.getCompany() == null) {
+                salaryAllowance.setCompany(appUser.getCompany());
+            }
+            // (opsional) set default endDate kalau memang harus null untuk "aktif"
+            // if (salaryAllowance.getEndDate() == null) salaryAllowance.setEndDate(null);
+
             salaryAllowance.setCreatedBy(appUser);
             salaryAllowance.setUpdatedBy(appUser);
             salaryAllowance.setCreatedAt(LocalDateTime.now());
@@ -125,6 +140,10 @@ public class PayrollService {
         } else {
             salaryAllowance.setUpdatedBy(appUser);
             salaryAllowance.setUpdatedAt(LocalDateTime.now());
+            // Jaga-jaga kalau ada data lama yang belum punya company
+            if (salaryAllowance.getCompany() == null) {
+                salaryAllowance.setCompany(appUser.getCompany());
+            }
         }
 
         return hrSalaryAllowanceRepository.save(salaryAllowance);
@@ -312,7 +331,7 @@ public class PayrollService {
         if (appUser == null) {
             throw new IllegalStateException("App user is not set. Please call setUser() before using this method.");
         }
-        
+
         Specification<HrPayroll> spec = buildFilterSpec(year, month, searchTerm);
 
         return hrPayrollRepository.findAll(spec, pageable);

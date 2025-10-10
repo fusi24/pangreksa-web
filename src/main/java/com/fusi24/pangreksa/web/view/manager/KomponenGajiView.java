@@ -339,13 +339,12 @@ public class KomponenGajiView extends Main {
         functionMenuLayout.setAlignItems(HorizontalLayout.Alignment.BASELINE);
         functionMenuLayout.expand(leftLayout); // leftLayout takes all available space, addButton stays right
 
-
         this.salaryAllowanceGrid = new Grid<>(HrSalaryAllowance.class, false);
         salaryAllowanceGrid.addClassNames("salary-base-level-grid");
         salaryAllowanceGrid.setWidthFull();
         salaryAllowanceGrid.setHeight("300px");
 
-        // Editable Level Code
+        // Allowance Name (editable)
         salaryAllowanceGrid.addColumn(new ComponentRenderer<>(item -> {
             TextField levelCodeField = new TextField();
             levelCodeField.setWidthFull();
@@ -357,33 +356,23 @@ public class KomponenGajiView extends Main {
             return levelCodeField;
         })).setHeader("Allowance Name").setWidth("50px");
 
-        // Inside your grid setup:
+        // Amount (editable + formatter)
         salaryAllowanceGrid.addColumn(new ComponentRenderer<>(item -> {
             TextField salaryField = new TextField();
             salaryField.setWidthFull();
-            salaryField.setValueChangeMode(ValueChangeMode.ON_BLUR);
-
+            salaryField.setValue(item.getAmount() != null ? decimalAmountFormater(item.getAmount()) : "");
+            salaryField.setValueChangeMode(ValueChangeMode.ON_CHANGE);
             salaryField.addThemeVariants(TextFieldVariant.LUMO_ALIGN_RIGHT);
-            salaryField.setAllowedCharPattern("[0-9]");
-            // Prefix Rp
-            salaryField.setPrefixComponent(new Span("Rp "));
+            salaryField.setAllowedCharPattern("[0-9.,]");
 
-            // Initial value
-            if (item.getAmount() != null) {
-                salaryField.setValue(decimalAmountFormater(item.getAmount()));
-            }
-
-            // Listener for user input
             salaryField.addValueChangeListener(e -> {
                 String value = e.getValue().replace(".", "").replace(",", ".");
                 try {
                     BigDecimal parsed = new BigDecimal(value);
                     item.setAmount(parsed);
                     this.isAllowanceEdit = true;
-                    // Re-format to show separators again
                     salaryField.setValue(decimalAmountFormater(parsed));
                 } catch (NumberFormatException ex) {
-                    // If invalid, reset
                     if (item.getAmount() != null) {
                         salaryField.setValue(decimalAmountFormater(item.getAmount()));
                     } else {
@@ -394,15 +383,15 @@ public class KomponenGajiView extends Main {
 
             return salaryField;
         })).setHeader("Amount").setAutoWidth(true).setTextAlign(ColumnTextAlign.END);
-        // Editable Start Date
+
+        // Start Date (editable)
         salaryAllowanceGrid.addColumn(new ComponentRenderer<>(item -> {
             HorizontalLayout layout = new HorizontalLayout();
             layout.setSpacing(false);
-            layout.getStyle().set("gap", "5px"); // small gap
+            layout.getStyle().set("gap", "5px");
             layout.setWidthFull();
 
             DatePicker startDate = new DatePicker();
-            // Custom format: DD-MMM-YYYY
             startDate.setI18n(DatePickerUtil.getIndonesianI18n());
             startDate.setWidthFull();
             startDate.setValue(item.getStartDate());
@@ -415,7 +404,7 @@ public class KomponenGajiView extends Main {
             return layout;
         })).setHeader("Start Date").setWidth("75px");
 
-        // Editable End Date
+        // End Date (editable)
         salaryAllowanceGrid.addColumn(new ComponentRenderer<>(item -> {
             HorizontalLayout layout = new HorizontalLayout();
             layout.setSpacing(false);
@@ -435,22 +424,61 @@ public class KomponenGajiView extends Main {
             return layout;
         })).setHeader("End Date").setWidth("75px");
 
-        // Delete button
+        // DELETE dengan konfirmasi + hapus ke DB bila sudah tersimpan
         salaryAllowanceGrid.addColumn(new ComponentRenderer<>(item -> {
-            Button deleteButton = new Button(VaadinIcon.CLOSE.create());
-            deleteButton.addClickListener(e -> {
-                if (this.auth.canDelete) {
-                    salaryAllowanceGrid.getListDataView().removeItem(item);
-                }
-            });
-
+            Button deleteButton = new Button(VaadinIcon.TRASH.create());
             deleteButton.setEnabled(this.auth.canDelete);
+            deleteButton.addClickListener(e -> {
+                if (!this.auth.canDelete) return;
 
-            if(item.getId() == null)
-                return deleteButton;
-            else
-                return null;
+                Dialog confirm = new Dialog();
+                confirm.setHeaderTitle("Delete allowance?");
+                Span msg = new Span("Are you sure you want to delete \"" + (item.getName() != null ? item.getName() : "(no name)") + "\"?");
+                confirm.add(new VerticalLayout(msg));
+
+                Button cancel = new Button("Cancel", ev -> confirm.close());
+                Button yes = new Button("Delete", ev -> {
+                    if (item.getId() != null) {
+                        // HAPUS DI DB
+                        payrollService.deleteSalaryAllowance(item);
+                    }
+                    // HAPUS DI GRID
+                    salaryAllowanceGrid.getListDataView().removeItem(item);
+                    Notification.show("Allowance deleted");
+                    confirm.close();
+                });
+                confirm.getFooter().add(cancel, yes);
+                confirm.open();
+            });
+            return deleteButton;
         })).setHeader("Actions").setFlexGrow(0).setAutoWidth(true);
+
+        // ADD
+//        saAddButton.addClickListener(e -> {
+//            HrSalaryAllowance newAllowance = new HrSalaryAllowance();
+//            newAllowance.setName("NEW ALLOWANCE");
+//            newAllowance.setAmount(BigDecimal.ZERO);
+//            newAllowance.setStartDate(LocalDate.now());
+//            salaryAllowanceGrid.getListDataView().addItem(newAllowance);
+//            this.isAllowanceEdit = true;
+//        });
+
+        // SAVE (Update semua perubahan baris)
+//        saSaveButton.addClickListener(e -> {
+//            if (this.auth.canEdit && this.isAllowanceEdit) {
+//                List<HrSalaryAllowance> items = salaryAllowanceGrid.getListDataView().getItems().toList();
+//                for (HrSalaryAllowance it : items) {
+//                    payrollService.saveSalaryAllowance(it, currentUser.require());
+//                }
+//                populateAllowanceGrid(withInactiveAllowance.getValue());
+//                this.isAllowanceEdit = false;
+//                Notification.show("Data Allowance Saved Successfully");
+//            }
+//        });
+//
+//        withInactiveAllowance.addValueChangeListener(e -> {
+//            populateAllowanceGrid(e.getValue());
+//        });
 
         VerticalLayout salaryAlowanceLayout = new VerticalLayout(functionMenuLayout, salaryAllowanceGrid);
         salaryAlowanceLayout.setSpacing(false);
@@ -459,6 +487,7 @@ public class KomponenGajiView extends Main {
 
         return salaryAlowanceLayout;
     }
+
 
     private Component createAllowancePackageFunction(){
         HorizontalLayout leftLayout = new HorizontalLayout();
@@ -735,8 +764,8 @@ public class KomponenGajiView extends Main {
             // Calculate only allowance still active/ end date is null
             if  (
                     (calcullationDateTF.getValue().isAfter(pa.getStartDate()) || calcullationDateTF.getValue().isEqual(pa.getStartDate()) ) &&
-                    (pa.getEndDate() == null || calcullationDateTF.getValue().isBefore(pa.getEndDate()))
-                ) {
+                            (pa.getEndDate() == null || calcullationDateTF.getValue().isBefore(pa.getEndDate()))
+            ) {
                 total = total.add(pa.getAllowance().getAmount());
             }
         }
@@ -795,7 +824,7 @@ public class KomponenGajiView extends Main {
                 for (HrSalaryAllowance item : toSaveList) {
                     payrollService.saveSalaryAllowance(item, currentUser.require());
                 }
-               populateAllowanceGrid(withInactiveAllowance.getValue());
+                populateAllowanceGrid(withInactiveAllowance.getValue());
                 this.isAllowanceEdit = false;
 
                 // Notification
@@ -803,7 +832,7 @@ public class KomponenGajiView extends Main {
             }
         });
 
-        withInactiveBasicSalary.addValueChangeListener(e -> {
+        withInactiveAllowance.addValueChangeListener(e -> {
             populateAllowanceGrid(e.getValue());
         });
 
