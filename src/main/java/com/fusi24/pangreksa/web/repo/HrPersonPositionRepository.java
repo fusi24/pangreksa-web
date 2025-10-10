@@ -21,7 +21,7 @@ public interface HrPersonPositionRepository extends JpaRepository<HrPersonPositi
       AND p.startDate <= :currentDate
       AND (p.endDate IS NULL OR p.endDate >= :currentDate)
     """)
-    @EntityGraph(attributePaths = {"person","position","position.orgStructure","company","requestedBy"})
+    @EntityGraph(attributePaths = {"person","position","position.orgStructure","company","department","requestedBy"})
     HrPersonPosition findCurrentPositionsByCompanyAndPerson(
             @Param("company") HrCompany company,
             @Param("person") HrPerson person,
@@ -29,16 +29,16 @@ public interface HrPersonPositionRepository extends JpaRepository<HrPersonPositi
     );
 
 
-    @EntityGraph(attributePaths = {"person","position","position.orgStructure","company","requestedBy"})
+    @EntityGraph(attributePaths = {"person","position","position.orgStructure","company","department","requestedBy"})
     List<HrPersonPosition> findByCompany(HrCompany company);
 
-    @EntityGraph(attributePaths = {"person","position","position.orgStructure","company","requestedBy"})
+    @EntityGraph(attributePaths = {"person","position","position.orgStructure","company","department","requestedBy"})
     List<HrPersonPosition> findByCompanyAndPosition(HrCompany company, HrPosition position);
 
-    @EntityGraph(attributePaths = {"person","position","position.orgStructure","company","requestedBy"})
+    @EntityGraph(attributePaths = {"person","position","position.orgStructure","company","department","requestedBy"})
     List<HrPersonPosition> findByCompanyAndPosition_OrgStructure(HrCompany company, HrOrgStructure orgStructure);
 
-    @EntityGraph(attributePaths = {"person","position","position.orgStructure","company","requestedBy"})
+    @EntityGraph(attributePaths = {"person","position","position.orgStructure","company","department","requestedBy"})
     @Query("""
     SELECT p
     FROM HrPersonPosition p

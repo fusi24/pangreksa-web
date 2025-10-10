@@ -46,5 +46,9 @@ public class HrPersonPosition  extends AuditableEntity<HrPersonPosition>  {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable = false)
     private HrCompany company;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "dept_id")
+    private HrDepartment department;
 }
 

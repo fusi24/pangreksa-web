@@ -4,6 +4,7 @@ import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.*;
+import com.fusi24.pangreksa.web.repo.HrDepartmentRepo;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.CompanyService;
 import com.fusi24.pangreksa.web.service.PersonService;
@@ -35,9 +36,13 @@ import jakarta.annotation.security.RolesAllowed;
 import org.ocpsoft.prettytime.PrettyTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Route("profil-data-karyawan-page-access")
 @PageTitle("Profil Data Karyawan")
@@ -71,6 +76,9 @@ public class ProfilDataKaryawanView extends Main {
     private TabSheet tabsheet;
     Grid<HrOrgStructure> orgStructureGrid;
     Grid<HrPosition> positionGrid;
+
+    @Autowired
+    private HrDepartmentRepo hrDepartmentRepo;
 
     public ProfilDataKaryawanView(CurrentUser currentUser, CommonService commonService, PersonService personService,
                                   CompanyService companyService, SystemService systemService) {
@@ -196,6 +204,7 @@ public class ProfilDataKaryawanView extends Main {
                 VerticalLayout dialogLayout = new VerticalLayout();
                 ComboBox<HrOrgStructure> orgStructureDropdown = new ComboBox<>("Org. Structure");
                 ComboBox<HrPosition> positionDropdown = new ComboBox<>("Position");
+                ComboBox<HrDepartment> cbDept = new ComboBox<>("Department");
                 DatePicker startDatePicker = new DatePicker("Start Date");
                 DatePicker endDatePicker = new DatePicker("End Date");
                 Checkbox isPrimaryCheckbox = new Checkbox("Is Primary");
@@ -236,6 +245,10 @@ public class ProfilDataKaryawanView extends Main {
 
                 positionDropdown.setWidth("400px");
 
+                cbDept.setItemLabelGenerator(HrDepartment::getName);
+                cbDept.setItems(StreamSupport.stream(hrDepartmentRepo.findAll().spliterator(), false).collect(Collectors.toList()));
+                cbDept.setWidth("400px");
+
                 HorizontalLayout buttonLayout = new HorizontalLayout();
                 Button cancelButton = new Button("Cancel", event -> dialog.close());
                 Button saveButton = new Button("Save");
@@ -245,8 +258,12 @@ public class ProfilDataKaryawanView extends Main {
                 }
 
                 saveButton.addClickListener(event -> {
-                    log.debug("Saving Org Structure {} and Position {} to Person {}",
-                            orgStructureDropdown.getValue(), positionDropdown.getValue(), person.getFirstName());
+                    if(orgStructureDropdown.isEmpty() || positionDropdown.isEmpty() || cbDept.isEmpty()) {
+                        Notification.show("Org Structure, Position and Departmennt is required.");
+                        return;
+                    }
+                    log.debug("Saving Org Structure {} and Position {} and Departmennt {} to Person {}",
+                            orgStructureDropdown.getValue(), positionDropdown.getValue(), cbDept.getValue(), person.getFirstName());
 
                     // Create HrPersonPosition using builder
                     HrPersonPosition personPosition = HrPersonPosition.builder()
@@ -258,6 +275,7 @@ public class ProfilDataKaryawanView extends Main {
                             .isPrimary(isPrimaryCheckbox.getValue())
                             .requestedBy(requestedByDropdown.getValue())
                             .company(this.currentAppUser.getCompany())
+                            .department(cbDept.getValue())
                             .build();
 
                     personService.savePersonPosition(personPosition, currentUser.require());
@@ -345,6 +363,10 @@ public class ProfilDataKaryawanView extends Main {
             HrPosition position = pos.getPosition();
             return position != null ? position.getOrgStructure().getName() : "";
         }).setHeader("Org Structure").setSortable(true);
+        gridEmployees.addColumn(pos -> {
+            HrDepartment dept = pos.getDepartment();
+            return Optional.ofNullable(dept).map(HrDepartment::getName).orElse("");
+        }).setHeader("Department").setSortable(true);
         // Start Date
         gridEmployees.addColumn(HrPersonPosition::getStartDate).setHeader("Start Date").setSortable(true);
         // Action column with delete button (icon only, no title)
