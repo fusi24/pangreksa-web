@@ -1,5 +1,6 @@
 package com.fusi24.pangreksa.web.view.employee;
 
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
@@ -286,9 +287,82 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                 new FormLayout.ResponsiveStep("700px", 4)
         );
 
+
+        // Validasi UI untuk NIK (KTP Number)
+        ktpNumber.setClearButtonVisible(true);
+        ktpNumber.setValueChangeMode(ValueChangeMode.EAGER);
+        ktpNumber.setMaxLength(16);
+        ktpNumber.setMinLength(16);
+        ktpNumber.setPattern("\\d*"); // hanya digit
+        ktpNumber.setAllowedCharPattern("\\d");
+        ktpNumber.setHelperText("Masukkan 16 digit angka tanpa spasi");
+        ktpNumber.setErrorMessage("NIK harus 16 digit angka tanpa spasi");
+        ktpNumber.addValueChangeListener(e -> {
+            String v = e.getValue();
+            if (v != null) {
+                String cleaned = v.replaceAll("[^\\d]", "");
+                if (!cleaned.equals(v)) {
+                    ktpNumber.setValue(cleaned);
+                }
+                ktpNumber.setInvalid(cleaned.length() == 0 ? false : cleaned.length() != 16);
+            }
+        });
+
+
+        // ===== UI Validations =====
+        // Required indicators
+        firstName.setRequiredIndicatorVisible(true);
+        lastName.setRequiredIndicatorVisible(true);
+        ktpNumber.setRequiredIndicatorVisible(true);
+        dob.setRequiredIndicatorVisible(true);
+        gender.setRequiredIndicatorVisible(true);
+        nationality.setRequiredIndicatorVisible(true);
+        religion.setRequiredIndicatorVisible(true);
+        marriage.setRequiredIndicatorVisible(true);
+
+        // Names: only letters and spaces
+        firstName.setAllowedCharPattern("[\\p{L}\\s]");
+        firstName.setMaxLength(50);
+        firstName.setHelperText("Hanya huruf & spasi, wajib diisi");
+        firstName.addValueChangeListener(e -> {
+            String v = e.getValue() != null ? e.getValue().trim() : "";
+            boolean ok = v.matches("^[\\p{L} ]+$");
+            firstName.setInvalid(v.isEmpty() ? false : !ok);
+        });
+
+        middleName.setAllowedCharPattern("[\\p{L}\\s]");
+        middleName.setMaxLength(50);
+        middleName.setHelperText("Hanya huruf & spasi (opsional)");
+        middleName.addValueChangeListener(e -> {
+            String v = e.getValue() != null ? e.getValue().trim() : "";
+            boolean ok = v.isEmpty() || v.matches("^[\\p{L} ]+$");
+            middleName.setInvalid(!ok);
+        });
+
+        lastName.setAllowedCharPattern("[\\p{L}\\s]");
+        lastName.setMaxLength(50);
+        lastName.setHelperText("Hanya huruf & spasi, wajib diisi");
+        lastName.addValueChangeListener(e -> {
+            String v = e.getValue() != null ? e.getValue().trim() : "";
+            boolean ok = v.matches("^[\\p{L} ]+$");
+            lastName.setInvalid(v.isEmpty() ? false : !ok);
+        });
+
+        // Place of Birth: letters & spaces, min 2 chars
+        pob.setAllowedCharPattern("[\\p{L}\\s]");
+        pob.setMaxLength(100);
+        pob.setHelperText("Hanya huruf & spasi");
+        pob.addValueChangeListener(e -> {
+            String v = e.getValue() != null ? e.getValue().trim() : "";
+            boolean ok = v.isEmpty() ? true : v.matches("^[\\p{L} ]{2,}$");
+            pob.setInvalid(!ok);
+        });
+
+        // Date of Birth: set max to today
+        dob.setMax(java.time.LocalDate.now());
+
         // Add all fields to the form layout
         personFormLayout.add(
-                ktpNumber,
                 ktpNumber,
                 firstName,
                 middleName,
@@ -336,15 +410,15 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 //                    // Update image source with the uploaded file data
 //                    UI ui = UI.getCurrent();
 //                    ui.access(() -> {
-                        photoPreview.removeAll();
-                        photoPreview = new Image(imageResource, fileName);
-                        photoPreviewCosmetics();
+                    photoPreview.removeAll();
+                    photoPreview = new Image(imageResource, fileName);
+                    photoPreviewCosmetics();
 
-                        this.avatarLayout.removeAll();
-                        avatarLayout.add(photoPreview);
+                    this.avatarLayout.removeAll();
+                    avatarLayout.add(photoPreview);
 
-                        // Store to uploadedImageBytes
-                        uploadedImageBytes.set(data);
+                    // Store to uploadedImageBytes
+                    uploadedImageBytes.set(data);
 //                    });
 
                     // Do something with the file data...
@@ -476,7 +550,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                 relationship,
                 description,
                 isDefaultContact
-                );
+        );
         contactFormLayout.getStyle().setMaxWidth(MAX_WIDTH);
 
 
@@ -964,6 +1038,80 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
     }
 
     private void save() {
+
+        // Server-side validation for NIK (must be exactly 16 digits, no spaces)
+        String nik = ktpNumber.getValue() != null ? ktpNumber.getValue().trim() : "";
+        if (!nik.matches("^\\d{16}$")) {
+            ktpNumber.setInvalid(true);
+            ktpNumber.setErrorMessage("NIK harus 16 digit angka tanpa spasi");
+            Notification.show("Periksa NIK: harus 16 digit angka tanpa spasi.", 4000, Notification.Position.MIDDLE);
+            return;
+        }
+        // ===== Server-side validations =====
+        // First Name: required letters & spaces
+        String vFirst = firstName.getValue() != null ? firstName.getValue().trim() : "";
+        if (vFirst.isEmpty() || !vFirst.matches("^[\\p{L} ]+$")) {
+            firstName.setInvalid(true);
+            Notification.show("First Name wajib diisi (huruf & spasi saja).", 4000, Notification.Position.MIDDLE);
+            return;
+        }
+        // Last Name: required letters & spaces
+        String vLast = lastName.getValue() != null ? lastName.getValue().trim() : "";
+        if (vLast.isEmpty() || !vLast.matches("^[\\p{L} ]+$")) {
+            lastName.setInvalid(true);
+            Notification.show("Last Name wajib diisi (huruf & spasi saja).", 4000, Notification.Position.MIDDLE);
+            return;
+        }
+        // Middle Name: optional, but if present must be letters & spaces
+        String vMid = middleName.getValue() != null ? middleName.getValue().trim() : "";
+        if (!vMid.isEmpty() && !vMid.matches("^[\\p{L} ]+$")) {
+            middleName.setInvalid(true);
+            Notification.show("Middle Name hanya boleh huruf & spasi.", 4000, Notification.Position.MIDDLE);
+            return;
+        }
+        // Place of Birth: optional, if present letters & spaces min 2
+        String vPob = pob.getValue() != null ? pob.getValue().trim() : "";
+        if (!vPob.isEmpty() && !vPob.matches("^[\\p{L} ]{2,}$")) {
+            pob.setInvalid(true);
+            Notification.show("Tempat Lahir hanya huruf & spasi (min 2 huruf).", 4000, Notification.Position.MIDDLE);
+            return;
+        }
+        // Date of Birth: required, not in the future, usia >= 17
+        java.time.LocalDate d = dob.getValue();
+        if (d == null) {
+            dob.setInvalid(true);
+            Notification.show("Tanggal Lahir wajib diisi.", 4000, Notification.Position.MIDDLE);
+            return;
+        }
+        if (d.isAfter(java.time.LocalDate.now())) {
+            dob.setInvalid(true);
+            Notification.show("Tanggal Lahir tidak boleh di masa depan.", 4000, Notification.Position.MIDDLE);
+            return;
+        }
+        int usia = java.time.Period.between(d, java.time.LocalDate.now()).getYears();
+        if (usia < 17) {
+            dob.setInvalid(true);
+            Notification.show("Usia minimal 17 tahun.", 4000, Notification.Position.MIDDLE);
+            return;
+        }
+        // Required combos
+        if (gender.getValue() == null) {
+            Notification.show("Gender wajib dipilih.", 4000, Notification.Position.MIDDLE);
+            return;
+        }
+        if (nationality.getValue() == null) {
+            Notification.show("Nationality wajib dipilih.", 4000, Notification.Position.MIDDLE);
+            return;
+        }
+        if (religion.getValue() == null) {
+            Notification.show("Religion wajib dipilih.", 4000, Notification.Position.MIDDLE);
+            return;
+        }
+        if (marriage.getValue() == null) {
+            Notification.show("Marriage Status wajib dipilih.", 4000, Notification.Position.MIDDLE);
+            return;
+        }
+
         // Create HrPerson
         HrPerson person = this.personData != null ? this.personData : new HrPerson();
         person.setFirstName(firstName.getValue());
