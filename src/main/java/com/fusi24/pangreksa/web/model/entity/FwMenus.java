@@ -39,4 +39,8 @@ public class FwMenus extends AuditableEntity<FwMenus>{
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "page_id", referencedColumnName = "id", foreignKey = @ForeignKey(name = "fw_menus_fw_pages_fk"))
     private FwPages page;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id", referencedColumnName = "id")
+    private FwMenuGroup group;
 }

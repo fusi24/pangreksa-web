@@ -13,7 +13,7 @@ import java.util.Optional;
 @Repository
 public interface FwResponsibilitiesMenuRepository extends JpaRepository<FwResponsibilitiesMenu, Long> {
 
-    @EntityGraph(attributePaths = {"menu","menu.page"})
+    @EntityGraph(attributePaths = {"menu","menu.page", "menu.group"})
     // Cari semua menu yang terhubung ke responsibility tertentu
     List<FwResponsibilitiesMenu> findByResponsibility(FwResponsibilities responsibility);
 

@@ -47,5 +47,9 @@ public class VwAppUserAuth {
     private Long pageId;
     @Column(name = "menu_id")
     private Long menuId;
+    @Column(name = "group_id")
+    private Long groupId;
+    @Column(name = "group_name")
+    private String groupName;
 
 }

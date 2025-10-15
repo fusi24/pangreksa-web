@@ -51,6 +51,12 @@ public class AppUserAuthService {
                                 auth.getSortOrder(),
                                 auth.getPageIcon(), null
                         ));
+                        responsibility.addGroupMenu(auth.getGroupName(), new MenuEntry(
+                                auth.getUrl(),
+                                auth.getLabel(),
+                                auth.getSortOrder(),
+                                auth.getPageIcon(), null
+                        ));
                     });
             responsibilityList.add(responsibility);
         });

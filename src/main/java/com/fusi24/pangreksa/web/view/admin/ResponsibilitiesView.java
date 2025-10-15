@@ -3,10 +3,8 @@ package com.fusi24.pangreksa.web.view.admin;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.FwMenus;
-import com.fusi24.pangreksa.web.model.entity.FwPages;
-import com.fusi24.pangreksa.web.model.entity.FwResponsibilities;
-import com.fusi24.pangreksa.web.model.entity.FwResponsibilitiesMenu;
+import com.fusi24.pangreksa.web.model.entity.*;
+import com.fusi24.pangreksa.web.repo.FwMenuGroupRepo;
 import com.fusi24.pangreksa.web.service.AdminService;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.vaadin.flow.component.UI;
@@ -31,6 +29,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,16 +61,21 @@ public class ResponsibilitiesView extends Main {
     Grid<FwResponsibilitiesMenu> menuGrid;
     Grid<FwResponsibilities> respGrid;
     List<FwPages> pagesList;
+    List<FwMenuGroup> groupList;
 
     private boolean isMenuEdit = false;
     private boolean isRespEdit = false;
 
     TabSheet tabsheet;
 
-    public ResponsibilitiesView(CurrentUser currentUser, AdminService adminService, CommonService commonService) {
+    private FwMenuGroupRepo menuGroupRepo;
+
+    @Autowired
+    public ResponsibilitiesView(CurrentUser currentUser, AdminService adminService, CommonService commonService, FwMenuGroupRepo menuGroupRepo) {
         this.currentUser = currentUser;
         this.adminService = adminService;
         this.commonService = commonService;
+        this.menuGroupRepo = menuGroupRepo;
 
         this.auth = commonService.getAuthorization(
                 currentUser.require(),
@@ -105,6 +109,7 @@ public class ResponsibilitiesView extends Main {
 
     private Grid addMenuListGrid(){
         pagesList = adminService.findAllPages();
+        groupList = menuGroupRepo.findByIsActiveTrue();
 
         this.menuGrid = new Grid<>(FwResponsibilitiesMenu.class, false);
 
@@ -124,11 +129,33 @@ public class ResponsibilitiesView extends Main {
             return sortOrderField;
         })).setHeader("Sort Order").setFlexGrow(0).setAutoWidth(true);
 
+        // menu group
+        menuGrid.addColumn(new ComponentRenderer<>(menu -> {
+            ComboBox<FwMenuGroup> cbGroup = new ComboBox<>();
+            cbGroup.setItems(groupList);
+            cbGroup.setItemLabelGenerator(FwMenuGroup::getName);
+            cbGroup.setWidth("350px");
+
+            if (menu.getMenu() != null && menu.getMenu().getGroup() != null) {
+                cbGroup.setValue(menu.getMenu().getGroup());
+            }
+
+            cbGroup.addValueChangeListener(e -> {
+                if (menu.getMenu() != null) {
+                    menu.getMenu().setGroup(e.getValue());
+                    this.isMenuEdit = true;
+                    // Optionally persist change here
+                }
+            });
+
+            return cbGroup;
+        })).setHeader("Menu Group").setFlexGrow(1).setAutoWidth(true);
+
         // Menu label editable
         menuGrid.addColumn(new ComponentRenderer<>(menu -> {
             TextField labelField = new TextField();
             labelField.setValue(menu.getMenu() != null ? menu.getMenu().getLabel() : "");
-            labelField.setWidth("250px");
+            labelField.setWidth("300px");
             labelField.addValueChangeListener(e -> {
                 if (menu.getMenu() != null) {
                     menu.getMenu().setLabel(e.getValue());
@@ -157,7 +184,7 @@ public class ResponsibilitiesView extends Main {
                 }
             });
             return pagesDropdown;
-        })).setHeader("Pages").setFlexGrow(1).setWidth("400px");
+        })).setHeader("Pages").setFlexGrow(1).setWidth("350px");
 
         // Can View editable
         menuGrid.addColumn(new ComponentRenderer<>(menu -> {

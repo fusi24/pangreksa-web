@@ -20,8 +20,10 @@ import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.menubar.MenuBarVariant;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.shared.Tooltip;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
+import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.server.menu.MenuEntry;
 import com.vaadin.flow.spring.security.AuthenticationContext;
@@ -30,7 +32,9 @@ import jakarta.annotation.security.PermitAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static com.vaadin.flow.theme.lumo.LumoUtility.*;
@@ -99,7 +103,7 @@ public final class MainLayout extends AppLayout {
         responsibilityDropdown = new ComboBox<>("Responsibility");
         responsibilityDropdown.setItems(responsibilityList);
         responsibilityDropdown.setItemLabelGenerator(Responsibility::getResponsibility);
-        responsibilityDropdown.getStyle().setWidth("220px");
+        responsibilityDropdown.getStyle().setWidth("250px");
         responsibilityDropdown.setPlaceholder("Select responsibility..");
 
         String resp = (String) UI.getCurrent().getSession().getAttribute("responsibility");
@@ -130,12 +134,40 @@ public final class MainLayout extends AppLayout {
     private SideNav populateNavigation(Responsibility responsibility){
         var nav = new SideNav();
 
-        // Sort menu entries by order ascending before adding
-        responsibility.getMenuEntries().stream()
-            .sorted((a, b) -> Double.compare(a.order(), b.order()))
-            .forEach(menuEntry -> {
-                nav.addItem(createSideNavItem(menuEntry));
-            });
+        // If groupMenuEntries is null or empty, fall back to flat menuEntries (optional)
+        if (responsibility.getGroupMenuEntries() != null && !responsibility.getGroupMenuEntries().isEmpty()) {
+            // Sort group names (optional: you could use a LinkedHashMap to preserve order)
+            responsibility.getGroupMenuEntries().entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey()) // or use custom order if needed
+                    .forEach(entry -> {
+                        String groupName = entry.getKey();
+                        List<MenuEntry> items = entry.getValue();
+
+                        // Create a top-level group item (non-clickable header)
+                        SideNavItem groupItem = new SideNavItem(groupName);
+
+                        // Optionally add an icon (you'd need to map group name to icon separately if desired)
+                        // groupItem.setPrefixComponent(new Icon("..."));
+
+                        // Sort child items by order and add as nested items
+                        items.stream()
+                                .sorted(Comparator.comparingDouble(MenuEntry::order))
+                                .forEach(menuEntry -> {
+                                    groupItem.addItem(createSideNavItem(menuEntry));
+                                });
+
+                        groupItem.setExpanded(true);
+                        Tooltip.forComponent(groupItem).setText(groupName);
+                        nav.addItem(groupItem);
+                    });
+        } else if (responsibility.getMenuEntries() != null) {
+            // Fallback: flat list (original behavior)
+            responsibility.getMenuEntries().stream()
+                    .sorted(Comparator.comparingDouble(MenuEntry::order))
+                    .forEach(menuEntry -> {
+                        nav.addItem(createSideNavItem(menuEntry));
+                    });
+        }
 
         nav.setWidthFull();
 
@@ -149,6 +181,8 @@ public final class MainLayout extends AppLayout {
         } else {
             item = new SideNavItem(menuEntry.title(), menuEntry.path());
         }
+
+        Tooltip.forComponent(item).setText(menuEntry.title());
 
         return item;
     }
