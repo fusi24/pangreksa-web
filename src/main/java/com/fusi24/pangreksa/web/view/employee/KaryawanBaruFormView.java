@@ -1,6 +1,5 @@
 package com.fusi24.pangreksa.web.view.employee;
 
-import com.vaadin.flow.data.value.ValueChangeMode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
@@ -33,6 +32,7 @@ import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.upload.Upload;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.*;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.server.streams.InMemoryUploadHandler;
@@ -287,14 +287,26 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                 new FormLayout.ResponsiveStep("700px", 4)
         );
 
+        // Add all fields to the form layout
 
-        // Validasi UI untuk NIK (KTP Number)
+        // ===== UI Validations =====
+        // Required indicators
+        firstName.setRequiredIndicatorVisible(true);
+        lastName.setRequiredIndicatorVisible(true);
+        ktpNumber.setRequiredIndicatorVisible(true);
+        dob.setRequiredIndicatorVisible(true);
+        gender.setRequiredIndicatorVisible(true);
+        nationality.setRequiredIndicatorVisible(true);
+        religion.setRequiredIndicatorVisible(true);
+        marriage.setRequiredIndicatorVisible(true);
+
+        // KTP/NIK: only numbers, exactly 16 digits (no spaces)
         ktpNumber.setClearButtonVisible(true);
         ktpNumber.setValueChangeMode(ValueChangeMode.EAGER);
+        ktpNumber.setAllowedCharPattern("\\d");
+        ktpNumber.setPattern("\\d*");
         ktpNumber.setMaxLength(16);
         ktpNumber.setMinLength(16);
-        ktpNumber.setPattern("\\d*"); // hanya digit
-        ktpNumber.setAllowedCharPattern("\\d");
         ktpNumber.setHelperText("Masukkan 16 digit angka tanpa spasi");
         ktpNumber.setErrorMessage("NIK harus 16 digit angka tanpa spasi");
         ktpNumber.addValueChangeListener(e -> {
@@ -308,19 +320,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
             }
         });
 
-
-        // ===== UI Validations =====
-        // Required indicators
-        firstName.setRequiredIndicatorVisible(true);
-        lastName.setRequiredIndicatorVisible(true);
-        ktpNumber.setRequiredIndicatorVisible(true);
-        dob.setRequiredIndicatorVisible(true);
-        gender.setRequiredIndicatorVisible(true);
-        nationality.setRequiredIndicatorVisible(true);
-        religion.setRequiredIndicatorVisible(true);
-        marriage.setRequiredIndicatorVisible(true);
-
-        // Names: only letters and spaces
+        // Names: only letters & spaces
         firstName.setAllowedCharPattern("[\\p{L}\\s]");
         firstName.setMaxLength(50);
         firstName.setHelperText("Hanya huruf & spasi, wajib diisi");
@@ -360,8 +360,6 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
         // Date of Birth: set max to today
         dob.setMax(java.time.LocalDate.now());
-
-        // Add all fields to the form layout
         personFormLayout.add(
                 ktpNumber,
                 firstName,
@@ -1038,8 +1036,8 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
     }
 
     private void save() {
-
-        // Server-side validation for NIK (must be exactly 16 digits, no spaces)
+        // ===== Server-side validations =====
+        // NIK must be exactly 16 digits (no spaces)
         String nik = ktpNumber.getValue() != null ? ktpNumber.getValue().trim() : "";
         if (!nik.matches("^\\d{16}$")) {
             ktpNumber.setInvalid(true);
@@ -1047,7 +1045,6 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
             Notification.show("Periksa NIK: harus 16 digit angka tanpa spasi.", 4000, Notification.Position.MIDDLE);
             return;
         }
-        // ===== Server-side validations =====
         // First Name: required letters & spaces
         String vFirst = firstName.getValue() != null ? firstName.getValue().trim() : "";
         if (vFirst.isEmpty() || !vFirst.matches("^[\\p{L} ]+$")) {
@@ -1062,21 +1059,21 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
             Notification.show("Last Name wajib diisi (huruf & spasi saja).", 4000, Notification.Position.MIDDLE);
             return;
         }
-        // Middle Name: optional, but if present must be letters & spaces
+        // Middle Name: optional, only letters & spaces if present
         String vMid = middleName.getValue() != null ? middleName.getValue().trim() : "";
         if (!vMid.isEmpty() && !vMid.matches("^[\\p{L} ]+$")) {
             middleName.setInvalid(true);
             Notification.show("Middle Name hanya boleh huruf & spasi.", 4000, Notification.Position.MIDDLE);
             return;
         }
-        // Place of Birth: optional, if present letters & spaces min 2
+        // Place of Birth: optional, but if present must be letters & spaces (min 2)
         String vPob = pob.getValue() != null ? pob.getValue().trim() : "";
         if (!vPob.isEmpty() && !vPob.matches("^[\\p{L} ]{2,}$")) {
             pob.setInvalid(true);
             Notification.show("Tempat Lahir hanya huruf & spasi (min 2 huruf).", 4000, Notification.Position.MIDDLE);
             return;
         }
-        // Date of Birth: required, not in the future, usia >= 17
+        // Date of Birth: required, not in the future, min age 17
         java.time.LocalDate d = dob.getValue();
         if (d == null) {
             dob.setInvalid(true);
