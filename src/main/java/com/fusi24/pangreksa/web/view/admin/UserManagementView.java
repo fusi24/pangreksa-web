@@ -246,6 +246,10 @@ public class UserManagementView extends Main {
                 PasswordField passwordField = new PasswordField("Password");
                 PasswordField confirmPasswordField = new PasswordField("Confirm Password");
                 confirmPasswordField.setRevealButtonVisible(false);
+                passwordField.setRevealButtonVisible(false);
+                passwordField.setRequiredIndicatorVisible(true);
+                confirmPasswordField.setRequiredIndicatorVisible(true);
+
 
                 HorizontalLayout buttonLayout = new HorizontalLayout();
                 Button cancelButton = new Button("Cancel", event -> dialog.close());
@@ -256,19 +260,53 @@ public class UserManagementView extends Main {
                 }
 
                 saveButton.addClickListener(event -> {
-                    String password = passwordField.getValue();
-                    String confirmPassword = confirmPasswordField.getValue();
-                    if (!password.equals(confirmPassword)) {
+                    // Validasi Password
+                    String password = passwordField.getValue() != null ? passwordField.getValue().trim() : "";
+                    String confirmPassword = confirmPasswordField.getValue() != null ? confirmPasswordField.getValue().trim() : "";
+
+                    // Reset invalid state
+                    passwordField.setInvalid(false);
+                    confirmPasswordField.setInvalid(false);
+
+                    if (password.isEmpty()) {
                         passwordField.setInvalid(true);
-                        confirmPasswordField.setInvalid(true);
-                        passwordField.setErrorMessage("Passwords do not match");
-                        confirmPasswordField.setErrorMessage("Passwords do not match");
+                        passwordField.setErrorMessage("Password belum diisi");
                         return;
                     }
 
+                    if (password.length() < 6) {
+                        passwordField.setInvalid(true);
+                        passwordField.setErrorMessage("Password minimal 6 karakter");
+                        return;
+                    }
+
+                    if (!password.matches(".*\\d.*")) {
+                        passwordField.setInvalid(true);
+                        passwordField.setErrorMessage("Password harus mengandung angka (0–9)");
+                        return;
+                    }
+
+                    // Hanya izinkan huruf, angka, dan simbol @ # $ % (simbol opsional)
+                    if (!password.matches("^[A-Za-z0-9@#$%]+$")) {
+                        passwordField.setInvalid(true);
+                        passwordField.setErrorMessage("Password hanya boleh berisi huruf, angka, atau simbol @ # $ %");
+                        return;
+                    }
+
+                    if (!password.equals(confirmPassword)) {
+                        passwordField.setInvalid(true);
+                        confirmPasswordField.setInvalid(true);
+                        String msg = "Password dan Konfirmasi tidak sama";
+                        passwordField.setErrorMessage(msg);
+                        confirmPasswordField.setErrorMessage(msg);
+                        return;
+                    }
+
+                    // Jika lolos validasi: simpan ke entitas
                     user.setPassword(password);
                     user.setPasswordHash(password);
 
+                    // Tutup dialog setelah sukses
                     dialog.close();
                 });
 
