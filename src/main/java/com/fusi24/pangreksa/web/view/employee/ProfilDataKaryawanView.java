@@ -284,7 +284,7 @@ public class ProfilDataKaryawanView extends Main {
                 });
 
                 buttonLayout.add(cancelButton, saveButton);
-                dialogLayout.add(orgStructureDropdown, positionDropdown,
+                dialogLayout.add(orgStructureDropdown, positionDropdown, cbDept,
                         new HorizontalLayout(startDatePicker, endDatePicker),
                         new HorizontalLayout(isPrimaryCheckbox, isActingCheckbox),
                         requestedByDropdown,
