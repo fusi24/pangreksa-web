@@ -36,4 +36,7 @@ public class FwAppuserResp extends AuditableEntity<FwAppuserResp>{
             foreignKey = @ForeignKey(name = "fw_appuser_resp_fw_appuser_fk")
     )
     private FwAppUser appuser;
+
+    @Column(name = "is_active")
+    private Boolean isActive;
 }
