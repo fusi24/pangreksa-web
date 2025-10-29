@@ -138,7 +138,6 @@ public final class MainLayout extends AppLayout {
         if (responsibility.getGroupMenuEntries() != null && !responsibility.getGroupMenuEntries().isEmpty()) {
             // Sort group names (optional: you could use a LinkedHashMap to preserve order)
             responsibility.getGroupMenuEntries().entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey()) // or use custom order if needed
                     .forEach(entry -> {
                         String groupName = entry.getKey();
                         List<MenuEntry> items = entry.getValue();

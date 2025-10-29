@@ -4,10 +4,7 @@ import com.vaadin.flow.server.menu.MenuEntry;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Setter
 @Getter
@@ -31,7 +28,7 @@ public class Responsibility {
 
     public void addGroupMenu(String groupName, MenuEntry menuEntry) {
         if (this.groupMenuEntries == null) {
-            this.groupMenuEntries = new HashMap<>();
+            this.groupMenuEntries = new LinkedHashMap<>();
         }
         this.groupMenuEntries.computeIfAbsent(groupName, k -> new ArrayList<>()).add(menuEntry);
     }
