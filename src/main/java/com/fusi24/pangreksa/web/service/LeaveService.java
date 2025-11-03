@@ -240,4 +240,8 @@ public class LeaveService {
 
         return leaveAbsenceTypesRepository.save(leaveAbsenceType);
     }
+
+    public void deleteLeaveAbsenceType(Long id, AppUserInfo appUserInfo) {
+        leaveAbsenceTypesRepository.deleteById(id);
+    }
 }

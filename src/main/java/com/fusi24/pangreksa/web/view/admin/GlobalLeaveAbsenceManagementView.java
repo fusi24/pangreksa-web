@@ -11,6 +11,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Main;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -30,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
@@ -58,6 +60,8 @@ public class GlobalLeaveAbsenceManagementView extends Main {
 
     private Button saveButton;
     private Button addButton;
+
+    private List<HrLeaveAbsenceTypes> deletedItems = new ArrayList<>();
 
     public GlobalLeaveAbsenceManagementView(CurrentUser currentUser, CommonService commonService, LeaveService leaveService) {
         this.currentUser = currentUser;
@@ -238,22 +242,32 @@ public class GlobalLeaveAbsenceManagementView extends Main {
         })).setHeader("Max Days").setFlexGrow(0).setAutoWidth(true);
 
         // Action column with delete button (icon only, no title)
+        // Inside your grid's delete column
         leaveAbsenceTypesGrid.addColumn(new ComponentRenderer<>(lat -> {
             Button deleteButton = new Button();
             deleteButton.setIcon(VaadinIcon.CLOSE.create());
             deleteButton.getElement().setAttribute("title", "Delete");
             deleteButton.addClickListener(e -> {
-                leaveAbsenceTypesGrid.getListDataView().removeItem(lat);
-                this.isMenuEdit = true;
+                ConfirmDialog confirmDialog = new ConfirmDialog();
+                confirmDialog.setHeader("Confirm Deletion");
+                confirmDialog.setText("Are you sure you want to delete '" + lat.getLabel() + "'?");
+                confirmDialog.setCancelable(true);
+                confirmDialog.addCancelListener(ev -> {});
+                confirmDialog.setConfirmText("Delete");
+                confirmDialog.addConfirmListener(ev -> {
+                    if (lat.getId() != null) {
+                        // Mark for deletion (will be deleted on save)
+                        deletedItems.add(lat);
+                    }
+                    // Remove from grid regardless
+                    leaveAbsenceTypesGrid.getListDataView().removeItem(lat);
+                    this.isGridEdit = true;
+                });
+                confirmDialog.open();
             });
 
-            if (lat.getId() == null)
-                if(this.auth.canDelete){
-                    return deleteButton;
-                }
-
-            return null;
-        })).setHeader("").setFlexGrow(1).setAutoWidth(true);
+            return this.auth.canDelete ? deleteButton : null;
+        })).setHeader("").setFlexGrow(0).setAutoWidth(true);
 
         return this.leaveAbsenceTypesGrid;
     }
@@ -293,6 +307,19 @@ public class GlobalLeaveAbsenceManagementView extends Main {
         saveButton.addClickListener(e -> {
             var user = currentUser.require();
 
+            // 🔴 FIRST: Delete marked items
+            for (HrLeaveAbsenceTypes deleted : deletedItems) {
+                try {
+                    leaveService.deleteLeaveAbsenceType(deleted.getId(), user);
+                    log.debug("Deleted Leave Absence Type: {}", deleted.getLabel());
+                } catch (Exception ex) {
+                    log.error("Failed to delete Leave Absence Type: " + deleted.getLabel(), ex);
+                    Notification.show("Failed to delete: " + deleted.getLabel(), 5000, Notification.Position.MIDDLE);
+                }
+            }
+            deletedItems.clear(); // Clear after processing
+
+            // 🟢 Then: Save all remaining items (new + updated)
             if (this.isGridEdit) {
                 List<HrLeaveAbsenceTypes> items = leaveAbsenceTypesGrid.getListDataView().getItems().toList();
                 items.forEach(i -> {
