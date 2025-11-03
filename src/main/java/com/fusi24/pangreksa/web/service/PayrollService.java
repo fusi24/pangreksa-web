@@ -3,6 +3,8 @@ package com.fusi24.pangreksa.web.service;
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.repo.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -26,6 +28,8 @@ import java.util.List;
 
 @Service
 public class PayrollService {
+    @PersistenceContext
+    private EntityManager em;
     private static final Logger log = LoggerFactory.getLogger(PayrollService.class);
 
     private final HrSalaryBaseLevelRepository hrSalaryBaseLevelRepository;
@@ -390,11 +394,14 @@ public class PayrollService {
 
 
 
+    @Transactional(readOnly = true)
     public List<HrPerson> getActiveEmployees() {
-        if (appUser == null) {
-            throw new IllegalStateException("App user not set");
-        }
-        return hrPersonRespository.findAll();
+        // Do NOT join fetch positions here to avoid duplicate-position issues.
+        // Also don't assume there is an 'active' flag; some schemas use status/isEnabled.
+        return em.createQuery(
+                "select p from HrPerson p order by p.firstName, p.lastName",
+                HrPerson.class
+        ).getResultList();
     }
 
     public HrPayrollCalculation getCalculationByPayrollId(Long payrollId) {

@@ -4,6 +4,14 @@ import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.util.ConfirmationDialogUtil;
 import com.fusi24.pangreksa.base.util.FormattingUtils;
 import com.fusi24.pangreksa.security.CurrentUser;
+import com.vaadin.flow.component.combobox.ComboBox;
+import java.time.Month;
+import java.time.format.TextStyle;
+import java.util.Locale;
+import java.time.LocalDate;
+import com.vaadin.flow.component.datepicker.DatePicker;
+
+
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrPayroll;
 import com.fusi24.pangreksa.web.model.entity.HrPayrollCalculation;
@@ -394,7 +402,7 @@ public class PayrollView extends Main {
         private final Runnable onSaveSuccess;
 
         private final ComboBox<HrPerson> personField = new ComboBox<>("Employee");
-        private final DatePicker payrollMonthField = new DatePicker("Payroll Month");
+        private final ComboBox<Integer> payrollMonthField = new ComboBox<>("Payroll Month");
         private final BigDecimalField variableAllowancesField = new BigDecimalField("Variable Allowances");
         private final BigDecimalField overtimeHoursField = new BigDecimalField("Overtime Hours");
         private final BigDecimalField overtimeAmountField = new BigDecimalField("Overtime Amount");
@@ -422,59 +430,80 @@ public class PayrollView extends Main {
         }
 
         private void configureFields() {
-            personField.setItems(employees);
+            // === Employee ===
+            personField.setItems(this.employees); // <-- penting!
             personField.setItemLabelGenerator(p -> p.getFirstName() + " " + p.getLastName());
-            personField.setRequired(true);
+            personField.setPlaceholder("Select employee");
             personField.setClearButtonVisible(true);
             personField.setWidthFull();
 
+            // === Payroll Month (1–12) ===
+            payrollMonthField.setItems(1,2,3,4,5,6,7,8,9,10,11,12);
+            payrollMonthField.setItemLabelGenerator(m ->
+                    java.time.Month.of(m).getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault()));
             payrollMonthField.setRequired(true);
             payrollMonthField.setPlaceholder("Select month");
             payrollMonthField.setWidthFull();
 
+            // === Number/Money fields ===
             variableAllowancesField.setPrefixComponent(new Div("Rp"));
             variableAllowancesField.setWidthFull();
-//            variableAllowancesField.setMin(BigDecimal.ZERO);
-//            variableAllowancesField.setStep(BigDecimal.valueOf(1000));
 
-//            overtimeHoursField.setMin(BigDecimal.ZERO);
-//            overtimeHoursField.setMax(BigDecimal.valueOf(200));
-//            overtimeHoursField.setStep(BigDecimal.ONE);
-
+            overtimeHoursField.setWidthFull();
             overtimeAmountField.setPrefixComponent(new Div("Rp"));
             overtimeAmountField.setWidthFull();
-//            overtimeAmountField.setMin(BigDecimal.ZERO);
 
             annualBonusField.setPrefixComponent(new Div("Rp"));
             annualBonusField.setWidthFull();
-//            annualBonusField.setMin(BigDecimal.ZERO);
 
             otherDeductionsField.setPrefixComponent(new Div("Rp"));
             otherDeductionsField.setWidthFull();
-//            otherDeductionsField.setMin(BigDecimal.ZERO);
 
             previousThpPaidField.setPrefixComponent(new Div("Rp"));
             previousThpPaidField.setWidthFull();
-//            previousThpPaidField.setMin(BigDecimal.ZERO);
 
             attendanceDaysField.setMin(0);
             attendanceDaysField.setMax(31);
             attendanceDaysField.setWidthFull();
         }
 
-        private void configureBinder() {
-            binder.forField(personField).asRequired("Employee is required").bind(HrPayroll::getPerson, HrPayroll::setPerson);
-            binder.forField(payrollMonthField).asRequired("Payroll month is required").bind(HrPayroll::getPayrollMonth, HrPayroll::setPayrollMonth);
-            binder.bind(variableAllowancesField, HrPayroll::getVariableAllowances, HrPayroll::setVariableAllowances);
-            binder.bind(overtimeHoursField, HrPayroll::getOvertimeHours, HrPayroll::setOvertimeHours);
-            binder.bind(overtimeAmountField, HrPayroll::getOvertimeAmount, HrPayroll::setOvertimeAmount);
-            binder.bind(annualBonusField, HrPayroll::getAnnualBonus, HrPayroll::setAnnualBonus);
-            binder.bind(otherDeductionsField, HrPayroll::getOtherDeductions, HrPayroll::setOtherDeductions);
-            binder.bind(previousThpPaidField, HrPayroll::getPreviousThpPaid, HrPayroll::setPreviousThpPaid);
-            binder.forField(attendanceDaysField).asRequired("Attendance Days is required").bind(HrPayroll::getAttendanceDays, HrPayroll::setAttendanceDays);
 
-            binder.readBean(null); // clear
+        private void configureBinder() {
+            binder.forField(personField)
+                    .asRequired("Employee is required")
+                    .bind(HrPayroll::getPerson, HrPayroll::setPerson);
+
+            // UI Integer (1–12)  <->  Model LocalDate (YYYY-MM-01)
+            binder.forField(payrollMonthField)
+                    .asRequired("Payroll month is required")
+                    .withConverter(
+                            // UI -> Model
+                            monthInt -> {
+                                if (monthInt == null) return null;
+                                int year = java.time.LocalDate.now().getYear(); // atau ambil dari yearFilter kalau ada
+                                return java.time.LocalDate.of(year, monthInt, 1);
+                            },
+                            // Model -> UI
+                            localDate -> (localDate == null ? null : localDate.getMonthValue()),
+                            "Invalid month"
+                    )
+                    .bind(HrPayroll::getPayrollMonth, HrPayroll::setPayrollMonth);
+
+            binder.bind(variableAllowancesField, HrPayroll::getVariableAllowances, HrPayroll::setVariableAllowances);
+            binder.bind(overtimeHoursField,     HrPayroll::getOvertimeHours,     HrPayroll::setOvertimeHours);
+            binder.bind(overtimeAmountField,    HrPayroll::getOvertimeAmount,    HrPayroll::setOvertimeAmount);
+            binder.bind(annualBonusField,       HrPayroll::getAnnualBonus,       HrPayroll::setAnnualBonus);
+            binder.bind(otherDeductionsField,   HrPayroll::getOtherDeductions,   HrPayroll::setOtherDeductions);
+            binder.bind(previousThpPaidField,   HrPayroll::getPreviousThpPaid,   HrPayroll::setPreviousThpPaid);
+
+            binder.forField(attendanceDaysField)
+                    .asRequired("Attendance days is required")
+                    .bind(HrPayroll::getAttendanceDays, HrPayroll::setAttendanceDays);
+
+            // ❌ HAPUS baris ini karena bean belum diset saat konstruktor form dipanggil:
+            // binder.readBean(getPayroll());
         }
+
 
         private void configureLayout() {
             addFormItem(personField, "Employee");
@@ -502,7 +531,24 @@ public class PayrollView extends Main {
             saveButton.addClickListener(e -> {
                 if (binder.writeBeanIfValid(getPayroll())) {
                     try {
-                        payrollService.savePayroll(getPayroll(), this.currentUser.require()); // See STEP 2 below
+                        HrPayroll bean = getPayroll();
+
+                        // Normalisasi nilai null -> 0 (hindari NOT NULL violation)
+                        if (bean.getVariableAllowances() == null) bean.setVariableAllowances(java.math.BigDecimal.ZERO);
+                        if (bean.getOvertimeHours() == null)     bean.setOvertimeHours(java.math.BigDecimal.ZERO);
+                        if (bean.getOvertimeAmount() == null)    bean.setOvertimeAmount(java.math.BigDecimal.ZERO);
+                        if (bean.getAnnualBonus() == null)       bean.setAnnualBonus(java.math.BigDecimal.ZERO);
+                        if (bean.getOtherDeductions() == null)   bean.setOtherDeductions(java.math.BigDecimal.ZERO);
+                        if (bean.getPreviousThpPaid() == null)   bean.setPreviousThpPaid(java.math.BigDecimal.ZERO);
+                        if (bean.getAttendanceDays() == null)    bean.setAttendanceDays(0);
+
+                        // Pastikan payrollMonth terisi
+                        if (bean.getPayrollMonth() == null) {
+                            Notification.show("Payroll month is required", 4000, Notification.Position.MIDDLE);
+                            return;
+                        }
+
+                        payrollService.savePayroll(bean, this.currentUser.require());
                         Notification.show("Payroll saved successfully", 3000, Notification.Position.MIDDLE);
                         onSaveSuccess.run();
                     } catch (Exception ex) {
@@ -515,16 +561,17 @@ public class PayrollView extends Main {
             cancelButton.addClickListener(e -> onCancel());
         }
 
+
         public void setPayroll(HrPayroll payroll) {
             binder.setBean(payroll);
         }
 
         public HrPayroll getPayroll() {
             HrPayroll payroll = binder.getBean();
-//            if (payroll == null) {
-//                payroll = new HrPayroll();
-//                binder.setBean(payroll);
-//            }
+            if (payroll == null) {
+                payroll = new HrPayroll();
+                binder.setBean(payroll);
+            }
             return payroll;
         }
 
