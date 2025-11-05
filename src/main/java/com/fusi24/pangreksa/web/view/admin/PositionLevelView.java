@@ -23,6 +23,7 @@ import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Route("master-position-level")
@@ -50,7 +51,8 @@ public class PositionLevelView extends Main {
     private Grid<HrPositionLevel> grid;
 
     // data
-    private List<HrPositionLevel> rows;
+    // private List<HrPositionLevel> rows;
+    private final List<HrPositionLevel> items = new ArrayList<>();
 
     public PositionLevelView(CurrentUser currentUser,
                              CommonService commonService,
@@ -109,6 +111,9 @@ public class PositionLevelView extends Main {
         grid = new Grid<>(HrPositionLevel.class, false);
         grid.setSizeFull();
 
+        // penting: set data provider dari list mutable supaya tombol Add bisa dipakai kapan saja
+        grid.setItems(items);
+
         // Kolom editable: position
         grid.addColumn(new ComponentRenderer<>(row -> {
             TextField tf = new TextField();
@@ -149,18 +154,20 @@ public class PositionLevelView extends Main {
         populateButton.addClickListener(e -> {
             if (!auth.canView) return;
             String kw = searchField.getValue();
-            rows = positionLevelService.findAllOrSearch(kw == null ? "" : kw.trim()) ;
-            grid.setItems(rows);
+            List<HrPositionLevel> result = positionLevelService.findAllOrSearch(kw == null ? "" : kw.trim());
+
+            items.clear();          // ✅ pakai list mutable
+            items.addAll(result);   // ✅ isi ulang
+            grid.getDataProvider().refreshAll(); // ✅ refresh tampilan
         });
 
         saveButton.addClickListener(e -> {
             if (!auth.canCreate && !auth.canEdit) return;
 
-            var toSave = grid.getListDataView().getItems().toList();
-            // kirim actor dari current user
-            positionLevelService.saveAll(toSave, currentUser.require());
+            // Ambil dari state kita sendiri (lebih aman daripada getListDataView)
+            positionLevelService.saveAll(new java.util.ArrayList<>(items), currentUser.require());
 
-            populateButton.click(); // refresh
+            populateButton.click(); // refresh dari DB biar sinkron
         });
 
         addButton.addClickListener(e -> {
@@ -168,8 +175,9 @@ public class PositionLevelView extends Main {
             HrPositionLevel row = new HrPositionLevel();
             row.setPosition("");
             row.setPosition_description("");
-            grid.getListDataView().addItem(row);
-            // optionally scroll / focus tidak wajib
+            items.add(row);                        // ✅ tambahkan ke list mutable
+            grid.getDataProvider().refreshAll();   // ✅ render baris baru
+            // Optional: scroll/focus ke baris terakhir
         });
     }
 
