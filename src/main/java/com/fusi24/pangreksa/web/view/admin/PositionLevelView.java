@@ -6,6 +6,11 @@ import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrPositionLevel;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.PositionLevelService;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
@@ -47,6 +52,7 @@ public class PositionLevelView extends Main {
     private Button populateButton;
     private Button saveButton;
     private Button addButton;
+    private Button deleteButton;
 
     private Grid<HrPositionLevel> grid;
 
@@ -96,6 +102,8 @@ public class PositionLevelView extends Main {
         populateButton = new Button("Populate");
         saveButton = new Button("Save");
         addButton = new Button("Add Position");
+        deleteButton = new Button("Delete");
+        deleteButton.setEnabled(false);
 
         HorizontalLayout left = new HorizontalLayout(searchField, populateButton);
         left.setSpacing(true);
@@ -104,15 +112,21 @@ public class PositionLevelView extends Main {
         HorizontalLayout header = new HorizontalLayout();
         header.setWidthFull();
         header.add(left);
-        header.add(saveButton, addButton);
+        header.add(deleteButton, saveButton, addButton);
         header.setAlignItems(FlexComponent.Alignment.BASELINE);
         header.expand(left);
 
         grid = new Grid<>(HrPositionLevel.class, false);
         grid.setSizeFull();
 
-        // penting: set data provider dari list mutable supaya tombol Add bisa dipakai kapan saja
+        // enable multi-select
+        grid.setSelectionMode(Grid.SelectionMode.MULTI);
+
+        // data provider awal
         grid.setItems(items);
+
+        // aktifkan tombol delete saat ada pilihan
+        grid.addSelectionListener(ev -> deleteButton.setEnabled(!ev.getAllSelectedItems().isEmpty()));
 
         // Kolom editable: position
         grid.addColumn(new ComponentRenderer<>(row -> {
@@ -143,6 +157,36 @@ public class PositionLevelView extends Main {
                 .setHeader("Created At").setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(HrPositionLevel::getUpdatedAt)
                 .setHeader("Updated At").setAutoWidth(true).setFlexGrow(1);
+        grid.addComponentColumn(row -> {
+            // Baris baru (belum punya ID) -> tombol Cancel
+            if (row.getId() == null) {
+                Button cancel = new Button(new Icon(VaadinIcon.CLOSE_SMALL), e -> {
+                    items.remove(row);
+                    grid.getDataProvider().refreshAll();
+                    notifyWarn("Penambahan data baru dibatalkan.");
+                });
+                cancel.getElement().setProperty("title", "Batalkan data baru");
+                return cancel;
+            }
+            // Baris persisted -> tombol Delete (single row)
+            Button del = new Button(new Icon(VaadinIcon.TRASH), e -> {
+                if (!auth.canDelete) return;
+                ConfirmDialog cd = new ConfirmDialog();
+                cd.setHeader("Hapus data ini?");
+                cd.setText("Tindakan ini tidak dapat dibatalkan.");
+                cd.setCancelable(true);
+                cd.setConfirmText("Hapus");
+                cd.setConfirmButtonTheme("error primary");
+                cd.addConfirmListener(ev -> {
+                    positionLevelService.deleteByIds(java.util.List.of(row.getId()), currentUser.require());
+                    notifySuccess("Data terhapus.");
+                    populateButton.click();
+                });
+                cd.open();
+            });
+            del.getElement().setProperty("title", "Hapus data ini");
+            return del;
+        }).setHeader("Aksi").setWidth("120px").setFlexGrow(0);
 
         body.add(header, grid);
         body.setFlexGrow(1, grid);
@@ -151,6 +195,27 @@ public class PositionLevelView extends Main {
     }
 
     private void setListener() {
+//        populateButton.addClickListener(e -> {
+//            if (!auth.canView) return;
+//            try {
+//                String kw = searchField.getValue();
+//                List<HrPositionLevel> result = positionLevelService.findAllOrSearch(kw == null ? "" : kw.trim());
+//
+//                items.clear();
+//                items.addAll(result);
+//                grid.getDataProvider().refreshAll();
+//
+//                if (items.isEmpty()) {
+//                    notifyWarn("Tidak ada data yang cocok.");
+//                } else {
+//                    notifySuccess("Data dimuat: " + items.size() + " baris.");
+//                }
+//            } catch (Exception ex) {
+//                log.error("Gagal populate Position Level", ex);
+//                notifyError("Gagal memuat data. Silakan coba lagi.");
+//            }
+//        });
+
         populateButton.addClickListener(e -> {
             if (!auth.canView) return;
             String kw = searchField.getValue();
@@ -161,24 +226,75 @@ public class PositionLevelView extends Main {
             grid.getDataProvider().refreshAll(); // ✅ refresh tampilan
         });
 
+
         saveButton.addClickListener(e -> {
             if (!auth.canCreate && !auth.canEdit) return;
-
-            // Ambil dari state kita sendiri (lebih aman daripada getListDataView)
-            positionLevelService.saveAll(new java.util.ArrayList<>(items), currentUser.require());
-
-            populateButton.click(); // refresh dari DB biar sinkron
+            try {
+                positionLevelService.saveAll(new java.util.ArrayList<>(items), currentUser.require());
+                notifySuccess("Perubahan berhasil disimpan.");
+                populateButton.click(); // refresh dari DB
+            } catch (Exception ex) {
+                log.error("Gagal menyimpan Position Level", ex);
+                notifyError("Gagal menyimpan. Silakan cek data & coba lagi.");
+            }
         });
+
 
         addButton.addClickListener(e -> {
             if (!auth.canCreate) return;
-            HrPositionLevel row = new HrPositionLevel();
-            row.setPosition("");
-            row.setPosition_description("");
-            items.add(row);                        // ✅ tambahkan ke list mutable
-            grid.getDataProvider().refreshAll();   // ✅ render baris baru
-            // Optional: scroll/focus ke baris terakhir
+            try {
+                HrPositionLevel row = new HrPositionLevel();
+                row.setPosition("");
+                row.setPosition_description("");
+                items.add(row);
+                grid.getDataProvider().refreshAll();
+                notifySuccess("Baris baru ditambahkan. Lengkapi data lalu klik Save.");
+            } catch (Exception ex) {
+                log.error("Gagal menambah baris Position Level", ex);
+                notifyError("Gagal menambah baris. Coba lagi.");
+            }
         });
+
+        // tombol Delete (bulk) – pakai variable deleteButton yang dibuat di createBody()
+        deleteButton.addClickListener(e -> {
+            if (!auth.canDelete) return;
+
+            var selected = new java.util.HashSet<>(grid.getSelectedItems());
+            if (selected.isEmpty()) return;
+
+            // pisahkan baris baru (id null) dan persisted
+            var unsaved = selected.stream().filter(x -> x.getId() == null).toList();
+            var persistedIds = selected.stream().map(HrPositionLevel::getId)
+                    .filter(java.util.Objects::nonNull).toList();
+
+            // hapus lokal baris baru
+            if (!unsaved.isEmpty()) {
+                items.removeAll(unsaved);
+                grid.getDataProvider().refreshAll();
+                notifyWarn(unsaved.size() + " baris baru dibatalkan.");
+            }
+
+            if (persistedIds.isEmpty()) return;
+
+            ConfirmDialog cd = new ConfirmDialog();
+            cd.setHeader("Hapus " + persistedIds.size() + " data?");
+            cd.setText("Tindakan ini tidak dapat dibatalkan.");
+            cd.setCancelable(true);
+            cd.setConfirmText("Hapus");
+            cd.setConfirmButtonTheme("error primary");
+            cd.addConfirmListener(ev -> {
+                try {
+                    positionLevelService.deleteByIds(persistedIds, currentUser.require());
+                    notifySuccess(persistedIds.size() + " data terhapus.");
+                    populateButton.click();
+                } catch (Exception ex) {
+                    log.error("Gagal menghapus Position Level", ex);
+                    notifyError("Gagal menghapus. Coba lagi.");
+                }
+            });
+            cd.open();
+        });
+
     }
 
     private void setAuthorization() {
@@ -194,6 +310,29 @@ public class PositionLevelView extends Main {
         } else if (!auth.canCreate) {
             addButton.setEnabled(false);
         }
+
+        if (!auth.canDelete) {
+            deleteButton.setEnabled(false);
+        }
     }
+
+    private void notifySuccess(String msg) {
+        Notification n = Notification.show(msg);
+        n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        n.setPosition(Notification.Position.TOP_END);
+    }
+
+    private void notifyWarn(String msg) {
+        Notification n = Notification.show(msg);
+        n.addThemeVariants(NotificationVariant.LUMO_WARNING);
+        n.setPosition(Notification.Position.TOP_END);
+    }
+
+    private void notifyError(String msg) {
+        Notification n = Notification.show(msg);
+        n.addThemeVariants(NotificationVariant.LUMO_ERROR);
+        n.setPosition(Notification.Position.TOP_END);
+    }
+
 
 }

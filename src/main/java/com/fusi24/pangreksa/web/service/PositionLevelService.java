@@ -85,6 +85,16 @@ public class PositionLevelService {
     }
 
     @Transactional
+    public void deleteByIds(java.util.List<Long> ids, AppUserInfo actor) {
+        if (ids == null || ids.isEmpty()) return;
+        // kalau kamu butuh audit "siapa yang hapus", log saja di sini sebelum delete
+        // contoh: log.info("Delete by {} -> {}", actor.getUserId(), ids);
+
+        // hard delete
+        repo.deleteAllByIdInBatch(ids);
+    }
+
+    @Transactional
     public HrPositionLevel create(String position, String description, AppUserInfo actor) {
         var appUser = this.findAppUserByUserId(actor.getUserId().toString());
         String pos = safeTrim(position);
