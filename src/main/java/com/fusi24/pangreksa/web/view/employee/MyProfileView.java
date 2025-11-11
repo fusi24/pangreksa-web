@@ -60,7 +60,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @PageTitle("Profil Karyawan Saya")
 @PermitAll
 // When security is enabled, allow all authenticated users
-public class ProfilKaryawanSayaView extends Main {
+public class MyProfileView extends Main {
     private static final long serialVersionUID = 15L;
     private static final Logger log = LoggerFactory.getLogger(KaryawanBaruFormView.class);
     private final CurrentUser currentUser;
@@ -156,7 +156,7 @@ public class ProfilKaryawanSayaView extends Main {
     private HrPersonEducation educationData;
     private HrPersonDocument documentData;
 
-    public ProfilKaryawanSayaView(CurrentUser currentUser, CommonService commonService, PersonService personService) {
+    public MyProfileView(CurrentUser currentUser, CommonService commonService, PersonService personService) {
         this.currentUser = currentUser;
         this.commonService = commonService;
         this.personService = personService;
@@ -731,6 +731,14 @@ public class ProfilKaryawanSayaView extends Main {
                 new FormLayout.ResponsiveStep(RESP_2, COL_2)
         );
 
+        institution.setRequiredIndicatorVisible(true);
+        institution.setValueChangeMode(ValueChangeMode.EAGER);
+        institution.addValueChangeListener(e -> { try { institution.setInvalid(false); institution.setErrorMessage(null); } catch (Exception ignore) {} });
+        program.setRequiredIndicatorVisible(true);
+        program.setValueChangeMode(ValueChangeMode.EAGER);
+        program.addValueChangeListener(e -> { try { program.setInvalid(false); program.setErrorMessage(null); } catch (Exception ignore) {} });
+        typeEducation.setRequiredIndicatorVisible(true);
+        typeEducation.addValueChangeListener(e -> { try { typeEducation.setInvalid(false); typeEducation.setErrorMessage(null); } catch (Exception ignore) {} });
         educationFormLayout.add(
                 institution,
                 program,
@@ -980,6 +988,14 @@ public class ProfilKaryawanSayaView extends Main {
                     int tabNo = tabSheet.getSelectedIndex();
                     switch (tabNo) {
                         case 0 -> {
+                            // Validate Address form before adding
+                            String __addr = (fullAddress != null && fullAddress.getValue() != null) ? fullAddress.getValue().trim() : "";
+                            if (__addr.isEmpty()) {
+                                try { fullAddress.setInvalid(true); fullAddress.setErrorMessage("Alamat wajib diisi"); fullAddress.focus(); } catch (Exception ignore) {}
+                                Notification.show("Alamat wajib diisi", 3000, Notification.Position.MIDDLE);
+                                return;
+                            }
+
 
                             HrPersonAddress address = this.addressData != null ? this.addressData : new HrPersonAddress();
                             address.setFullAddress(fullAddress.getValue());
@@ -1017,6 +1033,28 @@ public class ProfilKaryawanSayaView extends Main {
                             updateSaveButtonState();
                         }
                         case 2 -> {
+                            // Validate required Education fields before adding
+                            String __inst = institution != null ? (institution.getValue() != null ? institution.getValue().trim() : "") : "";
+                            String __prog = program != null ? (program.getValue() != null ? program.getValue().trim() : "") : "";
+                            var __type = (typeEducation != null) ? typeEducation.getValue() : null;
+                            boolean __ok = true;
+                            if (__inst.isEmpty()) {
+                                __ok = false;
+                                try { institution.setInvalid(true); institution.setErrorMessage("Institution wajib diisi"); institution.focus(); } catch (Exception ignore) {}
+                            } else { try { institution.setInvalid(false); institution.setErrorMessage(null); } catch (Exception ignore) {} }
+                            if (__prog.isEmpty()) {
+                                __ok = false;
+                                try { program.setInvalid(true); program.setErrorMessage("Program wajib diisi"); if (__ok) program.focus(); } catch (Exception ignore) {}
+                            } else { try { program.setInvalid(false); program.setErrorMessage(null); } catch (Exception ignore) {} }
+                            if (__type == null) {
+                                __ok = false;
+                                try { typeEducation.setInvalid(true); typeEducation.setErrorMessage("Education Type wajib dipilih"); if (__ok) typeEducation.focus(); } catch (Exception ignore) {}
+                            } else { try { typeEducation.setInvalid(false); typeEducation.setErrorMessage(null); } catch (Exception ignore) {} }
+                            if (!__ok) {
+                                Notification.show("Lengkapi: Institution, Program, dan Education Type.", 3000, Notification.Position.MIDDLE);
+                                return;
+                            }
+
                             HrPersonEducation education = this.educationData != null ? this.educationData : new HrPersonEducation();
                             education.setInstitution(institution.getValue());
                             education.setProgram(program.getValue());
