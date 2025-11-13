@@ -1,6 +1,8 @@
 package com.fusi24.pangreksa.web.view.employee;
 
 import com.vaadin.flow.data.value.ValueChangeMode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.util.DatePickerUtil;
 import com.fusi24.pangreksa.security.CurrentUser;
@@ -38,13 +40,17 @@ import com.vaadin.flow.server.streams.InMemoryUploadHandler;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
+import java.net.URI;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -177,6 +183,15 @@ public class MyProfileView extends Main {
 
         // KTP/NIK tidak boleh diubah lewat UI profil saya
         ktpNumber.setReadOnly(true);
+        firstName.setReadOnly(true);
+        middleName.setReadOnly(true);
+        lastName.setReadOnly(true);
+        gender.setReadOnly(true);
+        pob.setReadOnly(true);
+        dob.setReadOnly(true);
+        nationality.setReadOnly(true);
+        religion.setReadOnly(true);
+        marriage.setReadOnly(true);
         Long pid = resolveCurrentPersonId();
         if (pid == null) {
             Notification.show("Tidak menemukan personId untuk user saat ini.", 4000, Notification.Position.MIDDLE);
@@ -420,7 +435,7 @@ public class MyProfileView extends Main {
         });
 
         // Date of Birth: set max to today
-        dob.setMax(LocalDate.now());
+        dob.setMax(java.time.LocalDate.now());
 
         // Add all fields to the form layout
         personFormLayout.add(
@@ -533,9 +548,6 @@ public class MyProfileView extends Main {
     private void createAddressForm() {
         fullAddress.getStyle().setMinWidth("400px");
         fullAddress.getStyle().setMinHeight("200px");
-        fullAddress.setRequiredIndicatorVisible(true);
-        fullAddress.setValueChangeMode(ValueChangeMode.EAGER);
-        fullAddress.addValueChangeListener(e -> { validateCurrentAddressInputs(); });
 
         // Create address form layout
         FormLayout addressFormLayout = new FormLayout();
@@ -719,6 +731,14 @@ public class MyProfileView extends Main {
                 new FormLayout.ResponsiveStep(RESP_2, COL_2)
         );
 
+        institution.setRequiredIndicatorVisible(true);
+        institution.setValueChangeMode(ValueChangeMode.EAGER);
+        institution.addValueChangeListener(e -> { try { institution.setInvalid(false); institution.setErrorMessage(null); } catch (Exception ignore) {} });
+        program.setRequiredIndicatorVisible(true);
+        program.setValueChangeMode(ValueChangeMode.EAGER);
+        program.addValueChangeListener(e -> { try { program.setInvalid(false); program.setErrorMessage(null); } catch (Exception ignore) {} });
+        typeEducation.setRequiredIndicatorVisible(true);
+        typeEducation.addValueChangeListener(e -> { try { typeEducation.setInvalid(false); typeEducation.setErrorMessage(null); } catch (Exception ignore) {} });
         educationFormLayout.add(
                 institution,
                 program,
@@ -968,11 +988,11 @@ public class MyProfileView extends Main {
                     int tabNo = tabSheet.getSelectedIndex();
                     switch (tabNo) {
                         case 0 -> {
-
-                            // Validate Address inputs
-                            if (!validateCurrentAddressInputs()) {
-                                Notification.show("Alamat wajib diisi.", 3000, Notification.Position.MIDDLE);
-                                try { fullAddress.focus(); } catch (Exception ignore) {}
+                            // Validate Address form before adding
+                            String __addr = (fullAddress != null && fullAddress.getValue() != null) ? fullAddress.getValue().trim() : "";
+                            if (__addr.isEmpty()) {
+                                try { fullAddress.setInvalid(true); fullAddress.setErrorMessage("Alamat wajib diisi"); fullAddress.focus(); } catch (Exception ignore) {}
+                                Notification.show("Alamat wajib diisi", 3000, Notification.Position.MIDDLE);
                                 return;
                             }
 
@@ -1013,6 +1033,28 @@ public class MyProfileView extends Main {
                             updateSaveButtonState();
                         }
                         case 2 -> {
+                            // Validate required Education fields before adding
+                            String __inst = institution != null ? (institution.getValue() != null ? institution.getValue().trim() : "") : "";
+                            String __prog = program != null ? (program.getValue() != null ? program.getValue().trim() : "") : "";
+                            var __type = (typeEducation != null) ? typeEducation.getValue() : null;
+                            boolean __ok = true;
+                            if (__inst.isEmpty()) {
+                                __ok = false;
+                                try { institution.setInvalid(true); institution.setErrorMessage("Institution wajib diisi"); institution.focus(); } catch (Exception ignore) {}
+                            } else { try { institution.setInvalid(false); institution.setErrorMessage(null); } catch (Exception ignore) {} }
+                            if (__prog.isEmpty()) {
+                                __ok = false;
+                                try { program.setInvalid(true); program.setErrorMessage("Program wajib diisi"); if (__ok) program.focus(); } catch (Exception ignore) {}
+                            } else { try { program.setInvalid(false); program.setErrorMessage(null); } catch (Exception ignore) {} }
+                            if (__type == null) {
+                                __ok = false;
+                                try { typeEducation.setInvalid(true); typeEducation.setErrorMessage("Education Type wajib dipilih"); if (__ok) typeEducation.focus(); } catch (Exception ignore) {}
+                            } else { try { typeEducation.setInvalid(false); typeEducation.setErrorMessage(null); } catch (Exception ignore) {} }
+                            if (!__ok) {
+                                Notification.show("Lengkapi: Institution, Program, dan Education Type.", 3000, Notification.Position.MIDDLE);
+                                return;
+                            }
+
                             HrPersonEducation education = this.educationData != null ? this.educationData : new HrPersonEducation();
                             education.setInstitution(institution.getValue());
                             education.setProgram(program.getValue());
@@ -1105,23 +1147,6 @@ public class MyProfileView extends Main {
     }
 
 
-
-
-    private boolean validateCurrentAddressInputs() {
-        try {
-            if (fullAddress == null) return false;
-            String val = fullAddress.getValue();
-            boolean ok = val != null && !val.trim().isEmpty();
-            fullAddress.setInvalid(!ok);
-            if (!ok) {
-                fullAddress.setErrorMessage("Alamat wajib diisi");
-            } else {
-                fullAddress.setErrorMessage(null);
-            }
-            return ok;
-        } catch (Exception ignore) { }
-        return false;
-    }
 
     private boolean validateCurrentContactInputs() {
         var type = (typeContact != null) ? typeContact.getValue() : null;

@@ -187,8 +187,8 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
         if(!this.auth.canCreate){
             demoButton.setEnabled(false);
-            saveButton.setEnabled(false);
-            saveButtonOnTab.setEnabled(false);
+            /* saveButton.setEnabled(false); // kept enabled per request *///
+            /* saveButtonOnTab.setEnabled(false); // kept enabled per request */ // disabled by permission previously; kept enabled per request
         }
     }
 
@@ -359,7 +359,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         });
 
         // Date of Birth: set max to today
-        dob.setMax(java.time.LocalDate.now());
+        dob.setMax(LocalDate.now());
         personFormLayout.add(
                 ktpNumber,
                 firstName,
@@ -463,7 +463,8 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         fullAddress.getStyle().setMinWidth("400px");
         fullAddress.getStyle().setMinHeight("200px");
 
-        // Create address form layout
+        fullAddress.setRequiredIndicatorVisible(true);
+// Create address form layout
         FormLayout addressFormLayout = new FormLayout();
         addressFormLayout.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 1),
@@ -612,7 +613,10 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         score.setMin(0);
         score.setMax(10.99);
 
-        // Create FormLayout
+        institution.setRequiredIndicatorVisible(true);
+        program.setRequiredIndicatorVisible(true);
+        typeEducation.setRequiredIndicatorVisible(true);
+// Create FormLayout
         educationFormLayout = new FormLayout();
         educationFormLayout.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 1),
@@ -851,6 +855,11 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         });
 
         saveButton.addClickListener(e -> {
+            // Permission guard for saveButton: keep clickable, block action if no rights
+            if (this.auth != null && !this.auth.canCreate) {
+                Notification.show("Anda tidak memiliki izin untuk menyimpan data.", 3000, Notification.Position.MIDDLE);
+                return;
+            }
             if (!this.auth.canCreate) {
                 return;
             }
@@ -873,10 +882,31 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         });
 
         saveButtonOnTab.addClickListener( e -> {
+            // Permission guard for saveButtonOnTab: keep clickable, block action if no rights
+            if (this.auth != null && !this.auth.canCreate) {
+                Notification.show("Anda tidak memiliki izin untuk menambah data.", 3000, Notification.Position.MIDDLE);
+                return;
+            }
+// Permission guard: keep button enabled but block action if no create rights
+            if (this.auth != null && !this.auth.canCreate) {
+                Notification.show("You do not have permission to add items.", 3000, Notification.Position.MIDDLE);
+                return;
+            }
             int tabNo = tabSheet.getSelectedIndex();
             switch (tabNo) {
                 case 0 -> {
 
+                    // Validate Address form before adding
+                    String __addr = (fullAddress.getValue() != null) ? fullAddress.getValue().trim() : "";
+                    if (__addr.isEmpty()) {
+                        try {
+                            fullAddress.setInvalid(true);
+                            fullAddress.setErrorMessage("Alamat wajib diisi");
+                            fullAddress.focus();
+                        } catch (Exception ignore) {}
+                        Notification.show("Alamat wajib diisi", 3000, Notification.Position.MIDDLE);
+                        return;
+                    }
                     HrPersonAddress address = this.addressData != null ? this.addressData : new HrPersonAddress();
                     address.setFullAddress(fullAddress.getValue());
                     address.setIsDefault(isDefaultAddress.getValue());
@@ -904,6 +934,27 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                     this.contactData = null;
                 }
                 case 2 -> {
+                    // Validate Education form before adding
+                    String __inst = (institution.getValue() != null) ? institution.getValue().trim() : "";
+                    String __prog = (program.getValue() != null) ? program.getValue().trim() : "";
+                    EducationTypeEnum __etype = typeEducation.getValue();
+                    boolean __invalid = false;
+                    if (__inst.isEmpty()) {
+                        try { institution.setInvalid(true); institution.setErrorMessage("Institution wajib diisi"); } catch (Exception ignore) {}
+                        __invalid = true;
+                    }
+                    if (__prog.isEmpty()) {
+                        try { program.setInvalid(true); program.setErrorMessage("Program wajib diisi"); } catch (Exception ignore) {}
+                        __invalid = true;
+                    }
+                    if (__etype == null) {
+                        try { typeEducation.setInvalid(true); typeEducation.setErrorMessage("Education Type wajib diisi"); } catch (Exception ignore) {}
+                        __invalid = true;
+                    }
+                    if (__invalid) {
+                        Notification.show("Education: institution, program, dan type wajib diisi", 3500, Notification.Position.MIDDLE);
+                        return;
+                    }
                     HrPersonEducation education = this.educationData != null ? this.educationData : new HrPersonEducation();
                     education.setInstitution(institution.getValue());
                     education.setProgram(program.getValue());
@@ -1074,18 +1125,18 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
             return;
         }
         // Date of Birth: required, not in the future, min age 17
-        java.time.LocalDate d = dob.getValue();
+        LocalDate d = dob.getValue();
         if (d == null) {
             dob.setInvalid(true);
             Notification.show("Tanggal Lahir wajib diisi.", 4000, Notification.Position.MIDDLE);
             return;
         }
-        if (d.isAfter(java.time.LocalDate.now())) {
+        if (d.isAfter(LocalDate.now())) {
             dob.setInvalid(true);
             Notification.show("Tanggal Lahir tidak boleh di masa depan.", 4000, Notification.Position.MIDDLE);
             return;
         }
-        int usia = java.time.Period.between(d, java.time.LocalDate.now()).getYears();
+        int usia = java.time.Period.between(d, LocalDate.now()).getYears();
         if (usia < 17) {
             dob.setInvalid(true);
             Notification.show("Usia minimal 17 tahun.", 4000, Notification.Position.MIDDLE);
