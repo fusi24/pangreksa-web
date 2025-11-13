@@ -13,6 +13,7 @@ import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.PersonService;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.component.button.Button;
@@ -57,12 +58,14 @@ import java.util.concurrent.atomic.AtomicReference;
 
 
 @Route("my-profile")
-@PageTitle("Profil Karyawan Saya")
-@PermitAll
+//@PageTitle("Profil Karyawan Saya")
+@Menu(order = 15, icon = "vaadin:user-card", title = "Profil Karyawan Saya")
+@RolesAllowed("MY_PROF")
+//@PermitAll
 // When security is enabled, allow all authenticated users
 public class MyProfileView extends Main {
     private static final long serialVersionUID = 15L;
-    private static final Logger log = LoggerFactory.getLogger(KaryawanBaruFormView.class);
+    private static final Logger log = LoggerFactory.getLogger(MyProfileView.class);
     private final CurrentUser currentUser;
     private final CommonService commonService;
     private final PersonService personService;
