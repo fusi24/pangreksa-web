@@ -532,6 +532,38 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
     private void createContactsForm() {
         typeContact.setItems(ContactTypeEnum.values());
 
+        // ===== Added contact type dynamic validation =====
+        if (typeContact != null && stringValue != null) {
+            Runnable applyContactTypeRules = () -> {
+                Object t = typeContact.getValue();
+                if (t != null && t.toString().equalsIgnoreCase("EMAIL")) {
+                    stringValue.setAllowedCharPattern(null);
+                    stringValue.setMaxLength(160);
+                    stringValue.setHelperText("Email valid (maks 160), contoh: nama@email.com (.com / .co.id)");
+                    String v = stringValue.getValue();
+                    boolean invalid = (v != null && !v.isBlank()) ? !isEmail160Valid(v.trim()) : false;
+                    stringValue.setInvalid(invalid);
+
+                } else if (t != null && t.toString().equalsIgnoreCase("NUMBER")) {
+                    stringValue.setAllowedCharPattern("\\d");
+                    stringValue.setMaxLength(15);
+                    stringValue.setHelperText("Nomor telepon hanya angka, maks. 15 digit");
+                    String v = stringValue.getValue();
+                    boolean invalid = (v != null && !v.isBlank()) ? !isPhone15Digits(v) : false;
+                    stringValue.setInvalid(invalid);
+
+                } else {
+                    stringValue.setAllowedCharPattern(null);
+                    stringValue.setHelperText(null);
+                    stringValue.setInvalid(false);
+                }
+            };
+            typeContact.addValueChangeListener(e -> applyContactTypeRules.run());
+            stringValue.addValueChangeListener(e -> applyContactTypeRules.run());
+            applyContactTypeRules.run();
+        }
+
+
         description.getStyle().setMinWidth("200px");
 
         // Create FormLayout
@@ -929,6 +961,36 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                     // contact.setPerson(person);
 
                     contactList.add(contact);
+
+                    // ===== Relationship required guard + input validation (added) =====
+                    String relVal = relationship != null ? relationship.getValue() : null;
+                    if (relVal == null || relVal.trim().isEmpty()) {
+                        Notification.show("Relationship wajib diisi.", 3000, Notification.Position.MIDDLE);
+                        return;
+                    }
+
+                    Object t = typeContact != null ? typeContact.getValue() : null;
+                    String val = stringValue != null ? stringValue.getValue() : null;
+
+                    if (t == null) {
+                        Notification.show("Pilih Contact Type terlebih dahulu.", 3000, Notification.Position.MIDDLE);
+                        return;
+                    }
+                    if (t.toString().equalsIgnoreCase("EMAIL")) {
+                        if (!isEmail160Valid(val)) {
+                            Notification.show("Format email salah atau melebihi 160 karakter (.com / .co.id).", 3000, Notification.Position.MIDDLE);
+                            if (stringValue != null) stringValue.focus();
+                            return;
+                        }
+                    } else if (t.toString().equalsIgnoreCase("NUMBER")) {
+                        if (!isPhone15Digits(val)) {
+                            Notification.show("Nomor telepon hanya angka, maks. 15 digit.", 3000, Notification.Position.MIDDLE);
+                            if (stringValue != null) stringValue.focus();
+                            return;
+                        }
+                    }
+
+
                     gridContacts.setItems(contactList);
                     clearForm(false, false, true, false, false);
                     this.contactData = null;
@@ -1085,6 +1147,21 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
             e.printStackTrace();
         }
     }
+
+    // ===== Contact validation helpers (added) =====
+    private static boolean isEmail160Valid(String s) {
+        if (s == null) return false;
+        if (s.length() > 160) return false;
+        // harus ada '@' dan TLD .com atau .co.id
+        String emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.(com|co\\.id)$";
+        return s.matches(emailRegex);
+    }
+
+    private static boolean isPhone15Digits(String s) {
+        // hanya angka, panjang 1..15
+        return s != null && s.matches("^\\d{1,15}$");
+    }
+
 
     private void save() {
         // ===== Server-side validations =====
