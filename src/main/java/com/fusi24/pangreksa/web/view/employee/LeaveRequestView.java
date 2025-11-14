@@ -270,24 +270,38 @@ public class LeaveRequestView extends Main {
             }
         });
 
-        leaveAbsenceTypeDropdown.addValueChangeListener(e-> {
-            //getLeaveBalance
+        leaveAbsenceTypeDropdown.addValueChangeListener(e -> {
+            // getLeaveBalance
             if (leaveAbsenceTypeDropdown.getValue() != null) {
                 // Get the leave balance for the current user and selected leave type
                 AppUserInfo appUser = currentUser.require();
-                HrLeaveBalance leaveBalance = leaveService.getLeaveBalance(appUser, LocalDate.now().getYear(), leaveAbsenceTypeDropdown.getValue());
+                HrLeaveBalance leaveBalance = leaveService.getLeaveBalance(
+                        appUser,
+                        LocalDate.now().getYear(),
+                        leaveAbsenceTypeDropdown.getValue()
+                );
 
-                if(e.getValue().getId() == 1)
-                    leaveAbsenceTypeDropdown.setHelperText("You have " + (leaveBalance != null ? leaveBalance.getRemainingDays() : 0) + " days left for " + leaveAbsenceTypeDropdown.getValue().getLabel());
-                else leaveAbsenceTypeDropdown.setHelperText(null);
+                // Hanya tampilkan helperText untuk jenis cuti tertentu (misalnya id = 1)
+                if (e.getValue().getId() == 1) {
+                    leaveAbsenceTypeDropdown.setHelperText(
+                            "You have " + (leaveBalance != null ? leaveBalance.getRemainingDays() : 0)
+                                    + " days left for " + leaveAbsenceTypeDropdown.getValue().getLabel()
+                    );
+                } else {
+                    leaveAbsenceTypeDropdown.setHelperText(null);
+                }
 
-                if (leaveBalance.getRemainingDays() <= 0) {
+                // ======= FIX NPE DI SINI =======
+                int remainingDays = (leaveBalance != null ? leaveBalance.getRemainingDays() : 0);
+                if (remainingDays <= 0) {
                     submitButton.setEnabled(false);
                 } else {
                     submitButton.setEnabled(true);
                 }
+                // ===============================
             }
         });
+
 
         cancelButton.addClickListener(e-> {
             dialog.close();
