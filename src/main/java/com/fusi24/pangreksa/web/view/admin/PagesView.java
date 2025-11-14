@@ -194,7 +194,7 @@ public class PagesView extends Main {
             
             HorizontalLayout filterLayout = new HorizontalLayout();
             filterLayout.setWidthFull();
-            filterLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+            filterLayout.setJustifyContentMode(JustifyContentMode.END);
             
             Button filterButton = new Button("Filter", new Icon(VaadinIcon.SLIDERS));
             filterButton.addClickListener(e -> showFilterDialog());
@@ -234,7 +234,7 @@ public class PagesView extends Main {
             
             // Create and add buttons to footer
             HorizontalLayout buttonsLayout = new HorizontalLayout();
-            buttonsLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+            buttonsLayout.setJustifyContentMode(JustifyContentMode.END);
             buttonsLayout.setWidthFull();
             buttonsLayout.setSpacing(true);
             

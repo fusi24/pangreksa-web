@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -44,8 +45,15 @@ public class AppUserAuthService {
 
             appUserAuthList.stream()
                     .filter(auth -> auth.getResponsibility().equals(r))
+                    .sorted(Comparator.comparing(VwAppUserAuth::getGroupId))
                     .forEach(auth -> {
                         responsibility.addMenu(new MenuEntry(
+                                auth.getUrl(),
+                                auth.getLabel(),
+                                auth.getSortOrder(),
+                                auth.getPageIcon(), null
+                        ));
+                        responsibility.addGroupMenu(auth.getGroupName(), new MenuEntry(
                                 auth.getUrl(),
                                 auth.getLabel(),
                                 auth.getSortOrder(),

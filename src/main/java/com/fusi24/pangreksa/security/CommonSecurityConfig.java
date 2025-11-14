@@ -50,7 +50,7 @@ import org.springframework.security.core.context.SecurityContextHolderStrategy;
  *
  * @see AppUserPrincipal The principal interface that all authenticated users implement
  * @see CurrentUser Utility for accessing the current user information
- * @see org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
+ * @see EnableMethodSecurity
  */
 @EnableMethodSecurity
 @Configuration

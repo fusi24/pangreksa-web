@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.util.ConfirmationDialogUtil;
 import com.fusi24.pangreksa.web.model.entity.HrDepartment;
 import com.fusi24.pangreksa.web.repo.HrDepartmentRepo;
 import com.vaadin.flow.component.button.Button;
@@ -10,8 +11,10 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Main;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.textfield.Autocapitalize;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.value.ValueChangeMode;
@@ -84,6 +87,8 @@ public class MasterDepartmentView extends Main {
 
     private void configureForm() {
         isActiveField.setLabel("Aktif");
+        codeField.setMaxLength(3);
+        codeField.setAutocapitalize(Autocapitalize.CHARACTERS);
         form.add(codeField, nameField, descriptionField, isActiveField);
 
         // Explicitly bind each field
@@ -149,18 +154,54 @@ public class MasterDepartmentView extends Main {
     private void saveDepartment() {
         try {
             binder.writeBean(currentDepartment);
+
+            // Check for duplicate code
+            boolean isDuplicateCode = departmentRepo.existsByCodeAndIdNot(
+                    currentDepartment.getCode(),
+                    currentDepartment.getId()
+            );
+
+            if (isDuplicateCode) {
+                Notification.show("Department code must be unique. Another department already uses this code.",
+                        5000, Notification.Position.MIDDLE);
+                return;
+            }
+
+            // Optional: Also check for duplicate name, if needed
+            boolean isDuplicateName = departmentRepo.existsByNameAndIdNot(currentDepartment.getName(), currentDepartment.getId());
+            if (isDuplicateName) {
+                Notification.show("Department Name must be unique. Another department already uses this Name.",
+                        5000, Notification.Position.MIDDLE);
+                return;
+            }
+
             departmentRepo.save(currentDepartment);
             dialog.close();
             refreshGrid();
-            com.vaadin.flow.component.notification.Notification.show("Saved successfully!");
+            Notification.show("Saved successfully!");
         } catch (Exception e) {
-            com.vaadin.flow.component.notification.Notification.show("Error saving department: " + e.getMessage());
+            Notification.show("Error saving department: " + e.getMessage());
         }
     }
 
     private void deleteDepartment(HrDepartment department) {
-        departmentRepo.delete(department);
-        refreshGrid();
-        com.vaadin.flow.component.notification.Notification.show("Deleted successfully!");
+        String header = "Delete Departement for " + department.getCode() + "?";
+        String message = "Are you sure you want to permanently delete this record? This action cannot be undone.";
+        ConfirmationDialogUtil.showConfirmation(
+                header,
+                message,
+                "Delete", // The text on the confirm button
+                // The action to perform on confirmation
+                event -> {
+                    try {
+                        departmentRepo.delete(department);
+                        refreshGrid();
+                        Notification.show("Deleted successfully!");
+                    } catch (Exception ex) {
+                        Notification.show("Deletion failed: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
+                        ex.printStackTrace();
+                    }
+                }
+        );
     }
 }
