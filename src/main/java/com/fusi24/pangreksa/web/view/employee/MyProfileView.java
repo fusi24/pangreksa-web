@@ -47,7 +47,7 @@ import java.util.List;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicReference;
 
-
+//Bug Fixed Iman Sanjaya
 
 @Route("my-profile")
 //@PageTitle("Profil Karyawan Saya")
