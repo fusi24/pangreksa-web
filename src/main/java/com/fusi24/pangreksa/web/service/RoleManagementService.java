@@ -73,20 +73,22 @@ public class RoleManagementService {
         var userRef = em.getReference(FwAppUser.class, appuserId);
         var roleRef = em.getReference(FwResponsibilities.class, responsibilityId);
 
-        // cari entri pertama user ini (jika policy 1 user = 1 role)
-        var existingOpt = appuserRespRepo.findFirstByAppuserOrderByIdAsc(userRef);
-        if (existingOpt.isEmpty()) {
+
+        // 1. Cek apakah mapping (user + role) SUDAH ADA menggunakan method baru
+        boolean alreadyExists = appuserRespRepo.existsByAppuserAndResponsibility(userRef, roleRef);
+
+        if (alreadyExists) {
+            // 2. Lempar error jika duplikat (Sesuai permintaan Anda)
+            // Error ini akan ditangkap oleh RoleManagementView dan ditampilkan sebagai notif galat
+            throw new IllegalArgumentException("Duplikat: Pengguna ini sudah memiliki role tersebut.");
+
+        } else {
+            // 3. Buat baru jika belum ada
             var e = new FwAppuserResp();
             e.setAppuser(userRef);
             e.setResponsibility(roleRef);
             e.setIsActive(Boolean.TRUE); // default aktif
-            e.setCreatedBy(appActor);    // audit pakai entity, sesuai contoh
-            e.setUpdatedBy(appActor);
-            appuserRespRepo.save(e);
-        } else {
-            var e = existingOpt.get();
-            e.setResponsibility(roleRef);
-            if (e.getIsActive() == null) e.setIsActive(Boolean.TRUE);
+            e.setCreatedBy(appActor);
             e.setUpdatedBy(appActor);
             appuserRespRepo.save(e);
         }

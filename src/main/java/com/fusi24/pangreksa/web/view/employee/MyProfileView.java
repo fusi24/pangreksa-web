@@ -1,8 +1,6 @@
 package com.fusi24.pangreksa.web.view.employee;
 
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.util.DatePickerUtil;
 import com.fusi24.pangreksa.security.CurrentUser;
@@ -15,7 +13,6 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -40,22 +37,17 @@ import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.server.streams.InMemoryUploadHandler;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
-import java.net.URI;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicReference;
 
-
+//Bug Fixed Iman Sanjaya
 
 @Route("my-profile")
 //@PageTitle("Profil Karyawan Saya")
@@ -86,8 +78,6 @@ public class MyProfileView extends Main {
     HorizontalLayout contactsLayout = new HorizontalLayout();
     HorizontalLayout educationLayout = new HorizontalLayout();
     HorizontalLayout documentsLayout = new HorizontalLayout();
-    Button saveButton;
-    Button clearButton;
 
     Button clearButtonOnTab;
     Button saveButtonOnTab;
@@ -251,7 +241,7 @@ public class MyProfileView extends Main {
             // User does not have permission to view this page
         }
 
-        if(!this.auth.canCreate){            saveButton.setEnabled(false);
+        if(!this.auth.canCreate){
             saveButtonOnTab.setEnabled(false);
         }
     }
@@ -263,13 +253,6 @@ public class MyProfileView extends Main {
         // Inisiasi toolbar Master
         toolbarLayoutMaster = new HorizontalLayout();
         toolbarLayoutMaster.setAlignItems(FlexComponent.Alignment.END);
-
-        saveButton = new Button("Save");
-        clearButton = new Button("Reset");
-
-        toolbarLayoutMaster.add( clearButton, saveButton);
-        saveButton.setEnabled(false);
-
         toolbarLayoutMaster.setJustifyContentMode(JustifyContentMode.END);
 
         // Inisiasi toolbar Detail
@@ -552,6 +535,8 @@ public class MyProfileView extends Main {
         fullAddress.getStyle().setMinWidth("400px");
         fullAddress.getStyle().setMinHeight("200px");
 
+        fullAddress.setRequiredIndicatorVisible(true);
+
         // Create address form layout
         FormLayout addressFormLayout = new FormLayout();
         addressFormLayout.setResponsiveSteps(
@@ -619,8 +604,13 @@ public class MyProfileView extends Main {
 
     private void createContactsForm() {
         typeContact.setItems(ContactTypeEnum.values());
-
         description.getStyle().setMinWidth("200px");
+
+        typeContact.setRequiredIndicatorVisible(true);
+        stringValue.setRequiredIndicatorVisible(true);
+        designation.setRequiredIndicatorVisible(true);
+        relationship.setRequiredIndicatorVisible(true);
+        description.setRequiredIndicatorVisible(true);
 
         // Create FormLayout
         contactFormLayout = new FormLayout();
@@ -725,6 +715,15 @@ public class MyProfileView extends Main {
         score.setStep(0.10);
         score.setMin(0);
         score.setMax(10.99);
+
+        institution.setRequiredIndicatorVisible(true);
+        program.setRequiredIndicatorVisible(true);
+        score.setRequiredIndicatorVisible(true);
+        startDate.setRequiredIndicatorVisible(true);
+        finishDate.setRequiredIndicatorVisible(true);
+        certificateTitle.setRequiredIndicatorVisible(true);
+        certificateExpiration.setRequiredIndicatorVisible(true);
+        typeEducation.setRequiredIndicatorVisible(true);
 
         // Create FormLayout
         educationFormLayout = new FormLayout();
@@ -837,6 +836,15 @@ public class MyProfileView extends Main {
         size.setMin(0);
         size.setStep(1024); // KB step
 
+        typeDocument.setRequiredIndicatorVisible(true);
+        nameDocoument.setRequiredIndicatorVisible(true);
+        descDocument.setRequiredIndicatorVisible(true);
+        notes.setRequiredIndicatorVisible(true);
+        year.setRequiredIndicatorVisible(true);
+        contentType.setRequiredIndicatorVisible(true);
+        size.setRequiredIndicatorVisible(true);
+        filename.setRequiredIndicatorVisible(true);
+        path.setRequiredIndicatorVisible(true);
 
         // Build FormLayout
         documentFormLayout = new FormLayout();
@@ -965,17 +973,6 @@ public class MyProfileView extends Main {
     }
 
     private void setListener() {
-        saveButton.addClickListener(e -> {
-            if (!this.auth.canCreate) {
-                return;
-            }
-            save();
-        });
-
-        clearButton.addClickListener( e -> {
-            clearForm(true, true, true, true, true);
-            clearGrid(true,true, true, true);
-        });
 
         clearButtonOnTab.addClickListener( e -> {
             int tabNo = tabSheet.getSelectedIndex();
@@ -987,118 +984,194 @@ public class MyProfileView extends Main {
             }
         });
 
-        saveButtonOnTab.addClickListener( e -> {
-                    int tabNo = tabSheet.getSelectedIndex();
-                    switch (tabNo) {
-                        case 0 -> {
-                            // Validate Address form before adding
-                            String __addr = (fullAddress != null && fullAddress.getValue() != null) ? fullAddress.getValue().trim() : "";
-                            if (__addr.isEmpty()) {
-                                try { fullAddress.setInvalid(true); fullAddress.setErrorMessage("Alamat wajib diisi"); fullAddress.focus(); } catch (Exception ignore) {}
-                                Notification.show("Alamat wajib diisi", 3000, Notification.Position.MIDDLE);
-                                return;
-                            }
+        saveButtonOnTab.addClickListener(e -> {
+            int tabNo = tabSheet.getSelectedIndex();
+            Runnable actionToConfirm = null; // Logic simpan akan disimpan di sini sementara
 
-
-                            HrPersonAddress address = this.addressData != null ? this.addressData : new HrPersonAddress();
-                            address.setFullAddress(fullAddress.getValue());
-                            address.setIsDefault(isDefaultAddress.getValue());
-                            // address.setPerson(person);
-
-                            address.setPerson(personData);
-                            addressList.add(address);
-                            gridAddress.setItems(addressList);
-
-                            clearForm(false, true, false, false, false);
-                            this.addressData = null;
-                        }
-                        case 1 -> {
-                            // Validate inputs before adding to grid
-                            if (!validateCurrentContactInputs()) {
-                                Notification.show("Perbaiki input kontak terlebih dahulu.", 3000, Notification.Position.MIDDLE);
-                                return;
-                            }
-
-                            HrPersonContact contact = this.contactData != null ? this.contactData : new HrPersonContact();
-                            contact.setDesignation(designation.getValue());
-                            contact.setRelationship(relationship.getValue());
-                            contact.setStringValue(stringValue.getValue());
-                            contact.setType(typeContact.getValue());
-                            contact.setDescription(description.getValue());
-                            contact.setIsDefault(isDefaultContact.getValue());
-                            // contact.setPerson(person);
-
-                            contact.setPerson(personData);
-                            contactList.add(contact);
-                            gridContacts.setItems(contactList);
-                            clearForm(false, false, true, false, false);
-                            this.contactData = null;
-                            updateSaveButtonState();
-                        }
-                        case 2 -> {
-                            // Validate required Education fields before adding
-                            String __inst = institution != null ? (institution.getValue() != null ? institution.getValue().trim() : "") : "";
-                            String __prog = program != null ? (program.getValue() != null ? program.getValue().trim() : "") : "";
-                            var __type = (typeEducation != null) ? typeEducation.getValue() : null;
-                            boolean __ok = true;
-                            if (__inst.isEmpty()) {
-                                __ok = false;
-                                try { institution.setInvalid(true); institution.setErrorMessage("Institution wajib diisi"); institution.focus(); } catch (Exception ignore) {}
-                            } else { try { institution.setInvalid(false); institution.setErrorMessage(null); } catch (Exception ignore) {} }
-                            if (__prog.isEmpty()) {
-                                __ok = false;
-                                try { program.setInvalid(true); program.setErrorMessage("Program wajib diisi"); if (__ok) program.focus(); } catch (Exception ignore) {}
-                            } else { try { program.setInvalid(false); program.setErrorMessage(null); } catch (Exception ignore) {} }
-                            if (__type == null) {
-                                __ok = false;
-                                try { typeEducation.setInvalid(true); typeEducation.setErrorMessage("Education Type wajib dipilih"); if (__ok) typeEducation.focus(); } catch (Exception ignore) {}
-                            } else { try { typeEducation.setInvalid(false); typeEducation.setErrorMessage(null); } catch (Exception ignore) {} }
-                            if (!__ok) {
-                                Notification.show("Lengkapi: Institution, Program, dan Education Type.", 3000, Notification.Position.MIDDLE);
-                                return;
-                            }
-
-                            HrPersonEducation education = this.educationData != null ? this.educationData : new HrPersonEducation();
-                            education.setInstitution(institution.getValue());
-                            education.setProgram(program.getValue());
-                            education.setScore(score.getValue() != null ? BigDecimal.valueOf(score.getValue()) : null);
-                            education.setStartDate(startDate.getValue());
-                            education.setFinishDate(finishDate.getValue());
-                            education.setCertificateTitle(certificateTitle.getValue());
-                            education.setCertificateExpiration(certificateExpiration.getValue());
-                            education.setType(typeEducation.getValue());
-                            // education.setPerson(person);
-
-                            education.setPerson(personData);
-                            educationList.add(education);
-                            gridEducation.setItems(educationList);
-                            clearForm(false, false, false, true, false);
-                            this.educationData = null;
-                        }
-                        case 3 -> {
-                            HrPersonDocument document = this.documentData != null ? this.documentData : new HrPersonDocument();
-                            document.setName(nameDocoument.getValue());
-                            document.setDescription(descDocument.getValue());
-                            document.setNotes(notes.getValue());
-                            document.setYear(year.getValue() != null ? year.getValue().intValue() : null);
-                            document.setType(typeDocument.getValue());
-                            document.setContentType(contentType.getValue());
-                            document.setSize(size.getValue() != null ? size.getValue().longValue() : null);
-                            document.setFilename(filename.getValue());
-                            document.setPath(path.getValue());
-                            // document.setPerson(person);
-
-                            documentList.add(document);
-                            gridDocument.setItems(documentList);
-                            clearForm(false, false, false, false, true);
-                            this.documentData = null;
-                        }
+            switch (tabNo) {
+                // ==================== ADDRESS TAB ====================
+                case 0 -> {
+                    // 1. Validasi Address
+                    if (fullAddress.getValue() == null || fullAddress.getValue().trim().isEmpty()) {
+                        fullAddress.setInvalid(true);
+                        fullAddress.setErrorMessage("Alamat lengkap wajib diisi");
+                        Notification.show("Mohon lengkapi data Address.", 3000, Notification.Position.MIDDLE);
+                        return;
                     }
 
-                    save();
-                }
-        );
+                    // 2. Siapkan Action Simpan
+                    actionToConfirm = () -> {
+                        HrPersonAddress address = this.addressData != null ? this.addressData : new HrPersonAddress();
+                        address.setFullAddress(fullAddress.getValue());
+                        address.setIsDefault(isDefaultAddress.getValue());
+                        address.setPerson(personData);
 
+                        if(!addressList.contains(address)) addressList.add(address); // Prevent duplicate logic if needed
+                        gridAddress.setItems(addressList); // Refresh Grid
+
+                        clearForm(false, true, false, false, false);
+                        this.addressData = null;
+                        save(); // Save ke DB
+                    };
+                }
+
+                // ==================== CONTACT TAB ====================
+                case 1 -> {
+                    // 1. Validasi Semua Field Contact
+                    boolean valid = true;
+                    if (typeContact.getValue() == null) { typeContact.setInvalid(true); valid = false; }
+                    if (stringValue.getValue() == null || stringValue.getValue().trim().isEmpty()) { stringValue.setInvalid(true); valid = false; }
+                    if (designation.getValue() == null || designation.getValue().trim().isEmpty()) { designation.setInvalid(true); valid = false; }
+                    if (relationship.getValue() == null || relationship.getValue().trim().isEmpty()) { relationship.setInvalid(true); valid = false; }
+                    if (description.getValue() == null || description.getValue().trim().isEmpty()) { description.setInvalid(true); valid = false; }
+
+                    // Validasi format khusus (Email/Angka) menggunakan method yang sudah ada
+                    if (valid && !validateCurrentContactInputs()) {
+                        Notification.show("Format Kontak (Email/Angka) tidak valid.", 3000, Notification.Position.MIDDLE);
+                        return;
+                    }
+
+                    if (!valid) {
+                        Notification.show("Semua field Contact wajib diisi.", 3000, Notification.Position.MIDDLE);
+                        return;
+                    }
+
+                    // 2. Siapkan Action Simpan
+                    actionToConfirm = () -> {
+                        HrPersonContact contact = this.contactData != null ? this.contactData : new HrPersonContact();
+                        contact.setDesignation(designation.getValue());
+                        contact.setRelationship(relationship.getValue());
+                        contact.setStringValue(stringValue.getValue());
+                        contact.setType(typeContact.getValue());
+                        contact.setDescription(description.getValue());
+                        contact.setIsDefault(isDefaultContact.getValue());
+                        contact.setPerson(personData);
+
+                        if(!contactList.contains(contact)) contactList.add(contact);
+                        gridContacts.setItems(contactList);
+
+                        clearForm(false, false, true, false, false);
+                        this.contactData = null;
+                        updateSaveButtonState();
+                        save(); // Save ke DB
+                    };
+                }
+
+                // ==================== EDUCATION TAB ====================
+                case 2 -> {
+                    // 1. Validasi Semua Field Education
+                    boolean valid = true;
+                    if (institution.getValue() == null || institution.getValue().trim().isEmpty()) { institution.setInvalid(true); valid = false; }
+                    if (program.getValue() == null || program.getValue().trim().isEmpty()) { program.setInvalid(true); valid = false; }
+                    if (score.getValue() == null) { score.setInvalid(true); valid = false; }
+                    if (startDate.getValue() == null) { startDate.setInvalid(true); valid = false; }
+                    if (finishDate.getValue() == null) { finishDate.setInvalid(true); valid = false; }
+                    if (certificateTitle.getValue() == null || certificateTitle.getValue().trim().isEmpty()) { certificateTitle.setInvalid(true); valid = false; }
+                    if (certificateExpiration.getValue() == null) { certificateExpiration.setInvalid(true); valid = false; }
+                    if (typeEducation.getValue() == null) { typeEducation.setInvalid(true); valid = false; }
+
+                    if (!valid) {
+                        Notification.show("Semua field Education wajib diisi.", 3000, Notification.Position.MIDDLE);
+                        return;
+                    }
+
+                    // 2. Siapkan Action Simpan
+                    actionToConfirm = () -> {
+                        HrPersonEducation education = this.educationData != null ? this.educationData : new HrPersonEducation();
+                        education.setInstitution(institution.getValue());
+                        education.setProgram(program.getValue());
+                        education.setScore(score.getValue() != null ? BigDecimal.valueOf(score.getValue()) : null);
+                        education.setStartDate(startDate.getValue());
+                        education.setFinishDate(finishDate.getValue());
+                        education.setCertificateTitle(certificateTitle.getValue());
+                        education.setCertificateExpiration(certificateExpiration.getValue());
+                        education.setType(typeEducation.getValue());
+                        education.setPerson(personData);
+
+                        if(!educationList.contains(education)) educationList.add(education);
+                        gridEducation.setItems(educationList);
+
+                        clearForm(false, false, false, true, false);
+                        this.educationData = null;
+                        save(); // Save ke DB
+                    };
+                }
+
+                // ==================== DOCUMENT TAB ====================
+                case 3 -> {
+                    // 1. Validasi Semua Field Document
+                    boolean valid = true;
+                    if (typeDocument.getValue() == null) { typeDocument.setInvalid(true); valid = false; }
+                    if (nameDocoument.getValue() == null || nameDocoument.getValue().trim().isEmpty()) { nameDocoument.setInvalid(true); valid = false; }
+                    if (descDocument.getValue() == null || descDocument.getValue().trim().isEmpty()) { descDocument.setInvalid(true); valid = false; }
+                    if (notes.getValue() == null || notes.getValue().trim().isEmpty()) { notes.setInvalid(true); valid = false; }
+                    if (year.getValue() == null) { year.setInvalid(true); valid = false; }
+                    if (contentType.getValue() == null) { contentType.setInvalid(true); valid = false; }
+                    if (size.getValue() == null) { size.setInvalid(true); valid = false; }
+                    if (filename.getValue() == null || filename.getValue().trim().isEmpty()) { filename.setInvalid(true); valid = false; }
+                    if (path.getValue() == null || path.getValue().trim().isEmpty()) { path.setInvalid(true); valid = false; }
+
+                    if (!valid) {
+                        Notification.show("Semua field Document wajib diisi.", 3000, Notification.Position.MIDDLE);
+                        return;
+                    }
+
+                    // 2. Siapkan Action Simpan
+                    actionToConfirm = () -> {
+                        HrPersonDocument document = this.documentData != null ? this.documentData : new HrPersonDocument();
+                        document.setName(nameDocoument.getValue());
+                        document.setDescription(descDocument.getValue());
+                        document.setNotes(notes.getValue());
+                        document.setYear(year.getValue() != null ? year.getValue().intValue() : null);
+                        document.setType(typeDocument.getValue());
+                        document.setContentType(contentType.getValue());
+                        document.setSize(size.getValue() != null ? size.getValue().longValue() : null);
+                        document.setFilename(filename.getValue());
+                        document.setPath(path.getValue());
+                        document.setPerson(personData); // Pastikan diset ke person
+
+                        if(!documentList.contains(document)) documentList.add(document);
+                        gridDocument.setItems(documentList);
+
+                        clearForm(false, false, false, false, true);
+                        this.documentData = null;
+                        save(); // Save ke DB
+                    };
+                }
+            }
+
+            // 3. Munculkan Dialog Konfirmasi jika validasi lolos
+            if (actionToConfirm != null) {
+                showConfirmationDialog(actionToConfirm);
+            }
+        });
+
+    }
+
+    private void showConfirmationDialog(Runnable onConfirm) {
+        com.vaadin.flow.component.dialog.Dialog dialog = new com.vaadin.flow.component.dialog.Dialog();
+        dialog.setHeaderTitle("Konfirmasi Simpan");
+
+        VerticalLayout dialogLayout = new VerticalLayout();
+        dialogLayout.add(new Span("Apakah Anda yakin data yang dimasukkan sudah benar dan ingin menyimpannya?"));
+        dialogLayout.setPadding(false);
+        dialogLayout.setSpacing(false);
+        dialogLayout.setAlignItems(FlexComponent.Alignment.STRETCH);
+        dialogLayout.getStyle().set("width", "18rem").set("max-width", "100%");
+        dialog.add(dialogLayout);
+
+        Button saveButton = new Button("Ya, Simpan", e -> {
+            onConfirm.run();
+            dialog.close();
+        });
+        saveButton.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+
+        Button cancelButton = new Button("Batal", e -> dialog.close());
+
+        dialog.getFooter().add(cancelButton);
+        dialog.getFooter().add(saveButton);
+
+        dialog.open();
     }
 
     // === Helpers added for My Profile view ===
@@ -1145,7 +1218,7 @@ public class MyProfileView extends Main {
     private void updateSaveButtonState() {
         boolean firstOk = firstName != null && firstName.getValue() != null && !firstName.getValue().trim().isEmpty();
         boolean nikOk = ktpNumber != null && ktpNumber.getValue() != null && ktpNumber.getValue().matches("^\\d{16}$");
-        if (saveButton != null) saveButton.setEnabled(firstOk && nikOk);
+
         if (saveButtonOnTab != null) saveButtonOnTab.setEnabled(true);
     }
 

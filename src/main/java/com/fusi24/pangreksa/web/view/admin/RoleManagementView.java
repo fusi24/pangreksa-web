@@ -223,6 +223,7 @@ public class RoleManagementView extends Main {
         } catch (Exception ex) {
             log.error("Gagal populate data role", ex);
             notifyError("Gagal memuat data. Coba lagi.");
+            notifyError("Gagal memuat data. Coba lagi.");
         }
     }
 
@@ -238,6 +239,11 @@ public class RoleManagementView extends Main {
         cbUser.setItemLabelGenerator(OptionRow::getLabel);
         cbUser.setClearButtonVisible(true);
         cbUser.setWidth("360px");
+        // --- TAMBAHAN: Tandai sebagai Wajib (visual) ---
+        cbUser.setRequiredIndicatorVisible(true);
+        // --- TAMBAHAN: Hapus error jika user memilih item ---
+        cbUser.addValueChangeListener(e -> cbUser.setInvalid(false));
+
         tfUserSearch.addValueChangeListener(e -> cbUser.setItems(roleService.searchUserOptions(e.getValue())));
         cbUser.setItems(roleService.searchUserOptions(""));
 
@@ -245,6 +251,11 @@ public class RoleManagementView extends Main {
         cbRole.setItemLabelGenerator(OptionRow::getLabel);
         cbRole.setItems(roleService.getResponsibilityOptions());
         cbRole.setWidth("360px");
+        // --- TAMBAHAN: Tandai sebagai Wajib (visual) ---
+        cbRole.setRequiredIndicatorVisible(true);
+        // --- TAMBAHAN: Hapus error jika user memilih item ---
+        cbRole.addValueChangeListener(e -> cbRole.setInvalid(false));
+
 
         VerticalLayout content = new VerticalLayout(tfUserSearch, cbUser, cbRole);
         content.setPadding(false);
@@ -254,10 +265,23 @@ public class RoleManagementView extends Main {
         Button save = new Button("Simpan", ev -> {
             var u = cbUser.getValue();
             var r = cbRole.getValue();
-            if (u == null || r == null) {
+
+            // --- TAMBAHAN: Validasi Wajib yang lebih kuat ---
+            boolean isValid = true;
+            if (u == null) {
+                cbUser.setInvalid(true); // Merahkan field Pengguna
+                isValid = false;
+            }
+            if (r == null) {
+                cbRole.setInvalid(true); // Merahkan field Role
+                isValid = false;
+            }
+            if (!isValid) {
                 notifyWarn("Pilih Pengguna dan Role terlebih dahulu.");
                 return;
             }
+            // --- Akhir Validasi Wajib ---
+
             try {
                 roleService.addMapping(u.getId(), r.getId(), actor());
                 dlg.close();
@@ -265,7 +289,14 @@ public class RoleManagementView extends Main {
                 notifySuccess("Data baru berhasil disimpan.");
             } catch (Exception ex) {
                 log.error("Gagal menambah mapping role", ex);
-                notifyError("Gagal menyimpan. Silakan coba lagi.");
+
+                // --- TAMBAHAN: Menampilkan notifikasi galat (duplikat) dari service ---
+                String errorMessage = ex.getMessage();
+                if (errorMessage == null || errorMessage.isBlank()) {
+                    errorMessage = "Silakan coba lagi.";
+                }
+                // Jika service melempar "Mapping sudah ada", maka akan tampil di sini
+                notifyError("Gagal menyimpan: " + errorMessage);
             }
         });
 
