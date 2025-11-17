@@ -181,31 +181,29 @@ public class LeaveRequestView extends Main {
         reason.setWidthFull();
         reason.setHeight("15em");
 
-        ComboBox<HrPerson> submittedToCombo = new ComboBox<>();
-        submittedToCombo = new ComboBox<>("Person");
+        ComboBox<HrPerson> submittedToCombo = new ComboBox<>("Person");
         submittedToCombo.addClassName("no-dropdown-icon");
-        submittedToCombo.setItemLabelGenerator(p -> p.getFirstName() + " " + (p.getLastName() != null ? p.getLastName() : ""));
+        submittedToCombo.setItemLabelGenerator(p ->
+                p.getFirstName() + " " + (p.getLastName() != null ? p.getLastName() : "")
+        );
         submittedToCombo.setPlaceholder("Type to search");
         submittedToCombo.setClearButtonVisible(true);
 
         // set value as getManager(), but first set items
         HrPerson manager = getManager();
 
-        // set Items
         submittedToCombo.setItems(query -> {
             String filter = query.getFilter().orElse("");
-            int offset = query.getOffset();
-            int limit = query.getLimit(); // not used in this example, but can be used for pagination
             log.debug("Searching persons with filter: {}", filter);
 
             List<HrPerson> managers = personService.findPersonByKeyword(filter);
-            if (manager != null)// Add to stream
+            if (manager != null && !managers.contains(manager)) {
                 managers.add(manager);
+            }
 
             return managers.stream();
-        } );
+        });
 
-        // get manager as list
         if (manager != null) {
             submittedToCombo.setValue(manager);
         }
@@ -225,30 +223,30 @@ public class LeaveRequestView extends Main {
                 submittedToCombo, reason
         );
 
-        final String[] reasonTemplate = {"""
-                Dengan hormat, 
-
-                Saya ijin untuk mengajukan [TYPE] pada tanggal [FROM_DATE] sampai dengan [TO_DATE]. Adapun pengajuan ini untuk keperluan pribadi [ALASAN].
-
-                Mohon dapat dipertimbangkan, dan di approve. Bilamana ada yang kurang jelas mohon hubungi Saya.
-
-                Terima kasih.
-                """};
+        final String reasonTemplate =
+                "Dengan hormat,\n\n" +
+                        "Saya ijin untuk mengajukan [TYPE] pada tanggal [FROM_DATE] sampai dengan [TO_DATE]. " +
+                        "Adapun pengajuan ini untuk keperluan pribadi [ALASAN].\n\n" +
+                        "Mohon dapat dipertimbangkan, dan di approve. Bilamana ada yang kurang jelas mohon hubungi Saya.\n\n" +
+                        "Terima kasih.";
 
         generateReasonButton.addClickListener(e -> {
-            reason.setValue(new String());
-            // Replace placeholders with actual values: TYPE, FROM_DATE, TO_DATE, ALASAN, PERSON
-            reasonTemplate[0] = reasonTemplate[0].replace("[TYPE]", leaveAbsenceTypeDropdown.getValue() != null ? leaveAbsenceTypeDropdown.getValue().getLabel() : "[TYPE]");
-            reasonTemplate[0] = reasonTemplate[0].replace("[FROM_DATE]", startDate.getValue() != null ? startDate.getValue().toString() : "[FROM_DATE]");
-            reasonTemplate[0] = reasonTemplate[0].replace("[TO_DATE]", endDate.getValue() != null ? endDate.getValue().toString() : "[TO_DATE]");
-            reason.setValue(reasonTemplate[0]);
+            HrLeaveAbsenceTypes type = leaveAbsenceTypeDropdown.getValue();
+            LocalDate from = startDate.getValue();
+            LocalDate to = endDate.getValue();
+
+            String text = reasonTemplate
+                    .replace("[TYPE]", type != null ? type.getLabel() : "[TYPE]")
+                    .replace("[FROM_DATE]", from != null ? from.toString() : "[FROM_DATE]")
+                    .replace("[TO_DATE]", to != null ? to.toString() : "[TO_DATE]");
+
+            reason.setValue(text);
         });
 
         ComboBox<HrPerson> finalSubmittedToCombo = submittedToCombo;
-        submitButton.addClickListener(e-> {
-            if (this.auth.canCreate){
+        submitButton.addClickListener(e -> {
+            if (this.auth.canCreate) {
                 HrLeaveApplication request = HrLeaveApplication.builder()
-//                        .leaveAbsenceTypeDropdown(leaveAbsenceTypeDropdown.getValue())
                         .leaveAbsenceType(leaveAbsenceTypeDropdown.getValue())
                         .startDate(startDate.getValue())
                         .endDate(endDate.getValue())
@@ -257,7 +255,11 @@ public class LeaveRequestView extends Main {
                         .submittedTo(finalSubmittedToCombo.getValue())
                         .build();
 
-                log.debug("Submitting leave request: {} {} {}", currentUser.require().getUserId(), request.getLeaveAbsenceType().getLabel(), request.getStatus().toString());
+                log.debug("Submitting leave request: {} {} {} {}",
+                        request.getLeaveAbsenceType() != null ? request.getLeaveAbsenceType().getLabel() : "",
+                        request.getStartDate(),
+                        request.getEndDate(),
+                        request.getStatus());
 
                 request = leaveService.saveApplication(request, currentUser.require());
                 if (request.getId() != null) {
@@ -270,32 +272,59 @@ public class LeaveRequestView extends Main {
             }
         });
 
-        leaveAbsenceTypeDropdown.addValueChangeListener(e-> {
-            //getLeaveBalance
-            if (leaveAbsenceTypeDropdown.getValue() != null) {
-                // Get the leave balance for the current user and selected leave type
-                AppUserInfo appUser = currentUser.require();
-                HrLeaveBalance leaveBalance = leaveService.getLeaveBalance(appUser, LocalDate.now().getYear(), leaveAbsenceTypeDropdown.getValue());
+        // Validasi leave balance hanya untuk Cuti Tahunan (misal id = 1).
+        // Untuk leave type lain (menikah, ibadah, dll), submitButton tetap enabled.
+        leaveAbsenceTypeDropdown.addValueChangeListener(e -> {
+            HrLeaveAbsenceTypes selectedType = e.getValue();
 
-                if(e.getValue().getId() == 1)
-                    leaveAbsenceTypeDropdown.setHelperText("You have " + (leaveBalance != null ? leaveBalance.getRemainingDays() : 0) + " days left for " + leaveAbsenceTypeDropdown.getValue().getLabel());
-                else leaveAbsenceTypeDropdown.setHelperText(null);
+            // default: belum bisa submit
+            submitButton.setEnabled(false);
+            leaveAbsenceTypeDropdown.setHelperText(null);
 
-                if (leaveBalance.getRemainingDays() <= 0) {
+            if (selectedType == null) {
+                return;
+            }
+
+            // HANYA untuk Cuti Tahunan (misal id = 1)
+            if (selectedType.getId() == 1) {
+                HrLeaveBalance leaveBalance = leaveService.getLeaveBalance(
+                        currentUser.require(),
+                        LocalDate.now().getYear(),
+                        selectedType
+                );
+
+                // <<< TAMBAHAN: handle kalau leaveBalance null >>>
+                if (leaveBalance == null) {
+                    leaveAbsenceTypeDropdown.setHelperText(
+                            "Leave balance data not found. Please contact HR."
+                    );
                     submitButton.setEnabled(false);
-                } else {
-                    submitButton.setEnabled(true);
+                    return;
                 }
+
+                int remainingDays = leaveBalance.getRemainingDays();
+
+                leaveAbsenceTypeDropdown.setHelperText(
+                        "You have " + remainingDays + " days left for " + selectedType.getLabel()
+                );
+
+                // submit hanya boleh kalau masih ada saldo cuti tahunan
+                submitButton.setEnabled(remainingDays > 0);
+            } else {
+                // Untuk jenis cuti selain Cuti Tahunan:
+                // tidak cek saldo, submit selalu boleh
+                submitButton.setEnabled(true);
+                // (boleh tambah helper text khusus kalau mau)
             }
         });
 
-        cancelButton.addClickListener(e-> {
+
+        cancelButton.addClickListener(e -> {
             dialog.close();
             requestButton.setEnabled(true);
         });
 
-        dialog.add(formLayout,buttonLayout); // Placeholder for actual content
-
+        dialog.add(formLayout, buttonLayout); // Placeholder for actual content
         dialog.open();
     }
 
