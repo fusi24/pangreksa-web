@@ -6,6 +6,8 @@ import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrPositionLevel;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.PositionLevelService;
+import com.fusi24.pangreksa.web.model.entity.HrDepartment;
+import com.fusi24.pangreksa.web.repo.HrDepartmentRepo;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -13,6 +15,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Main;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -43,6 +46,7 @@ public class PositionLevelView extends Main {
     private final CurrentUser currentUser;
     private final CommonService commonService;
     private final PositionLevelService positionLevelService;
+    private final HrDepartmentRepo departmentRepo;
 
     private Authorization auth;
 
@@ -62,10 +66,12 @@ public class PositionLevelView extends Main {
 
     public PositionLevelView(CurrentUser currentUser,
                              CommonService commonService,
-                             PositionLevelService positionLevelService) {
+                             PositionLevelService positionLevelService,
+                             HrDepartmentRepo departmentRepo) {
         this.currentUser = currentUser;
         this.commonService = commonService;
         this.positionLevelService = positionLevelService;
+        this.departmentRepo = departmentRepo;
 
         // ambil authorization sesuai pola existing
         this.auth = commonService.getAuthorization(
@@ -124,9 +130,27 @@ public class PositionLevelView extends Main {
 
         // data provider awal
         grid.setItems(items);
+        // load departments for department combo
+        List<HrDepartment> departments = new ArrayList<>();
+        departmentRepo.findAll().forEach(departments::add);
+
 
         // aktifkan tombol delete saat ada pilihan
         grid.addSelectionListener(ev -> deleteButton.setEnabled(!ev.getAllSelectedItems().isEmpty()));
+
+        // Kolom editable: Department
+        grid.addColumn(new ComponentRenderer<>(row -> {
+            ComboBox<HrDepartment> cb = new ComboBox<>();
+            cb.setWidthFull();
+            cb.setPlaceholder("Department");
+            cb.setItems(departments);
+            cb.setItemLabelGenerator(HrDepartment::getName);
+            cb.setValue(row.getDepartment());
+            cb.addValueChangeListener(e -> {
+                row.setDepartment(e.getValue());
+            });
+            return cb;
+        })).setHeader("Department").setAutoWidth(true).setFlexGrow(2);
 
         // Kolom editable: position
         grid.addColumn(new ComponentRenderer<>(row -> {
@@ -153,10 +177,10 @@ public class PositionLevelView extends Main {
         })).setHeader("Description").setAutoWidth(true).setSortable(true).setFlexGrow(2);
 
         // (Opsional) kolom read-only created/updated
-        grid.addColumn(HrPositionLevel::getCreatedAt)
-                .setHeader("Created At").setAutoWidth(true).setFlexGrow(1);
-        grid.addColumn(HrPositionLevel::getUpdatedAt)
-                .setHeader("Updated At").setAutoWidth(true).setFlexGrow(1);
+//        grid.addColumn(HrPositionLevel::getCreatedAt)
+//                .setHeader("Created At").setAutoWidth(true).setFlexGrow(1);
+//        grid.addColumn(HrPositionLevel::getUpdatedAt)
+//                .setHeader("Updated At").setAutoWidth(true).setFlexGrow(1);
         grid.addComponentColumn(row -> {
             // Baris baru (belum punya ID) -> tombol Cancel
             if (row.getId() == null) {
