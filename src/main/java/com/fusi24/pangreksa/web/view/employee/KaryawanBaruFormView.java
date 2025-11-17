@@ -299,6 +299,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         nationality.setRequiredIndicatorVisible(true);
         religion.setRequiredIndicatorVisible(true);
         marriage.setRequiredIndicatorVisible(true);
+        pob.setRequiredIndicatorVisible(true);
 
         // KTP/NIK: only numbers, exactly 16 digits (no spaces)
         ktpNumber.setClearButtonVisible(true);
@@ -351,11 +352,12 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         // Place of Birth: letters & spaces, min 2 chars
         pob.setAllowedCharPattern("[\\p{L}\\s]");
         pob.setMaxLength(100);
-        pob.setHelperText("Hanya huruf & spasi");
+        pob.setHelperText("Hanya huruf & spasi, wajib diisi"); // --- UPDATE HELPER TEXT ---
         pob.addValueChangeListener(e -> {
             String v = e.getValue() != null ? e.getValue().trim() : "";
-            boolean ok = v.isEmpty() ? true : v.matches("^[\\p{L} ]{2,}$");
-            pob.setInvalid(!ok);
+            // --- UPDATE VALIDASI (TIDAK BOLEH KOSONG) ---
+            boolean ok = v.matches("^[\\p{L} ]{2,}$");
+            pob.setInvalid(v.isEmpty() ? false : !ok); // Biarkan validasi save() menangani jika kosong
         });
 
         // Date of Birth: set max to today
@@ -532,34 +534,62 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
     private void createContactsForm() {
         typeContact.setItems(ContactTypeEnum.values());
 
+        // --- TAMBAHKAN INDIKATOR WAJIB ---
+        typeContact.setRequiredIndicatorVisible(true);
+        stringValue.setRequiredIndicatorVisible(true);
+        designation.setRequiredIndicatorVisible(true);
+        relationship.setRequiredIndicatorVisible(true);
+        description.setRequiredIndicatorVisible(true);
+        // ---------------------------------
+
         // ===== Added contact type dynamic validation =====
         if (typeContact != null && stringValue != null) {
             Runnable applyContactTypeRules = () -> {
                 Object t = typeContact.getValue();
-                if (t != null && t.toString().equalsIgnoreCase("EMAIL")) {
-                    stringValue.setAllowedCharPattern(null);
-                    stringValue.setMaxLength(160);
-                    stringValue.setHelperText("Email valid (maks 160), contoh: nama@email.com (.com / .co.id)");
-                    String v = stringValue.getValue();
-                    boolean invalid = (v != null && !v.isBlank()) ? !isEmail160Valid(v.trim()) : false;
-                    stringValue.setInvalid(invalid);
 
-                } else if (t != null && t.toString().equalsIgnoreCase("NUMBER")) {
-                    stringValue.setAllowedCharPattern("\\d");
-                    stringValue.setMaxLength(15);
-                    stringValue.setHelperText("Nomor telepon hanya angka, maks. 15 digit");
-                    String v = stringValue.getValue();
-                    boolean invalid = (v != null && !v.isBlank()) ? !isPhone15Digits(v) : false;
-                    stringValue.setInvalid(invalid);
+                // Reset validasi
+                stringValue.setInvalid(false);
+                stringValue.setAllowedCharPattern(null);
+
+                if (t == ContactTypeEnum.EMAIL) {
+                    stringValue.setMaxLength(160);
+                    stringValue.setHelperText("Email valid, contoh: nama@domain.com");
+
+                } else if (t == ContactTypeEnum.NUMBER || t == ContactTypeEnum.EMERGENCY) {
+                    stringValue.setAllowedCharPattern("\\d"); // Hanya digit
+                    stringValue.setMaxLength(18); // Batas 18
+                    stringValue.setHelperText("Hanya angka, maks. 18 digit");
 
                 } else {
                     stringValue.setAllowedCharPattern(null);
+                    stringValue.setMaxLength(255); // Default
                     stringValue.setHelperText(null);
-                    stringValue.setInvalid(false);
                 }
             };
+
+            // Listener untuk mengubah aturan saat Tipe Kontak diganti
             typeContact.addValueChangeListener(e -> applyContactTypeRules.run());
-            stringValue.addValueChangeListener(e -> applyContactTypeRules.run());
+
+            // Listener untuk validasi input 'Value' secara real-time
+            stringValue.addValueChangeListener(e -> {
+                String v = e.getValue();
+                if (v == null || v.isBlank()) {
+                    stringValue.setInvalid(false); // Jangan tampilkan error jika kosong (biarkan tombol Add yg validasi)
+                    return;
+                }
+
+                ContactTypeEnum t = typeContact.getValue();
+                boolean invalid = false;
+
+                if (t == ContactTypeEnum.EMAIL) {
+                    invalid = !isEmailValid(v.trim());
+                } else if (t == ContactTypeEnum.NUMBER || t == ContactTypeEnum.EMERGENCY) {
+                    invalid = !isPhone18Digits(v); // Cek format angka 18 digit
+                }
+
+                stringValue.setInvalid(invalid);
+            });
+
             applyContactTypeRules.run();
         }
 
@@ -582,6 +612,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                 description,
                 isDefaultContact
         );
+
         contactFormLayout.getStyle().setMaxWidth(MAX_WIDTH);
 
 
@@ -648,7 +679,16 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         institution.setRequiredIndicatorVisible(true);
         program.setRequiredIndicatorVisible(true);
         typeEducation.setRequiredIndicatorVisible(true);
-// Create FormLayout
+
+        // --- TAMBAHKAN INI ---
+        score.setRequiredIndicatorVisible(true);
+        startDate.setRequiredIndicatorVisible(true);
+        finishDate.setRequiredIndicatorVisible(true);
+        certificateTitle.setRequiredIndicatorVisible(true);
+        certificateExpiration.setRequiredIndicatorVisible(true);
+        // ---------------------
+
+        // Create FormLayout
         educationFormLayout = new FormLayout();
         educationFormLayout.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 1),
@@ -750,6 +790,18 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
         size.setMin(0);
         size.setStep(1024); // KB step
+
+        // --- TAMBAHKAN INI (UNTUK SEMUA FIELD) ---
+        typeDocument.setRequiredIndicatorVisible(true);
+        nameDocoument.setRequiredIndicatorVisible(true);
+        descDocument.setRequiredIndicatorVisible(true);
+        notes.setRequiredIndicatorVisible(true);
+        year.setRequiredIndicatorVisible(true);
+        contentType.setRequiredIndicatorVisible(true);
+        size.setRequiredIndicatorVisible(true);
+        filename.setRequiredIndicatorVisible(true);
+        path.setRequiredIndicatorVisible(true);
+        // ---------------------------------------
 
 
         // Build FormLayout
@@ -926,31 +978,55 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
             }
             int tabNo = tabSheet.getSelectedIndex();
             switch (tabNo) {
-                case 0 -> {
-
-                    // Validate Address form before adding
-                    String __addr = (fullAddress.getValue() != null) ? fullAddress.getValue().trim() : "";
-                    if (__addr.isEmpty()) {
-                        try {
-                            fullAddress.setInvalid(true);
-                            fullAddress.setErrorMessage("Alamat wajib diisi");
-                            fullAddress.focus();
-                        } catch (Exception ignore) {}
+                case 0 -> { // --- ADDRESS ---
+                    // 1. Validasi
+                    if (fullAddress.getValue() == null || fullAddress.getValue().trim().isEmpty()) {
+                        fullAddress.setInvalid(true);
+                        fullAddress.setErrorMessage("Alamat wajib diisi");
                         Notification.show("Alamat wajib diisi", 3000, Notification.Position.MIDDLE);
                         return;
                     }
+
+                    // 2. Lolos
                     HrPersonAddress address = this.addressData != null ? this.addressData : new HrPersonAddress();
                     address.setFullAddress(fullAddress.getValue());
                     address.setIsDefault(isDefaultAddress.getValue());
-                    // address.setPerson(person);
 
                     addressList.add(address);
                     gridAddress.setItems(addressList);
-
                     clearForm(false, true, false, false, false);
                     this.addressData = null;
                 }
-                case 1 -> {
+                case 1 -> { // --- CONTACT ---
+                    // 1. Validasi Wajib (Empty Check)
+                    boolean valid = true;
+                    if (typeContact.getValue() == null) { typeContact.setInvalid(true); valid = false; }
+                    if (stringValue.getValue() == null || stringValue.getValue().trim().isEmpty()) { stringValue.setInvalid(true); valid = false; }
+                    if (designation.getValue() == null || designation.getValue().trim().isEmpty()) { designation.setInvalid(true); valid = false; }
+                    if (relationship.getValue() == null || relationship.getValue().trim().isEmpty()) { relationship.setInvalid(true); valid = false; }
+                    if (description.getValue() == null || description.getValue().trim().isEmpty()) { description.setInvalid(true); valid = false; }
+
+                    if (!valid) {
+                        Notification.show("Semua field Contact wajib diisi.", 3000, Notification.Position.MIDDLE);
+                        return;
+                    }
+
+                    // 2. Validasi Format (jika sudah terisi)
+                    ContactTypeEnum t = typeContact.getValue();
+                    String val = stringValue.getValue().trim();
+
+                    if (t == ContactTypeEnum.EMAIL && !isEmailValid(val)) {
+                        stringValue.setInvalid(true);
+                        Notification.show("Format email salah.", 3000, Notification.Position.MIDDLE);
+                        return;
+                    }
+                    if ((t == ContactTypeEnum.NUMBER || t == ContactTypeEnum.EMERGENCY) && !isPhone18Digits(val)) {
+                        stringValue.setInvalid(true);
+                        Notification.show("Format nomor salah (Hanya angka, maks 18 digit).", 3000, Notification.Position.MIDDLE);
+                        return;
+                    }
+
+                    // 3. Lolos
                     HrPersonContact contact = this.contactData != null ? this.contactData : new HrPersonContact();
                     contact.setDesignation(designation.getValue());
                     contact.setRelationship(relationship.getValue());
@@ -958,65 +1034,30 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                     contact.setType(typeContact.getValue());
                     contact.setDescription(description.getValue());
                     contact.setIsDefault(isDefaultContact.getValue());
-                    // contact.setPerson(person);
 
                     contactList.add(contact);
-
-                    // ===== Relationship required guard + input validation (added) =====
-                    String relVal = relationship != null ? relationship.getValue() : null;
-                    if (relVal == null || relVal.trim().isEmpty()) {
-                        Notification.show("Relationship wajib diisi.", 3000, Notification.Position.MIDDLE);
-                        return;
-                    }
-
-                    Object t = typeContact != null ? typeContact.getValue() : null;
-                    String val = stringValue != null ? stringValue.getValue() : null;
-
-                    if (t == null) {
-                        Notification.show("Pilih Contact Type terlebih dahulu.", 3000, Notification.Position.MIDDLE);
-                        return;
-                    }
-                    if (t.toString().equalsIgnoreCase("EMAIL")) {
-                        if (!isEmail160Valid(val)) {
-                            Notification.show("Format email salah atau melebihi 160 karakter (.com / .co.id).", 3000, Notification.Position.MIDDLE);
-                            if (stringValue != null) stringValue.focus();
-                            return;
-                        }
-                    } else if (t.toString().equalsIgnoreCase("NUMBER")) {
-                        if (!isPhone15Digits(val)) {
-                            Notification.show("Nomor telepon hanya angka, maks. 15 digit.", 3000, Notification.Position.MIDDLE);
-                            if (stringValue != null) stringValue.focus();
-                            return;
-                        }
-                    }
-
-
                     gridContacts.setItems(contactList);
                     clearForm(false, false, true, false, false);
                     this.contactData = null;
                 }
-                case 2 -> {
-                    // Validate Education form before adding
-                    String __inst = (institution.getValue() != null) ? institution.getValue().trim() : "";
-                    String __prog = (program.getValue() != null) ? program.getValue().trim() : "";
-                    EducationTypeEnum __etype = typeEducation.getValue();
-                    boolean __invalid = false;
-                    if (__inst.isEmpty()) {
-                        try { institution.setInvalid(true); institution.setErrorMessage("Institution wajib diisi"); } catch (Exception ignore) {}
-                        __invalid = true;
-                    }
-                    if (__prog.isEmpty()) {
-                        try { program.setInvalid(true); program.setErrorMessage("Program wajib diisi"); } catch (Exception ignore) {}
-                        __invalid = true;
-                    }
-                    if (__etype == null) {
-                        try { typeEducation.setInvalid(true); typeEducation.setErrorMessage("Education Type wajib diisi"); } catch (Exception ignore) {}
-                        __invalid = true;
-                    }
-                    if (__invalid) {
-                        Notification.show("Education: institution, program, dan type wajib diisi", 3500, Notification.Position.MIDDLE);
+                case 2 -> { // --- EDUCATION ---
+                    // 1. Validasi Wajib
+                    boolean valid = true;
+                    if (institution.getValue() == null || institution.getValue().trim().isEmpty()) { institution.setInvalid(true); valid = false; }
+                    if (program.getValue() == null || program.getValue().trim().isEmpty()) { program.setInvalid(true); valid = false; }
+                    if (score.getValue() == null) { score.setInvalid(true); valid = false; }
+                    if (startDate.getValue() == null) { startDate.setInvalid(true); valid = false; }
+                    if (finishDate.getValue() == null) { finishDate.setInvalid(true); valid = false; }
+                    if (certificateTitle.getValue() == null || certificateTitle.getValue().trim().isEmpty()) { certificateTitle.setInvalid(true); valid = false; }
+                    if (certificateExpiration.getValue() == null) { certificateExpiration.setInvalid(true); valid = false; }
+                    if (typeEducation.getValue() == null) { typeEducation.setInvalid(true); valid = false; }
+
+                    if (!valid) {
+                        Notification.show("Semua field Education wajib diisi.", 3000, Notification.Position.MIDDLE);
                         return;
                     }
+
+                    // 2. Lolos
                     HrPersonEducation education = this.educationData != null ? this.educationData : new HrPersonEducation();
                     education.setInstitution(institution.getValue());
                     education.setProgram(program.getValue());
@@ -1026,14 +1067,31 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                     education.setCertificateTitle(certificateTitle.getValue());
                     education.setCertificateExpiration(certificateExpiration.getValue());
                     education.setType(typeEducation.getValue());
-                    // education.setPerson(person);
 
                     educationList.add(education);
                     gridEducation.setItems(educationList);
                     clearForm(false, false, false, true, false);
                     this.educationData = null;
                 }
-                case 3 -> {
+                case 3 -> { // --- DOCUMENT ---
+                    // 1. Validasi Wajib
+                    boolean valid = true;
+                    if (typeDocument.getValue() == null) { typeDocument.setInvalid(true); valid = false; }
+                    if (nameDocoument.getValue() == null || nameDocoument.getValue().trim().isEmpty()) { nameDocoument.setInvalid(true); valid = false; }
+                    if (descDocument.getValue() == null || descDocument.getValue().trim().isEmpty()) { descDocument.setInvalid(true); valid = false; }
+                    if (notes.getValue() == null || notes.getValue().trim().isEmpty()) { notes.setInvalid(true); valid = false; }
+                    if (year.getValue() == null) { year.setInvalid(true); valid = false; }
+                    if (contentType.getValue() == null) { contentType.setInvalid(true); valid = false; }
+                    if (size.getValue() == null) { size.setInvalid(true); valid = false; }
+                    if (filename.getValue() == null || filename.getValue().trim().isEmpty()) { filename.setInvalid(true); valid = false; }
+                    if (path.getValue() == null || path.getValue().trim().isEmpty()) { path.setInvalid(true); valid = false; }
+
+                    if (!valid) {
+                        Notification.show("Semua field Document wajib diisi.", 3000, Notification.Position.MIDDLE);
+                        return;
+                    }
+
+                    // 2. Lolos
                     HrPersonDocument document = this.documentData != null ? this.documentData : new HrPersonDocument();
                     document.setName(nameDocoument.getValue());
                     document.setDescription(descDocument.getValue());
@@ -1044,7 +1102,6 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                     document.setSize(size.getValue() != null ? size.getValue().longValue() : null);
                     document.setFilename(filename.getValue());
                     document.setPath(path.getValue());
-                    // document.setPerson(person);
 
                     documentList.add(document);
                     gridDocument.setItems(documentList);
@@ -1148,18 +1205,24 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         }
     }
 
-    // ===== Contact validation helpers (added) =====
-    private static boolean isEmail160Valid(String s) {
+    // ===== Contact validation helpers (UPDATED) =====
+    /**
+     * Validasi email generik (tidak terbatas TLD)
+     */
+    private static boolean isEmailValid(String s) {
         if (s == null) return false;
-        if (s.length() > 160) return false;
-        // harus ada '@' dan TLD .com atau .co.id
-        String emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.(com|co\\.id)$";
+        if (s.length() > 160) return false; // Tetap batasi panjang
+        // Regex email umum
+        String emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
         return s.matches(emailRegex);
     }
 
-    private static boolean isPhone15Digits(String s) {
-        // hanya angka, panjang 1..15
-        return s != null && s.matches("^\\d{1,15}$");
+    /**
+     * Validasi nomor telepon/angka (maks 18 digit)
+     */
+    private static boolean isPhone18Digits(String s) {
+        // hanya angka, panjang 1..18
+        return s != null && s.matches("^\\d{1,18}$");
     }
 
 
@@ -1194,11 +1257,12 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
             Notification.show("Middle Name hanya boleh huruf & spasi.", 4000, Notification.Position.MIDDLE);
             return;
         }
-        // Place of Birth: optional, but if present must be letters & spaces (min 2)
+
+        // Place of Birth: SEKARANG WAJIB
         String vPob = pob.getValue() != null ? pob.getValue().trim() : "";
-        if (!vPob.isEmpty() && !vPob.matches("^[\\p{L} ]{2,}$")) {
+        if (vPob.isEmpty() || !vPob.matches("^[\\p{L} ]{2,}$")) { // --- UBAH LOGIKA INI ---
             pob.setInvalid(true);
-            Notification.show("Tempat Lahir hanya huruf & spasi (min 2 huruf).", 4000, Notification.Position.MIDDLE);
+            Notification.show("Tempat Lahir wajib diisi (min 2 huruf).", 4000, Notification.Position.MIDDLE);
             return;
         }
         // Date of Birth: required, not in the future, min age 17
