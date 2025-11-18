@@ -23,6 +23,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
+import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Collection;
@@ -69,8 +70,8 @@ public class MasterDepartmentView extends Main {
     }
 
     private void configureGrid() {
-        grid.setColumns("code", "name", "description", "isActive");
-        grid.getColumnByKey("isActive").setHeader("Active");
+        grid.setColumns("code", "name", "description");
+        grid.addColumn(t -> BooleanUtils.toString(t.getIsActive(), "Active", "Inactive")).setHeader("Status");
 
         grid.addComponentColumn(dept -> {
             Button edit = new Button("Edit");

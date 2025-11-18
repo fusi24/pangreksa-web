@@ -131,30 +131,30 @@ public class PositionLevelView extends Main {
         // data provider awal
         grid.setItems(items);
         // load departments for department combo
-        List<HrDepartment> departments = new ArrayList<>();
-        departmentRepo.findAll().forEach(d -> {
-            if (Boolean.TRUE.equals(d.getIsActive())) {
-                departments.add(d);
-            }
-        });
+//        List<HrDepartment> departments = new ArrayList<>();
+//        departmentRepo.findAll().forEach(d -> {
+//            if (Boolean.TRUE.equals(d.getIsActive())) {
+//                departments.add(d);
+//            }
+//        });
 
 
         // aktifkan tombol delete saat ada pilihan
         grid.addSelectionListener(ev -> deleteButton.setEnabled(!ev.getAllSelectedItems().isEmpty()));
 
         // Kolom editable: Department
-        grid.addColumn(new ComponentRenderer<>(row -> {
-            ComboBox<HrDepartment> cb = new ComboBox<>();
-            cb.setWidthFull();
-            cb.setPlaceholder("Department");
-            cb.setItems(departments);
-            cb.setItemLabelGenerator(HrDepartment::getName);
-            cb.setValue(row.getDepartment());
-            cb.addValueChangeListener(e -> {
-                row.setDepartment(e.getValue());
-            });
-            return cb;
-        })).setHeader("Department").setAutoWidth(true).setFlexGrow(2);
+//        grid.addColumn(new ComponentRenderer<>(row -> {
+//            ComboBox<HrDepartment> cb = new ComboBox<>();
+//            cb.setWidthFull();
+//            cb.setPlaceholder("Department");
+//            cb.setItems(departments);
+//            cb.setItemLabelGenerator(HrDepartment::getName);
+//            cb.setValue(row.getDepartment());
+//            cb.addValueChangeListener(e -> {
+//                row.setDepartment(e.getValue());
+//            });
+//            return cb;
+//        })).setHeader("Department").setAutoWidth(true).setFlexGrow(2);
 
         // Kolom editable: position
         grid.addColumn(new ComponentRenderer<>(row -> {
