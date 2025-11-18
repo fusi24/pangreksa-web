@@ -204,7 +204,7 @@ public class ProfilDataKaryawanView extends Main {
                 VerticalLayout dialogLayout = new VerticalLayout();
                 ComboBox<HrOrgStructure> orgStructureDropdown = new ComboBox<>("Org. Structure");
                 ComboBox<HrPosition> positionDropdown = new ComboBox<>("Position");
-                ComboBox<HrDepartment> cbDept = new ComboBox<>("Department");
+//                ComboBox<HrDepartment> cbDept = new ComboBox<>("Department");
                 DatePicker startDatePicker = new DatePicker("Start Date");
                 DatePicker endDatePicker = new DatePicker("End Date");
                 Checkbox isPrimaryCheckbox = new Checkbox("Is Primary");
@@ -245,9 +245,9 @@ public class ProfilDataKaryawanView extends Main {
 
                 positionDropdown.setWidth("400px");
 
-                cbDept.setItemLabelGenerator(HrDepartment::getName);
-                cbDept.setItems(StreamSupport.stream(hrDepartmentRepo.findAll().spliterator(), false).collect(Collectors.toList()));
-                cbDept.setWidth("400px");
+//                cbDept.setItemLabelGenerator(HrDepartment::getName);
+//                cbDept.setItems(StreamSupport.stream(hrDepartmentRepo.findAll().spliterator(), false).collect(Collectors.toList()));
+//                cbDept.setWidth("400px");
 
                 HorizontalLayout buttonLayout = new HorizontalLayout();
                 Button cancelButton = new Button("Cancel", event -> dialog.close());
@@ -258,12 +258,12 @@ public class ProfilDataKaryawanView extends Main {
                 }
 
                 saveButton.addClickListener(event -> {
-                    if(orgStructureDropdown.isEmpty() || positionDropdown.isEmpty() || cbDept.isEmpty()) {
-                        Notification.show("Org Structure, Position and Departmennt is required.");
+                    if(orgStructureDropdown.isEmpty() || positionDropdown.isEmpty()) {
+                        Notification.show("Org Structure, Position is required.");
                         return;
                     }
-                    log.debug("Saving Org Structure {} and Position {} and Departmennt {} to Person {}",
-                            orgStructureDropdown.getValue(), positionDropdown.getValue(), cbDept.getValue(), person.getFirstName());
+                    log.debug("Saving Org Structure {} and Position {} to Person {}",
+                            orgStructureDropdown.getValue(), positionDropdown.getValue(), person.getFirstName());
 
                     // Create HrPersonPosition using builder
                     HrPersonPosition personPosition = HrPersonPosition.builder()
@@ -275,7 +275,7 @@ public class ProfilDataKaryawanView extends Main {
                             .isPrimary(isPrimaryCheckbox.getValue())
                             .requestedBy(requestedByDropdown.getValue())
                             .company(this.currentAppUser.getCompany())
-                            .department(cbDept.getValue())
+//                            .department(cbDept.getValue())
                             .build();
 
                     personService.savePersonPosition(personPosition, currentUser.require());
@@ -284,7 +284,7 @@ public class ProfilDataKaryawanView extends Main {
                 });
 
                 buttonLayout.add(cancelButton, saveButton);
-                dialogLayout.add(orgStructureDropdown, positionDropdown, cbDept,
+                dialogLayout.add(orgStructureDropdown, positionDropdown,
                         new HorizontalLayout(startDatePicker, endDatePicker),
                         new HorizontalLayout(isPrimaryCheckbox, isActingCheckbox),
                         requestedByDropdown,
