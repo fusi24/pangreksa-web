@@ -131,12 +131,7 @@ public class PositionLevelView extends Main {
         // data provider awal
         grid.setItems(items);
         // load departments for department combo
-        List<HrDepartment> departments = new ArrayList<>();
-        departmentRepo.findAll().forEach(d -> {
-            if (Boolean.TRUE.equals(d.getIsActive())) {
-                departments.add(d);
-            }
-        });
+        List<HrDepartment> departments = (List<HrDepartment>) departmentRepo.findAll();
 
 
         // aktifkan tombol delete saat ada pilihan
