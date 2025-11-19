@@ -178,7 +178,7 @@ public class ProfilDataKaryawanView extends Main {
         gridUnassignedPersons.addColumn(HrPerson::getLastName).setHeader("Last Name").setSortable(true);
         gridUnassignedPersons.addColumn(person ->
                 person.getCreatedAt() != null ? prettyTime.format(person.getCreatedAt()) : ""
-                ).setHeader("Created Date").setSortable(false);
+        ).setHeader("Created Date").setSortable(false);
         // Action column with delete button (icon only, no title)
         gridUnassignedPersons.addColumn(new ComponentRenderer<>(person -> {
             HorizontalLayout actionLayout = new HorizontalLayout();
@@ -330,8 +330,12 @@ public class ProfilDataKaryawanView extends Main {
         orgStructureGrid.setWidth(WIDTH_);
         orgStructureGrid.setHeightFull();
         orgStructureGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
-        // add columns
-        orgStructureGrid.addColumn(HrOrgStructure::getName).setHeader("Organization");
+
+        // Perubahan: Menambahkan kolom Code dan Type yang ada di MasterOrgStructureView
+        orgStructureGrid.addColumn(HrOrgStructure::getName).setHeader("Organization Name"); // Tetap ada
+//        orgStructureGrid.addColumn(HrOrgStructure::getCode).setHeader("Code");             // Tambahan
+//        orgStructureGrid.addColumn(org -> org.getType() != null ? org.getType().name() : "").setHeader("Type"); // Tambahan
+
 
         positionGrid = new Grid<>(HrPosition.class, false);
         positionGrid.addClassNames("position-grid");
