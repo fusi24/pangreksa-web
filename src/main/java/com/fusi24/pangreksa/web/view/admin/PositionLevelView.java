@@ -6,8 +6,13 @@ import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrPositionLevel;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.PositionLevelService;
-import com.fusi24.pangreksa.web.model.entity.HrDepartment;
-import com.fusi24.pangreksa.web.repo.HrDepartmentRepo;
+// Hapus: import com.fusi24.pangreksa.web.model.entity.HrDepartment;
+// Hapus: import com.fusi24.pangreksa.web.repo.HrDepartmentRepo;
+
+// Gunakan HrOrgStructure
+import com.fusi24.pangreksa.web.repo.HrOrgStructureRepository;
+import com.fusi24.pangreksa.web.model.entity.HrOrgStructure;
+
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -46,8 +51,7 @@ public class PositionLevelView extends Main {
     private final CurrentUser currentUser;
     private final CommonService commonService;
     private final PositionLevelService positionLevelService;
-    private final HrDepartmentRepo departmentRepo;
-
+    private final HrOrgStructureRepository departmentRepo; // <--- REPO DIPERBAIKI
     private Authorization auth;
 
     // UI components
@@ -67,7 +71,8 @@ public class PositionLevelView extends Main {
     public PositionLevelView(CurrentUser currentUser,
                              CommonService commonService,
                              PositionLevelService positionLevelService,
-                             HrDepartmentRepo departmentRepo) {
+                             HrOrgStructureRepository departmentRepo) { // <--- PARAMETER DIPERBAIKI
+        // Hapus { { di sini
         this.currentUser = currentUser;
         this.commonService = commonService;
         this.positionLevelService = positionLevelService;
@@ -131,7 +136,7 @@ public class PositionLevelView extends Main {
         // data provider awal
         grid.setItems(items);
         // load departments for department combo
-        List<HrDepartment> departments = (List<HrDepartment>) departmentRepo.findAll();
+        List<HrOrgStructure> departments = (List<HrOrgStructure>) departmentRepo.findAll(); // <--- LIST DIPERBAIKI
 
 
         // aktifkan tombol delete saat ada pilihan
@@ -139,13 +144,17 @@ public class PositionLevelView extends Main {
 
         // Kolom editable: Department
         grid.addColumn(new ComponentRenderer<>(row -> {
-            ComboBox<HrDepartment> cb = new ComboBox<>();
+            ComboBox<HrOrgStructure> cb = new ComboBox<>(); // <--- COMBOBOX DIPERBAIKI
             cb.setWidthFull();
             cb.setPlaceholder("Department");
             cb.setItems(departments);
-            cb.setItemLabelGenerator(HrDepartment::getName);
+            cb.setItemLabelGenerator(HrOrgStructure::getName); // <--- ITEM LABEL DIPERBAIKI
+
+            // Sekarang akan kompatibel karena HrPositionLevel.java sudah dikoreksi
             cb.setValue(row.getDepartment());
+
             cb.addValueChangeListener(e -> {
+                // Sekarang akan kompatibel karena HrPositionLevel.java sudah dikoreksi
                 row.setDepartment(e.getValue());
             });
             return cb;

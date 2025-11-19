@@ -2,7 +2,9 @@ package com.fusi24.pangreksa.web.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import com.fusi24.pangreksa.web.model.entity.HrDepartment;
+// Hapus: import com.fusi24.pangreksa.web.model.entity.HrDepartment;
+// Ganti dengan:
+import com.fusi24.pangreksa.web.model.entity.HrOrgStructure; // <--- BARU
 
 @Entity
 @Table(name = "hr_position_level")
@@ -23,13 +25,13 @@ public class HrPositionLevel extends AuditableEntity<HrPositionLevel> {
 
     @ManyToOne
     @JoinColumn(name = "department_id") // kolom baru di DB
-    private HrDepartment department;
+    private HrOrgStructure department; // <--- TIPE DIPERBAIKI
 
-    public HrDepartment getDepartment() {
+    public HrOrgStructure getDepartment() { // <--- TIPE DIPERBAIKI
         return department;
     }
 
-    public void setDepartment(HrDepartment department) {
+    public void setDepartment(HrOrgStructure department) { // <--- TIPE DIPERBAIKI
         this.department = department;
     }
 
