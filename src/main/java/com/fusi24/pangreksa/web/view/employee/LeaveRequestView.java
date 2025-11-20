@@ -190,19 +190,31 @@ public class LeaveRequestView extends Main {
         submittedToCombo.setClearButtonVisible(true);
 
         // set value as getManager(), but first set items
+        // set value as getManager(), but first set items
         HrPerson manager = getManager();
+
+        // optional, tapi bagus untuk ditentukan
+        submittedToCombo.setPageSize(20);
 
         submittedToCombo.setItems(query -> {
             String filter = query.getFilter().orElse("");
             log.debug("Searching persons with filter: {}", filter);
+
+            // WAJIB: panggil getOffset & getLimit agar sesuai kontrak DataProvider
+            int offset = query.getOffset();
+            int limit = query.getLimit();
 
             List<HrPerson> managers = personService.findPersonByKeyword(filter);
             if (manager != null && !managers.contains(manager)) {
                 managers.add(manager);
             }
 
-            return managers.stream();
+            // Hormati offset & limit
+            return managers.stream()
+                    .skip(offset)
+                    .limit(limit);
         });
+
 
         if (manager != null) {
             submittedToCombo.setValue(manager);
