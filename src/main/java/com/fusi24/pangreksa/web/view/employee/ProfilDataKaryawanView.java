@@ -180,6 +180,8 @@ public class ProfilDataKaryawanView extends Main {
                 person.getCreatedAt() != null ? prettyTime.format(person.getCreatedAt()) : ""
         ).setHeader("Created Date").setSortable(false);
         // Action column with delete button (icon only, no title)
+        // Action column with edit & assign button
+        // Action column with edit & assign button
         gridUnassignedPersons.addColumn(new ComponentRenderer<>(person -> {
             HorizontalLayout actionLayout = new HorizontalLayout();
 
@@ -198,74 +200,92 @@ public class ProfilDataKaryawanView extends Main {
             Button assignButton = new Button();
             assignButton.setIcon(VaadinIcon.WORKPLACE.create());
             assignButton.getElement().setAttribute("title", "Assign to Company");
+
             assignButton.addClickListener(e -> {
                 Dialog dialog = new Dialog();
+                dialog.setHeaderTitle("Assign to Company");
 
                 VerticalLayout dialogLayout = new VerticalLayout();
+                dialogLayout.setPadding(false);
+                dialogLayout.setSpacing(true);
+
                 ComboBox<HrOrgStructure> orgStructureDropdown = new ComboBox<>("Org. Structure");
                 ComboBox<HrPosition> positionDropdown = new ComboBox<>("Position");
-//                ComboBox<HrDepartment> cbDept = new ComboBox<>("Department");
                 DatePicker startDatePicker = new DatePicker("Start Date");
                 DatePicker endDatePicker = new DatePicker("End Date");
                 Checkbox isPrimaryCheckbox = new Checkbox("Is Primary");
                 Checkbox isActingCheckbox = new Checkbox("Is Acting");
-
                 ComboBox<HrPerson> requestedByDropdown = new ComboBox<>("Requested By");
-                requestedByDropdown.setItemLabelGenerator(p -> p.getFirstName() + " " + (p.getLastName() != null ? p.getLastName() : ""));
-                requestedByDropdown.setPlaceholder("Unassigned");
-                requestedByDropdown.setClearButtonVisible(true);
 
-                requestedByDropdown.setItems(query -> {
-                    String filter = query.getFilter().orElse("");
-                    int offset = query.getOffset();
-                    int limit = query.getLimit(); // not used in this example, but can be used for pagination
-                    log.debug("Searching persons with filter: {}", filter);
-                    return personService.findPersonByKeyword(filter).stream();
-                } );
-
-                positionDropdown.setItemLabelGenerator(HrPosition::getName);
-                positionDropdown.setEnabled(false);
-                requestedByDropdown.setWidth("400px");
-
-                orgStructureDropdown.setItems(companyService.getAllOrgStructuresInCompany(this.currentAppUser.getCompany()));
+                // Org Structure
                 orgStructureDropdown.setItemLabelGenerator(HrOrgStructure::getName);
                 orgStructureDropdown.setWidth("400px");
+                orgStructureDropdown.setItems(
+                        companyService.getAllOrgStructuresInCompany(this.currentAppUser.getCompany())
+                );
 
-                orgStructureDropdown.addValueChangeListener( event -> {
-                    positionDropdown.setItems(Collections.emptyList());
-                    List<HrPosition> positions = companyService.getAllPositionsInOrganization(this.currentAppUser.getCompany(), event.getValue());
-                    log.debug("found {} positions",positions.size());
-                    if (!positions.isEmpty()) {
-                        positionDropdown.setItems(positions);
-                        positionDropdown.setEnabled(true);
-                    } else {
-                        positionDropdown.setEnabled(false);
+                // Position
+                positionDropdown.setItemLabelGenerator(HrPosition::getName);
+                positionDropdown.setWidth("400px");
+                positionDropdown.setEnabled(false);
+
+                // Requested By (lazy search)
+                requestedByDropdown.setItemLabelGenerator(p ->
+                        p.getFirstName() + " " + (p.getLastName() != null ? p.getLastName() : "")
+                );
+                requestedByDropdown.setPlaceholder("Type to search requester");
+                requestedByDropdown.setClearButtonVisible(true);
+                requestedByDropdown.setWidth("400px");
+                requestedByDropdown.setPageSize(20);
+                requestedByDropdown.setItems(query -> {
+                    String filter = query.getFilter().orElse("").trim();
+                    int offset = query.getOffset();
+                    int limit = query.getLimit();
+
+                    log.debug("Searching persons with filter: {}", filter);
+                    java.util.List<HrPerson> persons = personService.findPersonByKeyword(filter);
+                    return persons.stream()
+                            .skip(offset)
+                            .limit(limit);
+                });
+
+                // Ketika Org. Structure berubah → load Position unit tsb
+                orgStructureDropdown.addValueChangeListener(event -> {
+                    positionDropdown.clear();
+                    positionDropdown.setItems(java.util.Collections.emptyList());
+                    positionDropdown.setEnabled(false);
+
+                    HrOrgStructure selectedOrg = event.getValue();
+                    if (selectedOrg != null) {
+                        java.util.List<HrPosition> positions =
+                                companyService.getAllPositionsInOrganization(
+                                        this.currentAppUser.getCompany(), selectedOrg
+                                );
+
+                        log.debug("Assign dialog: found {} positions for org {}", positions.size(),
+                                selectedOrg.getName());
+
+                        if (!positions.isEmpty()) {
+                            positionDropdown.setItems(positions);
+                            positionDropdown.setEnabled(true);
+                        }
                     }
                 });
 
-                positionDropdown.setWidth("400px");
-
-//                cbDept.setItemLabelGenerator(HrDepartment::getName);
-//                cbDept.setItems(StreamSupport.stream(hrDepartmentRepo.findAll().spliterator(), false).collect(Collectors.toList()));
-//                cbDept.setWidth("400px");
-
                 HorizontalLayout buttonLayout = new HorizontalLayout();
-                Button cancelButton = new Button("Cancel", event -> dialog.close());
+                Button cancelButton = new Button("Cancel", ev -> dialog.close());
                 Button saveButton = new Button("Save");
 
-                if(!this.auth.canEdit){
+                if (!this.auth.canEdit) {
                     saveButton.setEnabled(false);
                 }
 
-                saveButton.addClickListener(event -> {
-                    if(orgStructureDropdown.isEmpty() || positionDropdown.isEmpty()) {
-                        Notification.show("Org Structure, Position is required.");
+                saveButton.addClickListener(ev -> {
+                    if (orgStructureDropdown.isEmpty() || positionDropdown.isEmpty()) {
+                        Notification.show("Org Structure and Position are required.");
                         return;
                     }
-                    log.debug("Saving Org Structure {} and Position {} to Person {}",
-                            orgStructureDropdown.getValue(), positionDropdown.getValue(), person.getFirstName());
 
-                    // Create HrPersonPosition using builder
                     HrPersonPosition personPosition = HrPersonPosition.builder()
                             .person(person)
                             .position(positionDropdown.getValue())
@@ -275,31 +295,38 @@ public class ProfilDataKaryawanView extends Main {
                             .isPrimary(isPrimaryCheckbox.getValue())
                             .requestedBy(requestedByDropdown.getValue())
                             .company(this.currentAppUser.getCompany())
-//                            .department(cbDept.getValue())
                             .build();
 
                     personService.savePersonPosition(personPosition, currentUser.require());
 
                     dialog.close();
+                    // refresh grid setelah assign
+                    populateEmployees();
                 });
 
                 buttonLayout.add(cancelButton, saveButton);
-                dialogLayout.add(orgStructureDropdown, positionDropdown,
+
+                dialogLayout.add(
+                        orgStructureDropdown,
+                        positionDropdown,
                         new HorizontalLayout(startDatePicker, endDatePicker),
                         new HorizontalLayout(isPrimaryCheckbox, isActingCheckbox),
                         requestedByDropdown,
-                        buttonLayout);
+                        buttonLayout
+                );
+
                 dialog.add(dialogLayout);
                 dialog.open();
             });
 
-            if(!this.auth.canEdit){
+            if (!this.auth.canEdit) {
                 assignButton.setEnabled(false);
             }
 
             actionLayout.add(editButton, assignButton);
             return actionLayout;
         })).setHeader("").setAutoWidth(true);
+
 
         tabA.add(createEmployeesGridFunction());
         tabB.add(gridUnassignedPersons);
@@ -420,6 +447,7 @@ public class ProfilDataKaryawanView extends Main {
             positionGrid.setItems(positionList);
         }
     }
+
 
     public void populateEmployees() {
         personService.workingWithCompany(this.currentAppUser.getCompany());
