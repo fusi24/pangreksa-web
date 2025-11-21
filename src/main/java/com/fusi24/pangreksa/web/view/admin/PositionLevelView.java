@@ -3,29 +3,28 @@ package com.fusi24.pangreksa.web.view.admin;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.HrPositionLevel;
-import com.fusi24.pangreksa.web.service.CommonService;
-import com.fusi24.pangreksa.web.service.PositionLevelService;
-// Hapus: import com.fusi24.pangreksa.web.model.entity.HrDepartment;
-// Hapus: import com.fusi24.pangreksa.web.repo.HrDepartmentRepo;
-
-// Gunakan HrOrgStructure
-import com.fusi24.pangreksa.web.repo.HrOrgStructureRepository;
+import com.fusi24.pangreksa.web.model.entity.HrPosition; // [Ubah] Gunakan HrPosition
 import com.fusi24.pangreksa.web.model.entity.HrOrgStructure;
+import com.fusi24.pangreksa.web.service.CommonService;
+import com.fusi24.pangreksa.web.service.HrPositionService; // [Ubah] Asumsi ada service ini
+import com.fusi24.pangreksa.web.repo.HrOrgStructureRepository;
+import com.fusi24.pangreksa.web.repo.HrPositionRepository; // [Ubah] Tambahkan repo jika perlu list parent
 
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
+import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Main;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.Main;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Menu;
@@ -37,11 +36,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 
-@Route("master-position-level")
-@PageTitle("Position Level")
-@Menu(order = 33, icon = "vaadin:briefcase", title = "Position Level")
+@Route("master-position") // [Opsional] Route mungkin perlu disesuaikan
+@PageTitle("Master Position")
+@Menu(order = 33, icon = "vaadin:briefcase", title = "Positions")
 @RolesAllowed("POSITION_MGT")
 public class PositionLevelView extends Main {
 
@@ -50,8 +51,13 @@ public class PositionLevelView extends Main {
 
     private final CurrentUser currentUser;
     private final CommonService commonService;
-    private final PositionLevelService positionLevelService;
-    private final HrOrgStructureRepository departmentRepo; // <--- REPO DIPERBAIKI
+
+    // [Ubah] Ganti Service ke HrPositionService
+    private final HrPositionService hrPositionService;
+    private final HrOrgStructureRepository orgStructureRepo;
+    // [Tambahan] Repo untuk load list 'Reports To' jika perlu list lengkap
+    private final HrPositionRepository positionRepo;
+
     private Authorization auth;
 
     // UI components
@@ -62,23 +68,28 @@ public class PositionLevelView extends Main {
     private Button addButton;
     private Button deleteButton;
 
-    private Grid<HrPositionLevel> grid;
+    // [Ubah] Grid menggunakan HrPosition
+    private Grid<HrPosition> grid;
 
     // data
-    // private List<HrPositionLevel> rows;
-    private final List<HrPositionLevel> items = new ArrayList<>();
+    private final List<HrPosition> items = new ArrayList<>();
+
+    // Cache lists for ComboBoxes
+    private List<HrOrgStructure> orgStructureList = new ArrayList<>();
+    private List<HrPosition> allPositionsList = new ArrayList<>();
 
     public PositionLevelView(CurrentUser currentUser,
                              CommonService commonService,
-                             PositionLevelService positionLevelService,
-                             HrOrgStructureRepository departmentRepo) { // <--- PARAMETER DIPERBAIKI
-        // Hapus { { di sini
+                             HrPositionService hrPositionService,
+                             HrOrgStructureRepository orgStructureRepo,
+                             HrPositionRepository positionRepo) {
         this.currentUser = currentUser;
         this.commonService = commonService;
-        this.positionLevelService = positionLevelService;
-        this.departmentRepo = departmentRepo;
+        this.hrPositionService = hrPositionService;
+        this.orgStructureRepo = orgStructureRepo;
+        this.positionRepo = positionRepo;
 
-        // ambil authorization sesuai pola existing
+        // ambil authorization
         this.auth = commonService.getAuthorization(
                 currentUser.require(),
                 (String) UI.getCurrent().getSession().getAttribute("responsibility"),
@@ -93,13 +104,22 @@ public class PositionLevelView extends Main {
                 LumoUtility.Gap.SMALL
         );
 
-        add(new ViewToolbar("Position Level"));
+        add(new ViewToolbar("Master Position"));
         createBody();
         setListener();
         setAuthorization();
 
-        log.debug("Page Position Level, Authorization: view={} create={} edit={} delete={}",
-                auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
+        // Initial Load reference data
+        refreshReferenceData();
+    }
+
+    private void refreshReferenceData() {
+        try {
+            orgStructureList = (List<HrOrgStructure>) orgStructureRepo.findAll();
+            allPositionsList = positionRepo.findAll(); // Load semua posisi untuk 'Reports To'
+        } catch (Exception e) {
+            log.error("Failed to load reference data", e);
+        }
     }
 
     private void createBody() {
@@ -109,7 +129,7 @@ public class PositionLevelView extends Main {
         body.setSizeFull();
 
         searchField = new TextField("Search");
-        searchField.setPlaceholder("Cari position / description…");
+        searchField.setPlaceholder("Cari nama / kode...");
         populateButton = new Button("Populate");
         saveButton = new Button("Save");
         addButton = new Button("Add Position");
@@ -127,68 +147,91 @@ public class PositionLevelView extends Main {
         header.setAlignItems(FlexComponent.Alignment.BASELINE);
         header.expand(left);
 
-        grid = new Grid<>(HrPositionLevel.class, false);
+        grid = new Grid<>(HrPosition.class, false);
         grid.setSizeFull();
-
-        // enable multi-select
         grid.setSelectionMode(Grid.SelectionMode.MULTI);
-
-        // data provider awal
         grid.setItems(items);
-        // load departments for department combo
-        List<HrOrgStructure> departments = (List<HrOrgStructure>) departmentRepo.findAll(); // <--- LIST DIPERBAIKI
 
-
-        // aktifkan tombol delete saat ada pilihan
         grid.addSelectionListener(ev -> deleteButton.setEnabled(!ev.getAllSelectedItems().isEmpty()));
 
-        // Kolom editable: Department
+        // --- KOLOM 1: Org Structure (Department) ---
         grid.addColumn(new ComponentRenderer<>(row -> {
-            ComboBox<HrOrgStructure> cb = new ComboBox<>(); // <--- COMBOBOX DIPERBAIKI
+            ComboBox<HrOrgStructure> cb = new ComboBox<>();
             cb.setWidthFull();
-            cb.setPlaceholder("Department");
-            cb.setItems(departments);
-            cb.setItemLabelGenerator(HrOrgStructure::getName); // <--- ITEM LABEL DIPERBAIKI
-
-            // Sekarang akan kompatibel karena HrPositionLevel.java sudah dikoreksi
-            cb.setValue(row.getDepartment());
-
-            cb.addValueChangeListener(e -> {
-                // Sekarang akan kompatibel karena HrPositionLevel.java sudah dikoreksi
-                row.setDepartment(e.getValue());
-            });
+            cb.setPlaceholder("Select Org");
+            cb.setItems(orgStructureList);
+            cb.setItemLabelGenerator(HrOrgStructure::getName);
+            cb.setValue(row.getOrgStructure());
+            cb.addValueChangeListener(e -> row.setOrgStructure(e.getValue()));
             return cb;
-        })).setHeader("Department").setAutoWidth(true).setFlexGrow(2);
+        })).setHeader("Org Structure").setAutoWidth(true).setFlexGrow(2);
 
-        // Kolom editable: position
+        // --- KOLOM 2: Code ---
         grid.addColumn(new ComponentRenderer<>(row -> {
             TextField tf = new TextField();
             tf.setWidthFull();
-            tf.setValue(row.getPosition() != null ? row.getPosition() : "");
-            tf.setPlaceholder("Position");
-            tf.addValueChangeListener(e -> {
-                row.setPosition(e.getValue());
-            });
+            tf.setPlaceholder("Code");
+            tf.setValue(row.getCode() != null ? row.getCode() : "");
+            tf.addValueChangeListener(e -> row.setCode(e.getValue()));
             return tf;
-        })).setHeader("Position").setAutoWidth(true).setSortable(true).setFlexGrow(2);
+        })).setHeader("Code").setWidth("120px").setFlexGrow(0);
 
-        // Kolom editable: positionDescription
+        // --- KOLOM 3: Name (Position Name) ---
         grid.addColumn(new ComponentRenderer<>(row -> {
             TextField tf = new TextField();
             tf.setWidthFull();
-            tf.setValue(row.getPosition_description() != null ? row.getPosition_description() : "");
-            tf.setPlaceholder("Description");
-            tf.addValueChangeListener(e -> {
-                row.setPosition_description(e.getValue());
-            });
+            tf.setPlaceholder("Position Name");
+            tf.setValue(row.getName() != null ? row.getName() : "");
+            tf.addValueChangeListener(e -> row.setName(e.getValue()));
             return tf;
-        })).setHeader("Description").setAutoWidth(true).setSortable(true).setFlexGrow(2);
+        })).setHeader("Name").setAutoWidth(true).setFlexGrow(2);
 
-        // (Opsional) kolom read-only created/updated
-//        grid.addColumn(HrPositionLevel::getCreatedAt)
-//                .setHeader("Created At").setAutoWidth(true).setFlexGrow(1);
-//        grid.addColumn(HrPositionLevel::getUpdatedAt)
-//                .setHeader("Updated At").setAutoWidth(true).setFlexGrow(1);
+        // --- KOLOM 4: Level ---
+        grid.addColumn(new ComponentRenderer<>(row -> {
+            IntegerField num = new IntegerField();
+            num.setWidthFull();
+            num.setPlaceholder("Lvl");
+            num.setValue(row.getLevel());
+            num.addValueChangeListener(e -> row.setLevel(e.getValue()));
+            return num;
+        })).setHeader("Level").setWidth("100px").setFlexGrow(0);
+
+        // --- KOLOM 5: Is Managerial ---
+        grid.addColumn(new ComponentRenderer<>(row -> {
+            Checkbox cb = new Checkbox();
+            cb.setValue(Boolean.TRUE.equals(row.getIsManagerial()));
+            cb.addValueChangeListener(e -> row.setIsManagerial(e.getValue()));
+            return cb;
+        })).setHeader("Mgr?").setWidth("70px").setFlexGrow(0);
+
+        // --- KOLOM 6: Reports To ---
+        grid.addColumn(new ComponentRenderer<>(row -> {
+            ComboBox<HrPosition> cb = new ComboBox<>();
+            cb.setWidthFull();
+            cb.setPlaceholder("Reports To");
+            // Filter agar tidak memilih diri sendiri (loop sederhana untuk UX)
+            List<HrPosition> parents = new ArrayList<>(allPositionsList);
+            if(row.getId() != null) {
+                parents.removeIf(p -> p.getId().equals(row.getId()));
+            }
+            cb.setItems(parents);
+            cb.setItemLabelGenerator(p -> p.getName() + " (" + p.getCode() + ")");
+            cb.setValue(row.getReportsTo());
+            cb.addValueChangeListener(e -> row.setReportsTo(e.getValue()));
+            return cb;
+        })).setHeader("Reports To").setAutoWidth(true).setFlexGrow(2);
+
+        // --- KOLOM 7: Notes (Description) ---
+        grid.addColumn(new ComponentRenderer<>(row -> {
+            TextField tf = new TextField();
+            tf.setWidthFull();
+            tf.setPlaceholder("Notes");
+            tf.setValue(row.getNotes() != null ? row.getNotes() : "");
+            tf.addValueChangeListener(e -> row.setNotes(e.getValue()));
+            return tf;
+        })).setHeader("Notes").setAutoWidth(true).setFlexGrow(2);
+
+        // --- KOLOM ACTION ---
         grid.addComponentColumn(row -> {
             // Baris baru (belum punya ID) -> tombol Cancel
             if (row.getId() == null) {
@@ -197,7 +240,8 @@ public class PositionLevelView extends Main {
                     grid.getDataProvider().refreshAll();
                     notifyWarn("Penambahan data baru dibatalkan.");
                 });
-                cancel.getElement().setProperty("title", "Batalkan data baru");
+                cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY_INLINE);
+                cancel.getElement().setProperty("title", "Batalkan baris ini");
                 return cancel;
             }
             // Baris persisted -> tombol Delete (single row)
@@ -210,15 +254,18 @@ public class PositionLevelView extends Main {
                 cd.setConfirmText("Hapus");
                 cd.setConfirmButtonTheme("error primary");
                 cd.addConfirmListener(ev -> {
-                    positionLevelService.deleteByIds(List.of(row.getId()), currentUser.require());
+                    // [Ubah] Panggil delete pada hrPositionService
+                    hrPositionService.deleteByIds(List.of(row.getId()), currentUser.require());
                     notifySuccess("Data terhapus.");
                     populateButton.click();
                 });
                 cd.open();
             });
+            del.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY_INLINE,
+                    com.vaadin.flow.component.button.ButtonVariant.LUMO_ERROR);
             del.getElement().setProperty("title", "Hapus data ini");
             return del;
-        }).setHeader("Aksi").setWidth("120px").setFlexGrow(0);
+        }).setHeader("Aksi").setWidth("100px").setFlexGrow(0);
 
         body.add(header, grid);
         body.setFlexGrow(1, grid);
@@ -227,79 +274,70 @@ public class PositionLevelView extends Main {
     }
 
     private void setListener() {
-//        populateButton.addClickListener(e -> {
-//            if (!auth.canView) return;
-//            try {
-//                String kw = searchField.getValue();
-//                List<HrPositionLevel> result = positionLevelService.findAllOrSearch(kw == null ? "" : kw.trim());
-//
-//                items.clear();
-//                items.addAll(result);
-//                grid.getDataProvider().refreshAll();
-//
-//                if (items.isEmpty()) {
-//                    notifyWarn("Tidak ada data yang cocok.");
-//                } else {
-//                    notifySuccess("Data dimuat: " + items.size() + " baris.");
-//                }
-//            } catch (Exception ex) {
-//                log.error("Gagal populate Position Level", ex);
-//                notifyError("Gagal memuat data. Silakan coba lagi.");
-//            }
-//        });
-
         populateButton.addClickListener(e -> {
             if (!auth.canView) return;
             String kw = searchField.getValue();
-            List<HrPositionLevel> result = positionLevelService.findAllOrSearch(kw == null ? "" : kw.trim());
 
-            items.clear();          // ✅ pakai list mutable
-            items.addAll(result);   // ✅ isi ulang
-            grid.getDataProvider().refreshAll(); // ✅ refresh tampilan
+            // Refresh reference data agar dropdown 'Reports To' up-to-date
+            refreshReferenceData();
+
+            // [Ubah] Panggil findAllOrSearch pada hrPositionService
+            List<HrPosition> result = hrPositionService.findAllOrSearch(kw == null ? "" : kw.trim());
+
+            items.clear();
+            items.addAll(result);
+            grid.getDataProvider().refreshAll();
+
+            if(result.isEmpty()) notifyWarn("Data tidak ditemukan.");
+            else notifySuccess("Data dimuat: " + result.size());
         });
-
 
         saveButton.addClickListener(e -> {
             if (!auth.canCreate && !auth.canEdit) return;
             try {
-                positionLevelService.saveAll(new ArrayList<>(items), currentUser.require());
+                // [Ubah] Simpan menggunakan hrPositionService
+                hrPositionService.saveAll(new ArrayList<>(items), currentUser.require());
                 notifySuccess("Perubahan berhasil disimpan.");
                 populateButton.click(); // refresh dari DB
             } catch (Exception ex) {
-                log.error("Gagal menyimpan Position Level", ex);
-                notifyError("Gagal menyimpan. Silakan cek data & coba lagi.");
+                log.error("Gagal menyimpan Position", ex);
+                notifyError("Gagal menyimpan. Cek kembali kelengkapan data.");
             }
         });
-
 
         addButton.addClickListener(e -> {
             if (!auth.canCreate) return;
             try {
-                HrPositionLevel row = new HrPositionLevel();
-                row.setPosition("");
-                row.setPosition_description("");
+                // [Ubah] Instansiasi HrPosition
+                HrPosition row = new HrPosition();
+                row.setName("");
+                row.setCode("");
+                row.setIsManagerial(false);
+                row.setNotes("");
+                // Default values lain jika perlu
+
                 items.add(row);
                 grid.getDataProvider().refreshAll();
-                notifySuccess("Baris baru ditambahkan. Lengkapi data lalu klik Save.");
+                // Scroll ke bawah (optional, grid vaadin kadang auto scroll)
+                grid.scrollToEnd();
+                notifySuccess("Baris baru ditambahkan.");
             } catch (Exception ex) {
-                log.error("Gagal menambah baris Position Level", ex);
-                notifyError("Gagal menambah baris. Coba lagi.");
+                log.error("Gagal menambah baris Position", ex);
+                notifyError("Gagal menambah baris.");
             }
         });
 
-        // tombol Delete (bulk) – pakai variable deleteButton yang dibuat di createBody()
+        // Delete Button (Bulk)
         deleteButton.addClickListener(e -> {
             if (!auth.canDelete) return;
 
-            var selected = new java.util.HashSet<>(grid.getSelectedItems());
+            var selected = new HashSet<>(grid.getSelectedItems());
             if (selected.isEmpty()) return;
 
-            // pisahkan baris baru (id null) dan persisted
             var unsaved = selected.stream().filter(x -> x.getId() == null).toList();
-            var persistedIds = selected.stream().map(HrPositionLevel::getId)
-                    .filter(java.util.Objects::nonNull).toList();
+            var persistedIds = selected.stream().map(HrPosition::getId)
+                    .filter(Objects::nonNull).toList();
 
-            // hapus lokal baris baru
             if (!unsaved.isEmpty()) {
                 items.removeAll(unsaved);
                 grid.getDataProvider().refreshAll();
@@ -316,33 +354,30 @@ public class PositionLevelView extends Main {
             cd.setConfirmButtonTheme("error primary");
             cd.addConfirmListener(ev -> {
                 try {
-                    positionLevelService.deleteByIds(persistedIds, currentUser.require());
+                    // [Ubah] Delete via Service
+                    hrPositionService.deleteByIds(persistedIds, currentUser.require());
                     notifySuccess(persistedIds.size() + " data terhapus.");
                     populateButton.click();
                 } catch (Exception ex) {
-                    log.error("Gagal menghapus Position Level", ex);
+                    log.error("Gagal menghapus Position", ex);
                     notifyError("Gagal menghapus. Coba lagi.");
                 }
             });
             cd.open();
         });
-
     }
 
     private void setAuthorization() {
-        // view
         if (!auth.canView) {
             populateButton.setEnabled(false);
             grid.setEnabled(false);
         }
-        // create/edit
         if (!auth.canCreate && !auth.canEdit) {
             saveButton.setEnabled(false);
             addButton.setEnabled(false);
         } else if (!auth.canCreate) {
             addButton.setEnabled(false);
         }
-
         if (!auth.canDelete) {
             deleteButton.setEnabled(false);
         }
@@ -365,6 +400,4 @@ public class PositionLevelView extends Main {
         n.addThemeVariants(NotificationVariant.LUMO_ERROR);
         n.setPosition(Notification.Position.TOP_END);
     }
-
-
 }

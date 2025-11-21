@@ -182,6 +182,7 @@ public class ProfilDataKaryawanView extends Main {
         // Action column with delete button (icon only, no title)
         // Action column with edit & assign button
         // Action column with edit & assign button
+        // Action column with edit & assign button
         gridUnassignedPersons.addColumn(new ComponentRenderer<>(person -> {
             HorizontalLayout actionLayout = new HorizontalLayout();
 
@@ -217,19 +218,7 @@ public class ProfilDataKaryawanView extends Main {
                 Checkbox isActingCheckbox = new Checkbox("Is Acting");
                 ComboBox<HrPerson> requestedByDropdown = new ComboBox<>("Requested By");
 
-                // Org Structure
-                orgStructureDropdown.setItemLabelGenerator(HrOrgStructure::getName);
-                orgStructureDropdown.setWidth("400px");
-                orgStructureDropdown.setItems(
-                        companyService.getAllOrgStructuresInCompany(this.currentAppUser.getCompany())
-                );
-
-                // Position
-                positionDropdown.setItemLabelGenerator(HrPosition::getName);
-                positionDropdown.setWidth("400px");
-                positionDropdown.setEnabled(false);
-
-                // Requested By (lazy search)
+                // === Requested By (lazy search, mirip view lain) ===
                 requestedByDropdown.setItemLabelGenerator(p ->
                         p.getFirstName() + " " + (p.getLastName() != null ? p.getLastName() : "")
                 );
@@ -249,21 +238,33 @@ public class ProfilDataKaryawanView extends Main {
                             .limit(limit);
                 });
 
-                // Ketika Org. Structure berubah → load Position unit tsb
-                orgStructureDropdown.addValueChangeListener(event -> {
+                // === Org. Structure ===
+                orgStructureDropdown.setItems(
+                        companyService.getAllOrgStructuresInCompany(this.currentAppUser.getCompany())
+                );
+                orgStructureDropdown.setItemLabelGenerator(HrOrgStructure::getName);
+                orgStructureDropdown.setWidth("400px");
+
+                // === Position (di-enable hanya kalau org dipilih) ===
+                positionDropdown.setItemLabelGenerator(HrPosition::getName);
+                positionDropdown.setWidth("400px");
+                positionDropdown.setEnabled(false);
+
+                // Saat Org. Structure dipilih -> load posisi yang ada di unit tsb
+                orgStructureDropdown.addValueChangeListener(event2 -> {
                     positionDropdown.clear();
                     positionDropdown.setItems(java.util.Collections.emptyList());
                     positionDropdown.setEnabled(false);
 
-                    HrOrgStructure selectedOrg = event.getValue();
+                    HrOrgStructure selectedOrg = event2.getValue();
                     if (selectedOrg != null) {
                         java.util.List<HrPosition> positions =
                                 companyService.getAllPositionsInOrganization(
                                         this.currentAppUser.getCompany(), selectedOrg
                                 );
 
-                        log.debug("Assign dialog: found {} positions for org {}", positions.size(),
-                                selectedOrg.getName());
+                        log.debug("Assign dialog: found {} positions for org {}",
+                                positions.size(), selectedOrg.getName());
 
                         if (!positions.isEmpty()) {
                             positionDropdown.setItems(positions);
@@ -272,6 +273,7 @@ public class ProfilDataKaryawanView extends Main {
                     }
                 });
 
+                // === Tombol Save / Cancel ===
                 HorizontalLayout buttonLayout = new HorizontalLayout();
                 Button cancelButton = new Button("Cancel", ev -> dialog.close());
                 Button saveButton = new Button("Save");
@@ -285,6 +287,9 @@ public class ProfilDataKaryawanView extends Main {
                         Notification.show("Org Structure and Position are required.");
                         return;
                     }
+
+                    log.debug("Saving Org Structure {} and Position {} to Person {}",
+                            orgStructureDropdown.getValue(), positionDropdown.getValue(), person.getFirstName());
 
                     HrPersonPosition personPosition = HrPersonPosition.builder()
                             .person(person)
@@ -300,7 +305,7 @@ public class ProfilDataKaryawanView extends Main {
                     personService.savePersonPosition(personPosition, currentUser.require());
 
                     dialog.close();
-                    // refresh grid setelah assign
+                    // refresh grid karyawan supaya langsung kelihatan
                     populateEmployees();
                 });
 
@@ -319,6 +324,7 @@ public class ProfilDataKaryawanView extends Main {
                 dialog.open();
             });
 
+
             if (!this.auth.canEdit) {
                 assignButton.setEnabled(false);
             }
@@ -326,6 +332,7 @@ public class ProfilDataKaryawanView extends Main {
             actionLayout.add(editButton, assignButton);
             return actionLayout;
         })).setHeader("").setAutoWidth(true);
+
 
 
         tabA.add(createEmployeesGridFunction());
