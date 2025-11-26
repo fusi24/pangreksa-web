@@ -11,15 +11,6 @@ import java.util.List;
 
 public interface HrWorkScheduleRepository extends CrudRepository<HrWorkSchedule, Long>, JpaSpecificationExecutor<HrWorkSchedule> {
 
-    List<HrWorkSchedule> findByStatus(String status);
-
-    @Query("SELECT ws FROM HrWorkSchedule ws WHERE ws.status = :status ORDER BY ws.effectiveDate DESC")
-    List<HrWorkSchedule> findByStatusOrderByEffectiveDateDesc(@Param("status") String status);
-
-    // Optional: Find by assignment type
-    @Query("SELECT DISTINCT ws FROM HrWorkSchedule ws JOIN ws.assignments a WHERE a.assignmentType = :assignmentType")
-    List<HrWorkSchedule> findByAssignmentType(@Param("assignmentType") String assignmentType);
-
     boolean existsByNameAndIdNot(String name, Long id);
 
     @Query("SELECT ws FROM HrWorkSchedule ws " +
