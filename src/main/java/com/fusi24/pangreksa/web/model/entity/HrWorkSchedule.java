@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "work_schedule")
+@Table(name = "hr_work_schedule")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -53,7 +53,7 @@ public class HrWorkSchedule {
     @Column(name = "is_active")
     private Boolean isActive = true;
 
-    @Column(name = "assignment_scope", nullable = false)
+    @Column(name = "assignment_type", nullable = false)
     private String assignmentScope = "All"; // "All" or "Selected"
 
     @Column(updatable = false)
