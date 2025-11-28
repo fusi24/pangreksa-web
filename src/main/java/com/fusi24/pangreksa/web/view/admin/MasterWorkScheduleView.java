@@ -12,6 +12,7 @@ import com.fusi24.pangreksa.web.repo.HrWorkScheduleRepository;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.combobox.MultiSelectComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
@@ -32,7 +33,6 @@ import com.vaadin.flow.component.select.Select;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.vaadin.gatanaso.MultiselectComboBox;
 
 import java.time.LocalTime;
 import java.util.*;
@@ -67,7 +67,7 @@ public class MasterWorkScheduleView extends Main {
     private final Checkbox isOvertimeAutoField = new Checkbox("Auto Overtime");
     private final Checkbox isActiveField = new Checkbox("Active");
     private final Select<String> assignmentScopeField = new Select<>();
-    private final MultiselectComboBox<HrOrgStructure> assignedOrgMultiSelect = new MultiselectComboBox<>("Assigned To");
+    private final MultiSelectComboBox<HrOrgStructure> assignedOrgMultiSelect = new MultiSelectComboBox<>("Assigned To");
 
     private HrWorkSchedule currentSchedule;
     private List<HrOrgStructure> allOrgStructures;
@@ -239,7 +239,7 @@ public class MasterWorkScheduleView extends Main {
         currentSchedule.setIsActive(true);
         currentSchedule.setAssignmentScope("All");
         binder.readBean(currentSchedule);
-        assignedOrgMultiSelect.setValue(null);
+        assignedOrgMultiSelect.setValue(Set.of());
         dialog.open();
     }
 
@@ -252,7 +252,7 @@ public class MasterWorkScheduleView extends Main {
         if (!schedule.getAssignments().isEmpty()) {
             assignedOrgMultiSelect.setValue(schedule.getAssignments().stream().map(p -> p.getOrgStructure()).collect(Collectors.toSet()));
         } else {
-            assignedOrgMultiSelect.setValue(null);
+            assignedOrgMultiSelect.setValue(Set.of());
         }
         dialog.open();
     }
