@@ -5,6 +5,7 @@ import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.repo.HrDepartmentRepo;
+import com.fusi24.pangreksa.web.repo.HrCompanyRepository;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.CompanyService;
 import com.fusi24.pangreksa.web.service.PersonService;
@@ -79,6 +80,9 @@ public class ProfilDataKaryawanView extends Main {
 
     @Autowired
     private HrDepartmentRepo hrDepartmentRepo;
+
+    @Autowired
+    private HrCompanyRepository hrCompanyRepository;
 
     public ProfilDataKaryawanView(CurrentUser currentUser, CommonService commonService, PersonService personService,
                                   CompanyService companyService, SystemService systemService) {
@@ -210,6 +214,7 @@ public class ProfilDataKaryawanView extends Main {
                 dialogLayout.setPadding(false);
                 dialogLayout.setSpacing(true);
 
+                ComboBox<HrCompany> companyDropdown = new ComboBox<>("Company");
                 ComboBox<HrOrgStructure> orgStructureDropdown = new ComboBox<>("Org. Structure");
                 ComboBox<HrPosition> positionDropdown = new ComboBox<>("Position");
                 DatePicker startDatePicker = new DatePicker("Start Date");
@@ -238,10 +243,17 @@ public class ProfilDataKaryawanView extends Main {
                             .limit(limit);
                 });
 
+                // === Company ===
+                companyDropdown.setItemLabelGenerator(HrCompany::getName);
+                companyDropdown.setWidth("400px");
+                companyDropdown.setClearButtonVisible(true);
+                java.util.List<HrCompany> allCompanies = hrCompanyRepository.findAll();
+                companyDropdown.setItems(allCompanies);
+                if (this.currentAppUser != null && this.currentAppUser.getCompany() != null) {
+                    companyDropdown.setValue(this.currentAppUser.getCompany());
+                }
+
                 // === Org. Structure ===
-                orgStructureDropdown.setItems(
-                        companyService.getAllOrgStructuresInCompany(this.currentAppUser.getCompany())
-                );
                 orgStructureDropdown.setItemLabelGenerator(HrOrgStructure::getName);
                 orgStructureDropdown.setWidth("400px");
 
@@ -250,6 +262,39 @@ public class ProfilDataKaryawanView extends Main {
                 positionDropdown.setWidth("400px");
                 positionDropdown.setEnabled(false);
 
+                // Saat Company dipilih -> load org structure untuk company tsb
+                companyDropdown.addValueChangeListener(eventCompany -> {
+                    orgStructureDropdown.clear();
+                    orgStructureDropdown.setItems(java.util.Collections.emptyList());
+                    positionDropdown.clear();
+                    positionDropdown.setItems(java.util.Collections.emptyList());
+                    positionDropdown.setEnabled(false);
+
+                    HrCompany selectedCompany = eventCompany.getValue();
+                    if (selectedCompany != null) {
+                        java.util.List<HrOrgStructure> orgs =
+                                companyService.getAllOrgStructuresInCompany(selectedCompany);
+
+                        log.debug("Assign dialog: found {} org structures for company {}",
+                                orgs != null ? orgs.size() : 0,
+                                selectedCompany.getName());
+
+                        if (orgs != null && !orgs.isEmpty()) {
+                            orgStructureDropdown.setItems(orgs);
+                        }
+                    }
+                });
+
+                // Initial load org structure untuk default company (login user)
+                HrCompany initialCompany = companyDropdown.getValue();
+                if (initialCompany != null) {
+                    java.util.List<HrOrgStructure> orgs =
+                            companyService.getAllOrgStructuresInCompany(initialCompany);
+                    if (orgs != null && !orgs.isEmpty()) {
+                        orgStructureDropdown.setItems(orgs);
+                    }
+                }
+
                 // Saat Org. Structure dipilih -> load posisi yang ada di unit tsb
                 orgStructureDropdown.addValueChangeListener(event2 -> {
                     positionDropdown.clear();
@@ -257,16 +302,19 @@ public class ProfilDataKaryawanView extends Main {
                     positionDropdown.setEnabled(false);
 
                     HrOrgStructure selectedOrg = event2.getValue();
-                    if (selectedOrg != null) {
+                    HrCompany selectedCompany = companyDropdown.getValue();
+                    if (selectedOrg != null && selectedCompany != null) {
                         java.util.List<HrPosition> positions =
                                 companyService.getAllPositionsInOrganization(
-                                        this.currentAppUser.getCompany(), selectedOrg
+                                        selectedCompany, selectedOrg
                                 );
 
-                        log.debug("Assign dialog: found {} positions for org {}",
-                                positions.size(), selectedOrg.getName());
+                        log.debug("Assign dialog: found {} positions for org {} in company {}",
+                                positions != null ? positions.size() : 0,
+                                selectedOrg.getName(),
+                                selectedCompany.getName());
 
-                        if (!positions.isEmpty()) {
+                        if (positions != null && !positions.isEmpty()) {
                             positionDropdown.setItems(positions);
                             positionDropdown.setEnabled(true);
                         }
@@ -283,23 +331,32 @@ public class ProfilDataKaryawanView extends Main {
                 }
 
                 saveButton.addClickListener(ev -> {
+                    if (companyDropdown.isEmpty()) {
+                        Notification.show("Company is required.");
+                        return;
+                    }
                     if (orgStructureDropdown.isEmpty() || positionDropdown.isEmpty()) {
-                        Notification.show("Org Structure and Position are required.");
+                        Notification.show("Company, Org Structure and Position are required.");
                         return;
                     }
 
-                    log.debug("Saving Org Structure {} and Position {} to Person {}",
-                            orgStructureDropdown.getValue(), positionDropdown.getValue(), person.getFirstName());
+                    HrCompany selectedCompany = companyDropdown.getValue();
+
+                    log.debug("Saving Company {}, Org Structure {} and Position {} to Person {}",
+                            selectedCompany != null ? selectedCompany.getName() : "-",
+                            orgStructureDropdown.getValue(),
+                            positionDropdown.getValue(),
+                            person.getFirstName());
 
                     HrPersonPosition personPosition = HrPersonPosition.builder()
                             .person(person)
+                            .company(selectedCompany)
                             .position(positionDropdown.getValue())
                             .startDate(startDatePicker.getValue())
                             .endDate(endDatePicker.getValue())
                             .isActing(isActingCheckbox.getValue())
                             .isPrimary(isPrimaryCheckbox.getValue())
                             .requestedBy(requestedByDropdown.getValue())
-                            .company(this.currentAppUser.getCompany())
                             .build();
 
                     personService.savePersonPosition(personPosition, currentUser.require());
@@ -312,6 +369,7 @@ public class ProfilDataKaryawanView extends Main {
                 buttonLayout.add(cancelButton, saveButton);
 
                 dialogLayout.add(
+                        companyDropdown,
                         orgStructureDropdown,
                         positionDropdown,
                         new HorizontalLayout(startDatePicker, endDatePicker),
