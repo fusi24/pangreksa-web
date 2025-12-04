@@ -168,9 +168,9 @@ public class KomponenGajiView extends Main {
         this.tabsheet = new TabSheet();
         tabsheet.setWidthFull();
         tabsheet.setHeightFull();
-        tabsheet.add("Allowance Packages", createAllowancePackageFunction());
-        tabsheet.add("Basic Salary", createSalaryBaseLevelFunction());
-        tabsheet.add("Allowances", createAlowanceFunction());
+        tabsheet.add("Gaji Pokok", createSalaryBaseLevelFunction());
+        tabsheet.add("Tunjangan", createAlowanceFunction());
+        tabsheet.add("Paket Tunjangan", createAllowancePackageFunction());
 
         body.add(tabsheet);
 
