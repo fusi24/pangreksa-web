@@ -4,10 +4,9 @@ import com.fusi24.pangreksa.web.model.entity.HrWorkSchedule;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface HrWorkScheduleRepository extends CrudRepository<HrWorkSchedule, Long>, JpaSpecificationExecutor<HrWorkSchedule> {
 
@@ -18,4 +17,6 @@ public interface HrWorkScheduleRepository extends CrudRepository<HrWorkSchedule,
             "LEFT JOIN FETCH a.orgStructure " +
             "ORDER BY ws.name")
     List<HrWorkSchedule> findAllWithAssociations();
+
+    Optional<HrWorkSchedule> findFirstByAssignmentScope(String scope);
 }

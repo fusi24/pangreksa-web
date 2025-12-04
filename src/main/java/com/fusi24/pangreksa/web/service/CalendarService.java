@@ -9,8 +9,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class CalendarService {
@@ -51,5 +53,19 @@ public class CalendarService {
         }
 
         return this.companyCalendarRepository.save(calendar);
+    }
+
+    public Boolean isHoliday(LocalDate date){
+        if (date == null) {
+            return false;
+        }
+
+        // Find any calendar entry that covers the given date and marks it as non-working
+        Optional<HrCompanyCalendar> holidayEntry = companyCalendarRepository
+                .findFirstByStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                        date, date
+                );
+
+        return holidayEntry.isPresent();
     }
 }

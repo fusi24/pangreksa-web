@@ -5,9 +5,12 @@ import com.fusi24.pangreksa.web.model.enumerate.WorkScheduleLabel;
 import com.fusi24.pangreksa.web.model.enumerate.WorkScheduleType;
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalTime;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +32,7 @@ public class HrWorkSchedule {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
     private WorkScheduleType type;
 
     @Column(nullable = false)
@@ -42,6 +46,7 @@ public class HrWorkSchedule {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
     private WorkScheduleLabel label;
 
     @Column(name = "is_overtime_auto")

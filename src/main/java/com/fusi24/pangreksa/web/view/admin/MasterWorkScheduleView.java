@@ -34,6 +34,7 @@ import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -285,6 +286,8 @@ public class MasterWorkScheduleView extends Main {
                 Notification.show("Please select at least one organization structure.");
                 return;
             }
+
+            currentSchedule.setEffectiveDate(LocalDate.now());
 
             // Save
             scheduleRepo.save(currentSchedule);

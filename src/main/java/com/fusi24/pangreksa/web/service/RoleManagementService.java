@@ -118,4 +118,8 @@ public class RoleManagementService {
         }
         appuserRespRepo.saveAll(entities);
     }
+
+    public List<FwAppuserResp> findResponsibilitesByUser(FwAppUser fwAppUser){
+        return appuserRespRepo.findByAppuser(fwAppUser);
+    }
 }

@@ -3,8 +3,11 @@ package com.fusi24.pangreksa.base.ui.view;
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Responsibility;
+import com.fusi24.pangreksa.web.model.entity.HrAttendance;
 import com.fusi24.pangreksa.web.service.AppUserAuthService;
+import com.fusi24.pangreksa.web.service.AttendanceService;
 import com.fusi24.pangreksa.web.service.SystemService;
+import com.fusi24.pangreksa.web.view.common.CheckInOutDialog;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -23,18 +26,15 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.shared.Tooltip;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
-import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.server.menu.MenuEntry;
 import com.vaadin.flow.spring.security.AuthenticationContext;
-import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.PermitAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import static com.vaadin.flow.theme.lumo.LumoUtility.*;
@@ -44,6 +44,7 @@ import static com.vaadin.flow.theme.lumo.LumoUtility.*;
 public final class MainLayout extends AppLayout {
     private static final Logger log = LoggerFactory.getLogger(MainLayout.class);
     private final AppUserAuthService appUserAuthService;
+    private final AttendanceService attendanceService;
     private final CurrentUser currentUser;
     private final AuthenticationContext authenticationContext;
     private final SystemService systemService;
@@ -53,14 +54,16 @@ public final class MainLayout extends AppLayout {
     List<Responsibility> responsibilityList;
     AppUserInfo user;
 
-    MainLayout(CurrentUser currentUser, AuthenticationContext authenticationContext, AppUserAuthService appUserAuthService, SystemService systemService) {
+    MainLayout(CurrentUser currentUser, AuthenticationContext authenticationContext, AppUserAuthService appUserAuthService, SystemService systemService, AttendanceService attendanceService) {
         this.currentUser = currentUser;
         this.authenticationContext = authenticationContext;
         this.appUserAuthService = appUserAuthService;
         this.systemService = systemService;
+        this.attendanceService = attendanceService;
 
         this.user = currentUser.require();
         responsibilityList = appUserAuthService.getAllResponsibilitiesFromUsername(user.getUserId().toString());
+        attendanceService.setUser(this.user);
 
         navLayout = new VerticalLayout();
         navLayout.setSizeUndefined();
@@ -166,6 +169,18 @@ public final class MainLayout extends AppLayout {
                     .forEach(menuEntry -> {
                         nav.addItem(createSideNavItem(menuEntry));
                     });
+        }
+
+        if(responsibility.getResponsibility().equals("Karyawan")) {
+            HrAttendance currentRecord = attendanceService.getOrCreateTodayAttendance(attendanceService.getCurrentUser());
+            CheckInOutDialog dialog = new CheckInOutDialog(
+                    attendanceService,
+                    currentRecord,
+                    currentUser,
+                    () -> {}
+            );
+            if(currentRecord != null && attendanceService.shouldShowCheckInPopup())
+                dialog.open();
         }
 
         nav.setWidthFull();
