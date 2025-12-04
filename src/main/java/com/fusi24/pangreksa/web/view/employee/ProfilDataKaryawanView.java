@@ -585,6 +585,7 @@ public class ProfilDataKaryawanView extends Main {
         });
 
         positionGrid.addSelectionListener(e -> {
+
             e.getFirstSelectedItem().ifPresentOrElse(item -> {
                 // ✅ If item selected
             }, () -> {

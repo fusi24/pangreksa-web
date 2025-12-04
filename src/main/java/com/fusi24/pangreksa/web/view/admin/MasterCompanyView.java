@@ -42,6 +42,7 @@ public class MasterCompanyView extends Main {
 
     private final HrCompanyRepository companyRepo;
 
+
     private final Grid<HrCompany> grid = new Grid<>(HrCompany.class);
     private final TextField searchField = new TextField("Search");
     private final Button addButton = new Button("Add Company");
