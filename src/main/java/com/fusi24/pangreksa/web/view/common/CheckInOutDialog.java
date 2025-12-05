@@ -12,6 +12,7 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
+import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -67,7 +68,7 @@ public class CheckInOutDialog extends Dialog {
         }
 
         notesField.setMaxLength(255);
-        notesField.setValue(attendance.getNotes());
+        notesField.setValue(StringUtils.defaultIfBlank(attendance.getNotes(), StringUtils.EMPTY));
         notesField.setWidthFull();
 
         VerticalLayout content = new VerticalLayout(actionButton, notesField);

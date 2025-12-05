@@ -13,9 +13,16 @@ import java.util.List;
 import java.util.Optional;
 
 public interface HrAttendanceRepository extends CrudRepository<HrAttendance, Long>, JpaSpecificationExecutor<HrAttendance> {
+    @EntityGraph(attributePaths = {"person", "workSchedule"})
     Optional<HrAttendance> findByAppUserIdAndAttendanceDate(Long appUserId, LocalDate date);
+
+    @EntityGraph(attributePaths = "person")
     List<HrAttendance> findByAppUserIdAndAttendanceDateBetween(Long appUserId, LocalDate startDate, LocalDate endDate);
+
+    @EntityGraph(attributePaths = "person")
     List<HrAttendance> findByAttendanceDate(LocalDate date);
+
+    @EntityGraph(attributePaths = "person")
     List<HrAttendance> findByStatus(String status);
 
 

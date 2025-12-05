@@ -173,14 +173,15 @@ public final class MainLayout extends AppLayout {
 
         if(responsibility.getResponsibility().equals("Karyawan")) {
             HrAttendance currentRecord = attendanceService.getOrCreateTodayAttendance(attendanceService.getCurrentUser());
-            CheckInOutDialog dialog = new CheckInOutDialog(
-                    attendanceService,
-                    currentRecord,
-                    currentUser,
-                    () -> {}
-            );
-            if(currentRecord != null && attendanceService.shouldShowCheckInPopup())
+            if(currentRecord != null && (attendanceService.shouldShowCheckInPopup() || attendanceService.shouldShowCheckOutPopup())){
+                CheckInOutDialog dialog = new CheckInOutDialog(
+                        attendanceService,
+                        currentRecord,
+                        currentUser,
+                        () -> {}
+                );
                 dialog.open();
+            }
         }
 
         nav.setWidthFull();

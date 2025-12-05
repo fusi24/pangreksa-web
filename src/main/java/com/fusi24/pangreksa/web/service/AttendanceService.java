@@ -71,7 +71,49 @@ public class AttendanceService {
         Optional<HrAttendance> today = attendanceRepo.findByAppUserIdAndAttendanceDate(
                 currentUser.getId(), LocalDate.now()
         );
-        return today.isEmpty() || today.get().getCheckOut() == null;
+        return today.isEmpty();
+    }
+
+    public boolean shouldShowCheckOutPopup() {
+        LocalDate today = LocalDate.now();
+
+        // Must be a working day (i.e., user has an active schedule for today)
+        if (!isWorkingDay(today)) {
+            return false;
+        }
+
+        // Fetch today's attendance record
+        Optional<HrAttendance> todayAttendance = attendanceRepo.findByAppUserIdAndAttendanceDate(
+                currentUser.getId(), today
+        );
+
+        // Must have checked in
+        if (todayAttendance.isEmpty() || todayAttendance.get().getCheckIn() == null) {
+            return false;
+        }
+
+        HrAttendance attendance = todayAttendance.get();
+
+        // Already checked out → no popup
+        if (attendance.getCheckOut() != null) {
+            return false;
+        }
+
+        // Get the work schedule linked to this attendance
+        HrWorkSchedule schedule = attendance.getWorkSchedule();
+        if (schedule == null) {
+            return false; // Safety check
+        }
+
+        LocalTime scheduledCheckOut = schedule.getCheckOut(); // e.g., 17:00
+        LocalTime now = LocalTime.now();
+
+        // Optional: Add a 15-minute grace period before scheduled checkout
+        // So popup appears starting 15 mins before official end time
+        LocalTime earliestPopupTime = scheduledCheckOut.minusMinutes(15);
+
+        // Show popup if current time >= (scheduled checkout - grace)
+        return !now.isBefore(earliestPopupTime);
     }
 
     private boolean isWorkingDay(LocalDate date) {
