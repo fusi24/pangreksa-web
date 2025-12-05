@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +37,9 @@ public class AttendanceService {
 
     @Getter
     private FwAppUser currentUser;
+
+    private static final ZoneId JAKARTA_ZONE = ZoneId.of("Asia/Jakarta");
+    private static final ZoneId UTC_ZONE = ZoneId.of("UTC");
 
     public void setUser(AppUserInfo user) {
         this.currentUser = findAppUserByUserId(user.getUserId().toString());
@@ -204,30 +208,46 @@ public class AttendanceService {
     }
 
     private void setStatusBasedOnSchedule(HrAttendance att) {
-        HrWorkSchedule sched = att.getWorkSchedule();
+        // No check-in → ALPHA (absent)
         if (att.getCheckIn() == null) {
             att.setStatus("ALPHA");
             return;
         }
 
-        LocalTime checkInTime = att.getCheckIn().toLocalTime();
-        LocalTime scheduledIn = sched.getCheckIn(); // assuming this field exists
-
-        if (checkInTime.isAfter(scheduledIn.plusMinutes(15))) {
-            att.setStatus("TERLAMBAT");
-        } else {
-            att.setStatus("HADIR");
+        // Defer final status until check-out is recorded
+        if (att.getCheckOut() == null) {
+            // Optional: set a temporary status like "MASUK" or leave unchanged
+            // For your requirement, we do nothing or reset to neutral
+            // Example: att.setStatus(null); // or "MASUK"
+            return; // DO NOT set final status yet
         }
 
-        if (att.getCheckOut() != null) {
-            LocalTime checkOutTime = att.getCheckOut().toLocalTime();
-            LocalTime scheduledOut = sched.getCheckOut();
+        // Both check-in and check-out exist → evaluate full attendance
 
-            if (checkOutTime.isBefore(scheduledOut.minusMinutes(30))) {
-                att.setStatus("PULANG_CEPAT");
-            } else if (checkOutTime.isAfter(scheduledOut.plusHours(1))) {
-                att.setStatus("OVERTIME");
-            }
+        // Convert UTC instants to Jakarta local times
+        LocalTime actualIn = att.getCheckIn().atZone(JAKARTA_ZONE).toLocalTime();
+        LocalTime actualOut = att.getCheckOut().atZone(JAKARTA_ZONE).toLocalTime();
+
+        LocalTime scheduledIn = att.getWorkSchedule().getCheckIn();   // Jakarta time
+        LocalTime scheduledOut = att.getWorkSchedule().getCheckOut(); // Jakarta time
+
+        // Default: assume on time
+        String status = "HADIR";
+
+        // Check for late arrival
+        if (actualIn.isAfter(scheduledIn.plusMinutes(15))) {
+            status = "TERLAMBAT";
         }
+
+        // Check for early departure
+        if (actualOut.isBefore(scheduledOut.minusMinutes(30))) {
+            status = "PULANG_CEPAT";
+        }
+        // Check for overtime (only if not already early leave)
+        else if (actualOut.isAfter(scheduledOut.plusHours(1))) {
+            status = "OVERTIME";
+        }
+
+        att.setStatus(status);
     }
 }

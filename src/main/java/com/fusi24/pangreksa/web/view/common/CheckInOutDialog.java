@@ -55,15 +55,15 @@ public class CheckInOutDialog extends Dialog {
         boolean hasCheckOut = attendance.getCheckOut() != null;
 
         if (!hasCheckIn) {
-            actionButton.setText("Check-In");
+            actionButton.setText("Clock-In");
             actionButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
             actionButton.addClickListener(e -> handleCheckIn());
         } else if (!hasCheckOut) {
-            actionButton.setText("Check-Out");
+            actionButton.setText("Clock-Out");
             actionButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
             actionButton.addClickListener(e -> handleCheckOut());
         } else {
-            actionButton.setText("Sudah Check-Out");
+            actionButton.setText("Sudah Clock-Out");
             actionButton.setEnabled(false);
         }
 
@@ -82,10 +82,10 @@ public class CheckInOutDialog extends Dialog {
             attendance.setCheckIn(LocalDateTime.now());
             attendance.setNotes(notesField.getValue());
             attendanceService.saveAttendance(attendance, currentUser.require());
-            Notification.show("Check-In berhasil", 3000, Notification.Position.MIDDLE);
+            Notification.show("Clock-In berhasil", 3000, Notification.Position.MIDDLE);
             closeAndNotify();
         } catch (Exception ex) {
-            Notification.show("Gagal Check-In: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
+            Notification.show("Gagal Clock-In: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
         }
     }
 
@@ -94,10 +94,10 @@ public class CheckInOutDialog extends Dialog {
             attendance.setCheckOut(LocalDateTime.now());
             attendance.setNotes(notesField.getValue());
             attendanceService.saveAttendance(attendance, currentUser.require());
-            Notification.show("Check-Out berhasil", 3000, Notification.Position.MIDDLE);
+            Notification.show("Clock-Out berhasil", 3000, Notification.Position.MIDDLE);
             closeAndNotify();
         } catch (Exception ex) {
-            Notification.show("Gagal Check-Out: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
+            Notification.show("Gagal Clock-Out: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
         }
     }
 

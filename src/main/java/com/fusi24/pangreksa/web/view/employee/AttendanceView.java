@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -135,9 +136,9 @@ public class AttendanceView extends Main {
         grid.addColumn(att -> att.getAttendanceDate().format(dateFormatter))
                 .setHeader("Tanggal").setWidth("120px");
         grid.addColumn(att -> att.getCheckIn() != null ? att.getCheckIn().format(DateTimeFormatter.ofPattern("HH:mm")) : "-")
-                .setHeader("Check-In").setWidth("100px");
+                .setHeader("Clock-In").setWidth("100px");
         grid.addColumn(att -> att.getCheckOut() != null ? att.getCheckOut().format(DateTimeFormatter.ofPattern("HH:mm")) : "-")
-                .setHeader("Check-Out").setWidth("100px");
+                .setHeader("Clock-Out").setWidth("100px");
         grid.addColumn(HrAttendance::getStatus).setHeader("Status").setWidth("130px");
         grid.addColumn(HrAttendance::getNotes).setHeader("Catatan").setAutoWidth(true);
 
@@ -149,6 +150,9 @@ public class AttendanceView extends Main {
 
         if (isHr) {
             grid.addComponentColumn(this::createActionButtons)
+                    .setHeader("Aksi").setWidth("120px");
+        } else {
+            grid.addComponentColumn(this::createCheckOutButtons)
                     .setHeader("Aksi").setWidth("120px");
         }
 
@@ -243,6 +247,43 @@ public class AttendanceView extends Main {
         });
         actions.add(deleteBtn);
         return actions;
+    }
+
+    private Component createCheckOutButtons(HrAttendance attendance) {
+        // Only show button if check-out hasn't happened yet
+        if (attendance.getCheckOut() == null) {
+            Button clockOutBtn = new Button("Clock-Out Sekarang");
+            clockOutBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
+            clockOutBtn.setTooltipText("Catat waktu pulang sekarang");
+            clockOutBtn.addClickListener(e -> {
+                // Set current Jakarta time (or your system's local time)
+                // If you're using Jakarta time explicitly:
+                // ZoneId jakartaZone = ZoneId.of("Asia/Jakarta");
+                // LocalDateTime now = LocalDateTime.now(jakartaZone);
+
+                // Or just use system default if already configured correctly:
+                LocalDateTime now = LocalDateTime.now();
+
+                attendance.setCheckOut(now);
+                try {
+                    attendanceService.saveAttendance(attendance, attendanceService.getCurrentUser()); // or update method
+                    Notification.show("Clock-out berhasil", 3000, Notification.Position.MIDDLE);
+                    applyFilters(); // refresh grid
+                } catch (Exception ex) {
+                    Notification.show("Gagal clock-out: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
+                    // Optionally revert the change in UI
+                    attendance.setCheckOut(null);
+                }
+            });
+
+            HorizontalLayout actions = new HorizontalLayout(clockOutBtn);
+            actions.setPadding(false);
+            actions.setSpacing(true);
+            return actions;
+        }
+
+        // If already clocked out, show nothing (or you could show a disabled button or timestamp)
+        return new Span("-"); // or return new HorizontalLayout() if you prefer empty cell
     }
 
     private void applyFilters() {
