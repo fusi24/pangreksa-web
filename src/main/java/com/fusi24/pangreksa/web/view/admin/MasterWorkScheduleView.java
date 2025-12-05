@@ -187,12 +187,12 @@ public class MasterWorkScheduleView extends Main {
         binder.forField(assignmentScopeField).asRequired("Assignment is required").bind(HrWorkSchedule::getAssignmentScope, HrWorkSchedule::setAssignmentScope);
 
         // Special handling for assignment
-        binder.withValidator(bean -> {
-            if ("Selected".equals(bean.getAssignmentScope()) && (bean.getAssignments() == null || bean.getAssignments().isEmpty())) {
-                return false;
-            }
-            return true;
-        }, "At least one organization must be selected when assignment is 'Selected'");
+//        binder.withValidator(bean -> {
+//            if ("Selected".equals(bean.getAssignmentScope()) && (bean.getAssignments() == null || bean.getAssignments().isEmpty())) {
+//                return false;
+//            }
+//            return true;
+//        }, "At least one organization must be selected when assignment is 'Selected'");
 
         dialog.add(new H3("Work Schedule Details"), form);
 
@@ -263,7 +263,7 @@ public class MasterWorkScheduleView extends Main {
             // Update assignments based on UI
             if ("Selected".equals(currentSchedule.getAssignmentScope())) {
                 Set<HrOrgStructure> selected = assignedOrgMultiSelect.getValue();
-                if (selected != null) {
+                if (selected != null && !selected.isEmpty()) {
                     List<HrWorkScheduleAssignment> assignments = selected.stream().map(p -> {
                         return HrWorkScheduleAssignment.builder()
                                 .schedule(currentSchedule)
@@ -273,7 +273,8 @@ public class MasterWorkScheduleView extends Main {
 
                     currentSchedule.setAssignments(assignments);
                 } else {
-                    currentSchedule.setAssignments(List.of());
+                    Notification.show("At least one organization must be selected when assignment is 'Selected'");
+                    return;
                 }
             } else {
                 currentSchedule.setAssignments(List.of());
