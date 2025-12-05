@@ -239,6 +239,7 @@ public class MasterWorkScheduleView extends Main {
         currentSchedule = new HrWorkSchedule();
         currentSchedule.setIsActive(true);
         currentSchedule.setAssignmentScope("All");
+        currentSchedule.setAssignments(new ArrayList<>());
         binder.readBean(currentSchedule);
         assignedOrgMultiSelect.setValue(Set.of());
         dialog.open();
@@ -260,6 +261,8 @@ public class MasterWorkScheduleView extends Main {
 
     private void saveSchedule() {
         try {
+            binder.writeBean(currentSchedule);
+
             // Update assignments based on UI
             if ("Selected".equals(currentSchedule.getAssignmentScope())) {
                 Set<HrOrgStructure> selected = assignedOrgMultiSelect.getValue();
@@ -270,17 +273,14 @@ public class MasterWorkScheduleView extends Main {
                                 .orgStructure(p)
                                 .build();
                     }).collect(Collectors.toList());
-
-                    currentSchedule.setAssignments(assignments);
+                    currentSchedule.getAssignments().clear();
+                    currentSchedule.getAssignments().addAll(assignments);
                 } else {
-                    Notification.show("At least one organization must be selected when assignment is 'Selected'");
-                    return;
+                    currentSchedule.setAssignments(new ArrayList<>());
                 }
             } else {
-                currentSchedule.setAssignments(List.of());
+                currentSchedule.setAssignments(new ArrayList<>());
             }
-
-            binder.writeBean(currentSchedule);
 
             // Validate: if "Selected", must have at least one assignment
             if ("Selected".equals(currentSchedule.getAssignmentScope()) && currentSchedule.getAssignments().isEmpty()) {
