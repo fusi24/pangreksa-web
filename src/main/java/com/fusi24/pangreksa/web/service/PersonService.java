@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -394,23 +396,37 @@ public class PersonService {
         return hrPersonPositionRepository.save(personPosition);
     }
 
+    @Transactional(readOnly = true)
     public HrPerson getManager(AppUserInfo appUserInfo) {
         var appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
         HrCompany company = appUser.getCompany();
         HrPerson person = appUser.getPerson();
-        HrPersonPosition personPosition = hrPersonPositionRepository.findCurrentPositionsByCompanyAndPerson(company, person, LocalDate.now());
+
+        HrPersonPosition personPosition = hrPersonPositionRepository
+                .findCurrentPositionsByCompanyAndPerson(company, person, LocalDate.now());
+
         if (personPosition == null) {
+            log.warn("No position found for person {}", person.getId());
             return null;
         }
+
         HrPosition managerPosition = personPosition.getPosition().getReportsTo();
         if (managerPosition == null) {
+            log.warn("Position {} has no manager (reportsTo is null)",
+                    personPosition.getPosition().getName());
             return null;
         }
-        // find manger that has position in the same company
-        List<HrPersonPosition> managerPositionsList = hrPersonPositionRepository.findByCompanyAndPosition(company, managerPosition);
-        if (managerPositionsList == null) {
+
+        List<HrPersonPosition> managerPositionsList =
+                hrPersonPositionRepository.findByCompanyAndPosition(company, managerPosition);
+
+        if (managerPositionsList == null || managerPositionsList.isEmpty()) {
+            log.warn("No manager found for position {} in company {}", managerPosition.getName(), company.getName());
             return null;
         }
+
         return managerPositionsList.get(0).getPerson();
     }
+
+
 }

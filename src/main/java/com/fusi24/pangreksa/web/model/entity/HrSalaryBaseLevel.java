@@ -31,6 +31,9 @@ public class HrSalaryBaseLevel extends AuditableEntity<HrSalaryBaseLevel>{
     @Column(name = "end_date")
     private LocalDate endDate;
 
+    @Column(name = "reason", length = 100)
+    private String reason;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable = false)
     private HrCompany company;

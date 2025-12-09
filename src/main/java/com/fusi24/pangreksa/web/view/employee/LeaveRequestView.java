@@ -190,8 +190,13 @@ public class LeaveRequestView extends Main {
         submittedToCombo.setClearButtonVisible(true);
 
         // set value as getManager(), but first set items
-        // set value as getManager(), but first set items
         HrPerson manager = getManager();
+        if (manager != null) {
+            submittedToCombo.setValue(manager);
+        } else {
+            submittedToCombo.setHelperText("Manager not found. Please contact HR.");
+        }
+
 
         // optional, tapi bagus untuk ditentukan
         submittedToCombo.setPageSize(20);
