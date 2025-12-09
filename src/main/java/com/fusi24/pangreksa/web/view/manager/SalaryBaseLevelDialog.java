@@ -5,6 +5,7 @@ import com.fusi24.pangreksa.web.model.entity.HrCompany;
 import com.fusi24.pangreksa.web.model.entity.HrSalaryBaseLevel;
 import com.fusi24.pangreksa.web.service.SalaryBaseLevelService;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -15,6 +16,7 @@ import com.vaadin.flow.component.textfield.TextField;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 public class SalaryBaseLevelDialog extends Dialog {
 
@@ -29,10 +31,19 @@ public class SalaryBaseLevelDialog extends Dialog {
     private DatePicker startDateDP;
     private DatePicker endDateDP;
     private ComboBox<String> reasonCB;
+    private Checkbox activeCB;
 
     public interface SaveListener {
         void onSave();
     }
+
+    private static final List<String> REASONS = List.of(
+            "Annual Review",
+            "Market Adjustment",
+            "Regulation Change",
+            "Correction",
+            "Others"
+    );
 
     public SalaryBaseLevelDialog(
             SalaryBaseLevelService service,
@@ -47,70 +58,65 @@ public class SalaryBaseLevelDialog extends Dialog {
         this.editingVersion = editingVersion;
 
         setWidth("460px");
+        setCloseOnEsc(true);
+        setCloseOnOutsideClick(false);
 
         VerticalLayout layout = new VerticalLayout();
         layout.setPadding(false);
         layout.setSpacing(true);
 
+        // ===== Company (readonly based on login user) =====
         companyCB = new ComboBox<>("Company");
         companyCB.setItems(company);
-        companyCB.setItemLabelGenerator(HrCompany::getName);
+        companyCB.setItemLabelGenerator(c -> c != null ? c.getName() : "");
         companyCB.setValue(company);
         companyCB.setReadOnly(true);
         companyCB.setWidthFull();
 
-
+        // ===== Level Code =====
         levelCodeTF = new TextField("Level Code");
         levelCodeTF.setReadOnly(true);
         levelCodeTF.setWidthFull();
 
+        // ===== Amount =====
         amountTF = new TextField("Amount");
         amountTF.setAllowedCharPattern("[0-9]");
         amountTF.setWidthFull();
 
+        // ===== Dates =====
         startDateDP = new DatePicker("Start Date");
         startDateDP.setWidthFull();
 
         endDateDP = new DatePicker("End Date");
         endDateDP.setWidthFull();
 
+        // ===== Reason =====
         reasonCB = new ComboBox<>("Reason");
-        reasonCB.setItems(
-                "Annual Review",
-                "Market Adjustment",
-                "Regulation Change",
-                "Correction",
-                "Others"
-        );
+        reasonCB.setItems(REASONS);
         reasonCB.setWidthFull();
 
-        // Default start date
+        // ===== Active checkbox =====
+        activeCB = new Checkbox("Active");
+        activeCB.setValue(true);
+
+        // ===== Default start date =====
         startDateDP.setValue(LocalDate.now());
 
-        // Generate code when start date changes
+        // ===== ADD mode: auto-generate code on start date change =====
         if (editingVersion == null) {
             startDateDP.addValueChangeListener(ev -> {
                 if (ev.getValue() != null) {
                     levelCodeTF.setValue(service.generateLevelCode(ev.getValue(), company));
                 }
             });
+
+            // set initial code for ADD
+            if (startDateDP.getValue() != null) {
+                levelCodeTF.setValue(service.generateLevelCode(startDateDP.getValue(), company));
+            }
         }
 
-        // Prefill for EDIT (edit = create new version)
-        if (editingVersion != null) {
-            amountTF.setValue(editingVersion.getBaseSalary() != null
-                    ? editingVersion.getBaseSalary().toPlainString()
-                    : "");
-            reasonCB.setValue(editingVersion.getReason());
-            // gunakan startDate default "hari ini" agar versi baru
-        }
-
-        // initial code
-        if (editingVersion == null && startDateDP.getValue() != null) {
-            levelCodeTF.setValue(service.generateLevelCode(startDateDP.getValue(), company));
-        }
-
-        // Prefill for EDIT (edit = create new version)
+        // ===== EDIT mode: prefill (edit = create new version) =====
         if (editingVersion != null) {
             levelCodeTF.setValue(editingVersion.getLevelCode() != null
                     ? editingVersion.getLevelCode()
@@ -119,11 +125,14 @@ public class SalaryBaseLevelDialog extends Dialog {
             amountTF.setValue(editingVersion.getBaseSalary() != null
                     ? editingVersion.getBaseSalary().toPlainString()
                     : "");
+
             reasonCB.setValue(editingVersion.getReason());
-            // gunakan startDate default "hari ini" agar versi baru
+
+            // versi baru default aktif (sesuai requirement Anda)
+            activeCB.setValue(true);
         }
 
-
+        // ===== Buttons =====
         Button cancelBtn = new Button("Cancel", e -> close());
         Button saveBtn = new Button("Save");
 
@@ -153,6 +162,9 @@ public class SalaryBaseLevelDialog extends Dialog {
                 return;
             }
 
+            // ===== Level Code rules =====
+            // EDIT: pakai kode lama
+            // ADD: pakai hasil generate
             String levelCode = (editingVersion != null)
                     ? editingVersion.getLevelCode()
                     : levelCodeTF.getValue();
@@ -161,18 +173,21 @@ public class SalaryBaseLevelDialog extends Dialog {
                 levelCode = service.generateLevelCode(start, company);
             }
 
-            // close old version jika EDIT
+            Boolean isActive = activeCB.getValue();
+
+            // ===== Versioning behavior =====
             if (editingVersion != null) {
+                // close version yang diedit
                 service.closeOldVersion(editingVersion, start, user);
             } else {
-                // jika ADD, tutup versi aktif sebelumnya (jika ada)
+                // close versi aktif sebelumnya (jika ada)
                 HrSalaryBaseLevel active = service.getActiveVersion(company);
                 if (active != null) {
                     service.closeOldVersion(active, start, user);
                 }
             }
 
-            // create new version
+            // ===== Create new version =====
             service.createNewVersion(
                     company,
                     amount,
@@ -180,6 +195,7 @@ public class SalaryBaseLevelDialog extends Dialog {
                     end,
                     levelCode,
                     reason,
+                    isActive,
                     user
             );
 
@@ -189,6 +205,7 @@ public class SalaryBaseLevelDialog extends Dialog {
 
         HorizontalLayout actions = new HorizontalLayout(cancelBtn, saveBtn);
 
+        // ===== Vertical layout order =====
         layout.add(
                 companyCB,
                 levelCodeTF,
@@ -196,6 +213,7 @@ public class SalaryBaseLevelDialog extends Dialog {
                 startDateDP,
                 endDateDP,
                 reasonCB,
+                activeCB,
                 actions
         );
 

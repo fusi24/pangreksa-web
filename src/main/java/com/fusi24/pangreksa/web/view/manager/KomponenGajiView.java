@@ -7,6 +7,7 @@ import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.CompanyService;
+import org.springframework.data.jpa.repository.EntityGraph;
 import com.fusi24.pangreksa.web.service.PayrollService;
 import com.fusi24.pangreksa.web.service.SalaryBaseLevelService;
 import com.vaadin.flow.component.Component;
@@ -236,6 +237,11 @@ public class KomponenGajiView extends Main {
         salaryBaseLevelGrid.addColumn(item ->
                         item.getReason() == null ? "" : item.getReason())
                 .setHeader("Reason").setAutoWidth(true);
+
+        salaryBaseLevelGrid.addColumn(item ->
+                Boolean.TRUE.equals(item.getIsActive()) ? "Yes" : "No"
+        ).setHeader("Active").setAutoWidth(true);
+
 
         // ✅ ACTION COLUMN DI TEMPAT YANG BENAR
         salaryBaseLevelGrid.addColumn(new ComponentRenderer<>(item -> {

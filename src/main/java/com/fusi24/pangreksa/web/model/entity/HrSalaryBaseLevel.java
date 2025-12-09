@@ -13,16 +13,21 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class HrSalaryBaseLevel extends AuditableEntity<HrSalaryBaseLevel>{
+public class HrSalaryBaseLevel extends AuditableEntity<HrSalaryBaseLevel> {
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "global_hr_seq")
     @SequenceGenerator(name = "global_hr_seq", sequenceName = "global_hr_seq", allocationSize = 1)
     private Long id;
 
-    @Column(name = "level_code", length = 10, nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id")
+    private HrCompany company;
+
+    @Column(name = "level_code", nullable = false, length = 30)
     private String levelCode;
 
-    @Column(name = "base_salary", precision = 15, scale = 2, nullable = false)
+    @Column(name = "base_salary", nullable = false)
     private BigDecimal baseSalary;
 
     @Column(name = "start_date", nullable = false)
@@ -31,10 +36,10 @@ public class HrSalaryBaseLevel extends AuditableEntity<HrSalaryBaseLevel>{
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @Column(name = "reason", length = 100)
+    @Column(name = "reason", length = 50)
     private String reason;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "company_id", nullable = false)
-    private HrCompany company;
+    @Builder.Default
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
 }

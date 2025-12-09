@@ -25,6 +25,7 @@ public interface HrSalaryBaseLevelRepository extends JpaRepository<HrSalaryBaseL
 
 
 
+
     // ====== ✅ REQUIRED BY SalaryLevelService ======
 
     @Query("""
