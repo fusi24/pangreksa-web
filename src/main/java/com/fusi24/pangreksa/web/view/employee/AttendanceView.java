@@ -35,7 +35,6 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
@@ -67,6 +66,7 @@ public class AttendanceView extends Main {
     private final FwAppUserRepository appUserRepository;
 
     private Authorization auth;
+    private String responsibility;
     private final List<FwAppuserResp> userAppuserResps;
 
     private Grid<HrAttendance> grid = new Grid<>(HrAttendance.class, false);
@@ -102,9 +102,10 @@ public class AttendanceView extends Main {
         this.appUserRepository = appUserRepository;
 
         this.attendanceService.setUser(currentUser.require());
+        this.responsibility = (String) UI.getCurrent().getSession().getAttribute("responsibility");
         this.auth = commonService.getAuthorization(
                 currentUser.require(),
-                (String) UI.getCurrent().getSession().getAttribute("responsibility"),
+                responsibility,
                 this.serialVersionUID
         );
 
@@ -143,11 +144,7 @@ public class AttendanceView extends Main {
         grid.addColumn(HrAttendance::getNotes).setHeader("Catatan").setAutoWidth(true);
 
         // HR-only actions
-        boolean isHr = userAppuserResps.stream()
-                .map(p -> p.getResponsibility())
-                .map(r -> r.getLabel())
-                .anyMatch(label -> StringUtils.contains(label, "HR"));
-
+        boolean isHr = !"Karyawan".equals(this.responsibility);
         if (isHr) {
             grid.addComponentColumn(this::createActionButtons)
                     .setHeader("Aksi").setWidth("120px");
@@ -292,6 +289,7 @@ public class AttendanceView extends Main {
         LocalDate end = endDateFilter.getValue();
         HrCompany company = companyFilter.getValue();
         HrOrgStructure orgStructure = orgStructureFilter.getValue();
+        HrPerson emp = "Karyawan".equals(this.responsibility) ? attendanceService.getCurrentUser().getPerson() : null;
 
         DataProvider<HrAttendance, Void> provider = DataProvider.fromCallbacks(
                 query -> {
@@ -299,10 +297,10 @@ public class AttendanceView extends Main {
                     int limit = query.getLimit();
                     int page = offset / limit;
                     PageRequest pageReq = PageRequest.of(page, limit);
-                    return attendanceService.getAttendancePage(pageReq, start, end, searchTerm, company, orgStructure)
+                    return attendanceService.getAttendancePage(pageReq, start, end, searchTerm, company, orgStructure, emp)
                             .getContent().stream();
                 },
-                query -> (int) attendanceService.countAttendance(start, end, searchTerm, company, orgStructure)
+                query -> (int) attendanceService.countAttendance(start, end, searchTerm, company, orgStructure, emp)
         );
         grid.setDataProvider(provider);
     }

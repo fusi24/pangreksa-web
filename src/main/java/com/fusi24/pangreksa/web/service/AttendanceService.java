@@ -2,8 +2,10 @@ package com.fusi24.pangreksa.web.service;
 
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.web.model.entity.*;
+import com.fusi24.pangreksa.web.model.enumerate.LeaveStatusEnum;
 import com.fusi24.pangreksa.web.repo.FwAppUserRepository;
 import com.fusi24.pangreksa.web.repo.HrAttendanceRepository;
+import com.fusi24.pangreksa.web.repo.HrLeaveApplicationRepository;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import lombok.Getter;
@@ -34,6 +36,9 @@ public class AttendanceService {
 
     @Autowired
     private FwAppUserRepository appUserRepository;
+
+    @Autowired
+    private HrLeaveApplicationRepository hrLeaveApplicationRepository;
 
     @Getter
     private FwAppUser currentUser;
@@ -69,20 +74,39 @@ public class AttendanceService {
     }
 
     public boolean shouldShowCheckInPopup() {
-        if (!isWorkingDay(LocalDate.now())) {
+        LocalDate today = LocalDate.now(JAKARTA_ZONE);
+
+        if (!isWorkingDay(today)) {
             return false;
         }
-        Optional<HrAttendance> today = attendanceRepo.findByAppUserIdAndAttendanceDate(
-                currentUser.getId(), LocalDate.now()
+
+        // Get current user's person
+        HrPerson employee = currentUser.getPerson(); // adjust based on your model
+
+        // If on approved leave today → skip check-in
+        if (isOnApprovedLeave(today, employee)) {
+            return false;
+        }
+
+        Optional<HrAttendance> todayAttendance = attendanceRepo.findByAppUserIdAndAttendanceDate(
+                currentUser.getId(), today
         );
-        return today.isEmpty();
+        return todayAttendance.isEmpty();
     }
 
     public boolean shouldShowCheckOutPopup() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(JAKARTA_ZONE);
 
         // Must be a working day (i.e., user has an active schedule for today)
         if (!isWorkingDay(today)) {
+            return false;
+        }
+
+        // Get current user's person
+        HrPerson employee = currentUser.getPerson(); // adjust based on your model
+
+        // If on approved leave today → skip check-in
+        if (isOnApprovedLeave(today, employee)) {
             return false;
         }
 
@@ -126,6 +150,16 @@ public class AttendanceService {
         return workScheduleService.hasActiveScheduleForUser(currentUser, date);
     }
 
+    private boolean isOnApprovedLeave(LocalDate date, HrPerson employee) {
+        List<LeaveStatusEnum> approvedStatuses = List.of(LeaveStatusEnum.APPROVED);
+        // You might also include "PENDING" if you want to block check-in during pending leave
+        // But typically, only approved leaves count.
+
+        return hrLeaveApplicationRepository.existsByEmployeeAndStartDateLessThanEqualAndEndDateGreaterThanEqualAndStatusIn(
+                employee, date, date, approvedStatuses
+        );
+    }
+
     public HrAttendance saveAttendance(HrAttendance att, AppUserInfo modifier) {
         // Auto-set status based on check-in/out vs schedule
         setStatusBasedOnSchedule(att);
@@ -138,22 +172,22 @@ public class AttendanceService {
 
 
     // ✅ Fixed: Accepts start/end and filters by attendanceDate
-    public Page<HrAttendance> getAttendancePage(Pageable pageable, LocalDate start, LocalDate end, String searchTerm, HrCompany company, HrOrgStructure orgStructure) {
+    public Page<HrAttendance> getAttendancePage(Pageable pageable, LocalDate start, LocalDate end, String searchTerm, HrCompany company, HrOrgStructure orgStructure, HrPerson emp) {
         if (currentUser == null) {
             throw new IllegalStateException("App user is not set. Please call setUser() before using this method.");
         }
 
-        Specification<HrAttendance> spec = buildFilterSpec(start, end, searchTerm, company, orgStructure);
+        Specification<HrAttendance> spec = buildFilterSpec(start, end, searchTerm, company, orgStructure, emp);
         return attendanceRepo.findAll(spec, pageable);
     }
 
-    public long countAttendance(LocalDate start, LocalDate end, String searchTerm, HrCompany company, HrOrgStructure orgStructure) {
-        Specification<HrAttendance> spec = buildFilterSpec(start, end, searchTerm, company, orgStructure);
+    public long countAttendance(LocalDate start, LocalDate end, String searchTerm, HrCompany company, HrOrgStructure orgStructure, HrPerson emp) {
+        Specification<HrAttendance> spec = buildFilterSpec(start, end, searchTerm, company, orgStructure, emp);
         return attendanceRepo.count(spec);
     }
 
     // ✅ Fixed: Now uses start/end and adds company/department filters
-    private Specification<HrAttendance> buildFilterSpec(LocalDate start, LocalDate end, String searchTerm, HrCompany company, HrOrgStructure orgStructure) {
+    private Specification<HrAttendance> buildFilterSpec(LocalDate start, LocalDate end, String searchTerm, HrCompany company, HrOrgStructure orgStructure, HrPerson emp) {
         Specification<HrAttendance> spec = buildBaseSearchSpec(searchTerm);
 
         // Filter by date range
@@ -186,6 +220,13 @@ public class AttendanceService {
                 Join<HrPerson, HrPersonPosition> personPositionJoin = personJoin.join("personPositionJoin");
                 Join<HrPersonPosition, HrPosition> positionJoin = personPositionJoin.join("position");
                 return cb.equal(positionJoin.get("orgStructure"), orgStructure);
+            });
+        }
+
+        if(emp != null) {
+            spec = spec.and((root, query, cb) -> {
+                Join<HrAttendance, HrPerson> personJoin = root.join("person");
+                return cb.equal(root.get("person"), emp);
             });
         }
 

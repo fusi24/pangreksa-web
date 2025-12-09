@@ -268,6 +268,8 @@ public class MasterWorkScheduleView extends Main {
                 Set<HrOrgStructure> selected = assignedOrgMultiSelect.getValue();
                 if (selected != null && !selected.isEmpty()) {
                     List<HrWorkScheduleAssignment> assignments = selected.stream().map(p -> {
+                        HrWorkScheduleAssignment current = currentSchedule.getAssignments().stream().filter(q -> q.getOrgStructure().getId().equals(p.getId())).findFirst().orElse(null);
+                        if(current != null) return current;
                         return HrWorkScheduleAssignment.builder()
                                 .schedule(currentSchedule)
                                 .orgStructure(p)

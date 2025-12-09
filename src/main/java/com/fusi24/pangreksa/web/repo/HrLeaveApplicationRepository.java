@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,6 +28,13 @@ public interface HrLeaveApplicationRepository extends JpaRepository<HrLeaveAppli
             HrPerson submittedTo,
             LocalDateTime startDateTime,
             LocalDateTime endDateTime,
+            List<LeaveStatusEnum> statuses
+    );
+
+    boolean existsByEmployeeAndStartDateLessThanEqualAndEndDateGreaterThanEqualAndStatusIn(
+            HrPerson employee,
+            LocalDate onOrBefore,
+            LocalDate onOrAfter,
             List<LeaveStatusEnum> statuses
     );
 }
