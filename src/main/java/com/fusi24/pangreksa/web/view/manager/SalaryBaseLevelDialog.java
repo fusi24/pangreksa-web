@@ -88,11 +88,13 @@ public class SalaryBaseLevelDialog extends Dialog {
         startDateDP.setValue(LocalDate.now());
 
         // Generate code when start date changes
-        startDateDP.addValueChangeListener(ev -> {
-            if (ev.getValue() != null) {
-                levelCodeTF.setValue(service.generateLevelCode(ev.getValue(), company));
-            }
-        });
+        if (editingVersion == null) {
+            startDateDP.addValueChangeListener(ev -> {
+                if (ev.getValue() != null) {
+                    levelCodeTF.setValue(service.generateLevelCode(ev.getValue(), company));
+                }
+            });
+        }
 
         // Prefill for EDIT (edit = create new version)
         if (editingVersion != null) {
@@ -104,9 +106,23 @@ public class SalaryBaseLevelDialog extends Dialog {
         }
 
         // initial code
-        if (startDateDP.getValue() != null) {
+        if (editingVersion == null && startDateDP.getValue() != null) {
             levelCodeTF.setValue(service.generateLevelCode(startDateDP.getValue(), company));
         }
+
+        // Prefill for EDIT (edit = create new version)
+        if (editingVersion != null) {
+            levelCodeTF.setValue(editingVersion.getLevelCode() != null
+                    ? editingVersion.getLevelCode()
+                    : "");
+
+            amountTF.setValue(editingVersion.getBaseSalary() != null
+                    ? editingVersion.getBaseSalary().toPlainString()
+                    : "");
+            reasonCB.setValue(editingVersion.getReason());
+            // gunakan startDate default "hari ini" agar versi baru
+        }
+
 
         Button cancelBtn = new Button("Cancel", e -> close());
         Button saveBtn = new Button("Save");
@@ -137,8 +153,11 @@ public class SalaryBaseLevelDialog extends Dialog {
                 return;
             }
 
-            String levelCode = levelCodeTF.getValue();
-            if (levelCode == null || levelCode.isBlank()) {
+            String levelCode = (editingVersion != null)
+                    ? editingVersion.getLevelCode()
+                    : levelCodeTF.getValue();
+
+            if (editingVersion == null && (levelCode == null || levelCode.isBlank())) {
                 levelCode = service.generateLevelCode(start, company);
             }
 
