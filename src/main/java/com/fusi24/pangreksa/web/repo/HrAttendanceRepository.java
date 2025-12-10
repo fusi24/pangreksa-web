@@ -26,6 +26,6 @@ public interface HrAttendanceRepository extends CrudRepository<HrAttendance, Lon
     List<HrAttendance> findByStatus(String status);
 
 
-    @EntityGraph(attributePaths = "person")
+    @EntityGraph(attributePaths = {"person", "workSchedule"})
     Page<HrAttendance> findAll(Specification<HrAttendance> spec, Pageable pageable);
 }

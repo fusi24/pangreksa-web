@@ -197,6 +197,7 @@ public class AttendanceView extends Main {
         searchField.setClearButtonVisible(true);
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
         searchField.addValueChangeListener(e -> applyFilters());
+        searchField.setVisible(isHr);
 
         Button refreshButton = new Button(new Icon(VaadinIcon.REFRESH), e -> applyFilters());
         refreshButton.setAriaLabel("Refresh");
@@ -267,6 +268,7 @@ public class AttendanceView extends Main {
                     Notification.show("Clock-out berhasil", 3000, Notification.Position.MIDDLE);
                     applyFilters(); // refresh grid
                 } catch (Exception ex) {
+                    log.error(ex.getMessage(), ex);
                     Notification.show("Gagal clock-out: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
                     // Optionally revert the change in UI
                     attendance.setCheckOut(null);
