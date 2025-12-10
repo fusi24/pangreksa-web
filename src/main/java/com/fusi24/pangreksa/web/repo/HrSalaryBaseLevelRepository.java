@@ -23,7 +23,8 @@ public interface HrSalaryBaseLevelRepository extends JpaRepository<HrSalaryBaseL
     @EntityGraph(attributePaths = "company")
     List<HrSalaryBaseLevel> findByCompanyAndEndDateIsNullOrderByLevelCodeAsc(HrCompany company);
 
-
+    @EntityGraph(attributePaths = "company")
+    List<HrSalaryBaseLevel> findByCompanyAndIsActiveTrueOrderByLevelCodeAsc(HrCompany company);
 
 
     // ====== ✅ REQUIRED BY SalaryLevelService ======

@@ -85,11 +85,13 @@ public class PayrollService {
             throw new IllegalStateException("App user is not set. Please call setUser() before using this method.");
         }
 
-        if (includeInactive)
+        if (includeInactive) {
             return hrSalaryBaseLevelRepository.findByCompanyOrderByLevelCodeAsc(appUser.getCompany());
-        else
-            return hrSalaryBaseLevelRepository.findByCompanyAndEndDateIsNullOrderByLevelCodeAsc(appUser.getCompany());
+        }
+
+        return hrSalaryBaseLevelRepository.findByCompanyAndIsActiveTrueOrderByLevelCodeAsc(appUser.getCompany());
     }
+
 
     public List<HrSalaryAllowance> getAllSalaryAllowances(boolean includeInactive) {
         if (includeInactive)
