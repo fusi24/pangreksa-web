@@ -2,6 +2,11 @@ package com.fusi24.pangreksa.web.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.fusi24.pangreksa.web.model.entity.HrCompanyBranch;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
+
 
 import java.time.LocalDate;
 
@@ -50,5 +55,9 @@ public class HrPersonPosition  extends AuditableEntity<HrPersonPosition>  {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dept_id")
     private HrDepartment department;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id")
+    private HrCompanyBranch branch;
 }
 

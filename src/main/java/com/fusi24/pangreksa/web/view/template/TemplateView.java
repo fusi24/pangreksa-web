@@ -5,6 +5,7 @@ import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Main;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Menu;
@@ -62,7 +63,7 @@ public class TemplateView extends Main {
         this.body = new VerticalLayout();
         body.setPadding(false);
         body.setSpacing(false);
-
+        
 
         add(body);
     }

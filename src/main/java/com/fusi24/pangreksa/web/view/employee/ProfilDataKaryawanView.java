@@ -8,8 +8,12 @@ import com.fusi24.pangreksa.web.repo.HrDepartmentRepo;
 import com.fusi24.pangreksa.web.repo.HrCompanyRepository;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.CompanyService;
+import com.fusi24.pangreksa.web.service.CompanyBranchService;
 import com.fusi24.pangreksa.web.service.PersonService;
 import com.fusi24.pangreksa.web.service.SystemService;
+
+
+
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -57,6 +61,7 @@ public class ProfilDataKaryawanView extends Main {
     private final CommonService commonService;
     private final PersonService personService;
     private final CompanyService companyService;
+    private final CompanyBranchService companyBranchService;
     private final SystemService systemService;
     private Authorization auth;
     private FwAppUser currentAppUser;
@@ -84,13 +89,19 @@ public class ProfilDataKaryawanView extends Main {
     @Autowired
     private HrCompanyRepository hrCompanyRepository;
 
-    public ProfilDataKaryawanView(CurrentUser currentUser, CommonService commonService, PersonService personService,
-                                  CompanyService companyService, SystemService systemService) {
+    public ProfilDataKaryawanView(CurrentUser currentUser,
+                                  CommonService commonService,
+                                  PersonService personService,
+                                  CompanyService companyService,
+                                  CompanyBranchService companyBranchService,
+                                  SystemService systemService) {
         this.currentUser = currentUser;
         this.commonService = commonService;
         this.personService = personService;
         this.companyService = companyService;
+        this.companyBranchService = companyBranchService;
         this.systemService = systemService;
+
 
         this.auth = commonService.getAuthorization(
                 currentUser.require(),
@@ -215,6 +226,7 @@ public class ProfilDataKaryawanView extends Main {
                 dialogLayout.setSpacing(true);
 
                 ComboBox<HrCompany> companyDropdown = new ComboBox<>("Company");
+                ComboBox<HrCompanyBranch> branchDropdown = new ComboBox<>("Branch");
                 ComboBox<HrOrgStructure> orgStructureDropdown = new ComboBox<>("Org. Structure");
                 ComboBox<HrPosition> positionDropdown = new ComboBox<>("Position");
                 DatePicker startDatePicker = new DatePicker("Start Date");
@@ -222,6 +234,13 @@ public class ProfilDataKaryawanView extends Main {
                 Checkbox isPrimaryCheckbox = new Checkbox("Is Primary");
                 Checkbox isActingCheckbox = new Checkbox("Is Acting");
                 ComboBox<HrPerson> requestedByDropdown = new ComboBox<>("Requested By");
+
+                // === Branch (cabang perusahaan) ===
+                branchDropdown.setItemLabelGenerator(HrCompanyBranch::getBranchName);
+                branchDropdown.setWidth("400px");
+                branchDropdown.setClearButtonVisible(true);
+                branchDropdown.setEnabled(false);
+
 
                 // === Requested By (lazy search, mirip view lain) ===
                 requestedByDropdown.setItemLabelGenerator(p ->
@@ -263,6 +282,7 @@ public class ProfilDataKaryawanView extends Main {
                 positionDropdown.setEnabled(false);
 
                 // Saat Company dipilih -> load org structure untuk company tsb
+                // Saat Company dipilih -> load branch & org structure untuk company tsb
                 companyDropdown.addValueChangeListener(eventCompany -> {
                     orgStructureDropdown.clear();
                     orgStructureDropdown.setItems(java.util.Collections.emptyList());
@@ -270,8 +290,13 @@ public class ProfilDataKaryawanView extends Main {
                     positionDropdown.setItems(java.util.Collections.emptyList());
                     positionDropdown.setEnabled(false);
 
+                    branchDropdown.clear();
+                    branchDropdown.setItems(java.util.Collections.emptyList());
+                    branchDropdown.setEnabled(false);
+
                     HrCompany selectedCompany = eventCompany.getValue();
                     if (selectedCompany != null) {
+                        // Org structure
                         java.util.List<HrOrgStructure> orgs =
                                 companyService.getAllOrgStructuresInCompany(selectedCompany);
 
@@ -282,10 +307,23 @@ public class ProfilDataKaryawanView extends Main {
                         if (orgs != null && !orgs.isEmpty()) {
                             orgStructureDropdown.setItems(orgs);
                         }
+
+                        // Branch
+                        java.util.List<HrCompanyBranch> branches =
+                                companyBranchService.findByCompany(selectedCompany);
+
+                        log.debug("Assign dialog: found {} branches for company {}",
+                                branches != null ? branches.size() : 0,
+                                selectedCompany.getName());
+
+                        if (branches != null && !branches.isEmpty()) {
+                            branchDropdown.setItems(branches);
+                            branchDropdown.setEnabled(true);
+                        }
                     }
                 });
 
-                // Initial load org structure untuk default company (login user)
+                // Initial load org structure & branch untuk default company (login user)
                 HrCompany initialCompany = companyDropdown.getValue();
                 if (initialCompany != null) {
                     java.util.List<HrOrgStructure> orgs =
@@ -293,7 +331,15 @@ public class ProfilDataKaryawanView extends Main {
                     if (orgs != null && !orgs.isEmpty()) {
                         orgStructureDropdown.setItems(orgs);
                     }
+
+                    java.util.List<HrCompanyBranch> branches =
+                            companyBranchService.findByCompany(initialCompany);
+                    if (branches != null && !branches.isEmpty()) {
+                        branchDropdown.setItems(branches);
+                        branchDropdown.setEnabled(true);
+                    }
                 }
+
 
                 // Saat Org. Structure dipilih -> load posisi yang ada di unit tsb
                 orgStructureDropdown.addValueChangeListener(event2 -> {
@@ -335,12 +381,17 @@ public class ProfilDataKaryawanView extends Main {
                         Notification.show("Company is required.");
                         return;
                     }
+                    if (branchDropdown.isEmpty()) {
+                        Notification.show("Branch is required.");
+                        return;
+                    }
                     if (orgStructureDropdown.isEmpty() || positionDropdown.isEmpty()) {
-                        Notification.show("Company, Org Structure and Position are required.");
+                        Notification.show("Company, Branch, Org Structure and Position are required.");
                         return;
                     }
 
                     HrCompany selectedCompany = companyDropdown.getValue();
+                    HrCompanyBranch selectedBranch = branchDropdown.getValue();
 
                     log.debug("Saving Company {}, Org Structure {} and Position {} to Person {}",
                             selectedCompany != null ? selectedCompany.getName() : "-",
@@ -348,9 +399,11 @@ public class ProfilDataKaryawanView extends Main {
                             positionDropdown.getValue(),
                             person.getFirstName());
 
+
                     HrPersonPosition personPosition = HrPersonPosition.builder()
                             .person(person)
                             .company(selectedCompany)
+                            .branch(selectedBranch)   // ⬅️ sekarang sudah ada kolom & field
                             .position(positionDropdown.getValue())
                             .startDate(startDatePicker.getValue())
                             .endDate(endDatePicker.getValue())
@@ -370,6 +423,7 @@ public class ProfilDataKaryawanView extends Main {
 
                 dialogLayout.add(
                         companyDropdown,
+                        branchDropdown,
                         orgStructureDropdown,
                         positionDropdown,
                         new HorizontalLayout(startDatePicker, endDatePicker),
