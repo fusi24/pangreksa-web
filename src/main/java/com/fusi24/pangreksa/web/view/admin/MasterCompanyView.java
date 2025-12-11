@@ -19,11 +19,11 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.Autocapitalize;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
@@ -94,6 +94,13 @@ public class MasterCompanyView extends Main {
 
     private HrCompanyBranch currentBranch;
 
+    // ===== TAB 3: PINDAH CABANG =====
+    private final ComboBox<HrCompany> fromCompanyField = new ComboBox<>("Dari Perusahaan");
+    private final ComboBox<HrCompanyBranch> fromBranchField = new ComboBox<>("Dari Cabang");
+    private final ComboBox<HrCompany> toCompanyField = new ComboBox<>("Ke Perusahaan");
+    private final ComboBox<HrCompanyBranch> toBranchField = new ComboBox<>("Ke Cabang");
+    private final Button switchBranchButton = new Button("Simpan Cabang Aktif");
+
     @Autowired
     public MasterCompanyView(HrCompanyRepository companyRepo,
                              CompanyBranchService branchService) {
@@ -116,6 +123,7 @@ public class MasterCompanyView extends Main {
 
         tabs.add("Perusahaan", createCompanyTab());
         tabs.add("Cabang Perusahaan", createBranchTab());
+        tabs.add("Pindah Cabang", createSwitchBranchTab());
 
         add(tabs);
 
@@ -493,8 +501,6 @@ public class MasterCompanyView extends Main {
         branchBinder.forField(branchTimezoneField)
                 .bind(HrCompanyBranch::getBranchTimezone, HrCompanyBranch::setBranchTimezone);
 
-        // latitude/longitude parse manual saat save
-
         branchDialog.removeAll();
         branchDialog.add(new H3("Branch Details"), branchForm);
 
@@ -615,6 +621,150 @@ public class MasterCompanyView extends Main {
                     }
                 }
         );
+    }
+
+    // =========================
+    // TAB PINDAH CABANG UI
+    // =========================
+    private Component createSwitchBranchTab() {
+        // Isi data perusahaan
+        List<HrCompany> companies = companyRepo.findAll();
+        fromCompanyField.setItems(companies);
+        fromCompanyField.setItemLabelGenerator(c -> c != null ? c.getName() : "");
+
+        toCompanyField.setItems(companies);
+        toCompanyField.setItemLabelGenerator(c -> c != null ? c.getName() : "");
+
+        // Konfigurasi combo cabang
+        fromBranchField.setItemLabelGenerator(b -> {
+            if (b == null) return "";
+            String code = b.getBranchCode() != null ? b.getBranchCode() : "";
+            String name = b.getBranchName() != null ? b.getBranchName() : "";
+            return code.isBlank() ? name : code + " - " + name;
+        });
+        toBranchField.setItemLabelGenerator(b -> {
+            if (b == null) return "";
+            String code = b.getBranchCode() != null ? b.getBranchCode() : "";
+            String name = b.getBranchName() != null ? b.getBranchName() : "";
+            return code.isBlank() ? name : code + " - " + name;
+        });
+
+        fromBranchField.setEnabled(false);
+        toBranchField.setEnabled(false);
+
+        fromCompanyField.addValueChangeListener(e -> {
+            HrCompany company = e.getValue();
+            if (company == null) {
+                fromBranchField.clear();
+                fromBranchField.setItems();
+                fromBranchField.setEnabled(false);
+            } else {
+                List<HrCompanyBranch> branches = branchService.findByCompany(company);
+                fromBranchField.setItems(branches);
+                fromBranchField.setEnabled(true);
+            }
+        });
+
+        toCompanyField.addValueChangeListener(e -> {
+            HrCompany company = e.getValue();
+            if (company == null) {
+                toBranchField.clear();
+                toBranchField.setItems();
+                toBranchField.setEnabled(false);
+            } else {
+                List<HrCompanyBranch> branches = branchService.findByCompany(company);
+                toBranchField.setItems(branches);
+                toBranchField.setEnabled(true);
+            }
+        });
+
+        // Pre-select "from" berdasarkan cabang aktif di session (jika ada)
+        // Pre-select "from" berdasarkan cabang aktif di session (jika ada)
+        Object activeBranchIdObj = VaadinSession.getCurrent().getAttribute("ACTIVE_BRANCH_ID");
+        Long activeBranchId = null;
+        if (activeBranchIdObj instanceof Number) {
+            activeBranchId = ((Number) activeBranchIdObj).longValue();
+        } else if (activeBranchIdObj instanceof String) {
+            try {
+                activeBranchId = Long.parseLong((String) activeBranchIdObj);
+            } catch (NumberFormatException ignore) {
+                // abaikan
+            }
+        }
+
+        if (activeBranchId != null) {
+            final Long branchId = activeBranchId; // ⬅️ ini yang dipakai di lambda
+
+            List<HrCompanyBranch> allBranches = branchService.findAll();
+            HrCompanyBranch activeBranch = allBranches.stream()
+                    .filter(b -> b.getId() != null && b.getId().longValue() == branchId)
+                    .findFirst()
+                    .orElse(null);
+
+            if (activeBranch != null) {
+                HrCompany company = activeBranch.getCompany();
+                if (company != null) {
+                    fromCompanyField.setValue(company);
+                    List<HrCompanyBranch> branches = branchService.findByCompany(company);
+                    fromBranchField.setItems(branches);
+                    fromBranchField.setEnabled(true);
+                    fromBranchField.setValue(activeBranch);
+                }
+            }
+        }
+
+
+        switchBranchButton.addClickListener(e -> {
+            if (toCompanyField.isEmpty() || toBranchField.isEmpty()) {
+                Notification.show("Perusahaan dan cabang tujuan wajib dipilih.",
+                        4000, Notification.Position.MIDDLE);
+                return;
+            }
+
+            HrCompanyBranch targetBranch = toBranchField.getValue();
+            if (targetBranch == null || targetBranch.getId() == null) {
+                Notification.show("Cabang tujuan tidak valid.",
+                        4000, Notification.Position.MIDDLE);
+                return;
+            }
+
+            // Simpan cabang aktif di session.
+            VaadinSession.getCurrent().setAttribute("ACTIVE_BRANCH_ID", targetBranch.getId());
+
+            // TODO: di sini nanti bisa panggil service untuk sync ke hr_person_position.branch_id
+            // misalnya: userBranchService.setActiveBranchForCurrentUser(targetBranch);
+
+            Notification.show(
+                    "Cabang aktif dipindah ke: " + targetBranch.getBranchName(),
+                    4000,
+                    Notification.Position.MIDDLE
+            );
+        });
+
+        FormLayout form = new FormLayout();
+        form.setWidth("500px");
+        form.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 1, FormLayout.ResponsiveStep.LabelsPosition.TOP),
+                new FormLayout.ResponsiveStep("600px", 2, FormLayout.ResponsiveStep.LabelsPosition.TOP)
+        );
+
+        form.add(
+                fromCompanyField,
+                fromBranchField,
+                toCompanyField,
+                toBranchField
+        );
+
+        HorizontalLayout buttons = new HorizontalLayout(switchBranchButton);
+        buttons.setWidthFull();
+        buttons.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
+
+        VerticalLayout layout = new VerticalLayout(form, buttons);
+        layout.setPadding(false);
+        layout.setSpacing(false);
+        layout.setWidthFull();
+
+        return layout;
     }
 
     private BigDecimal parseDecimalOrNull(String s) {
