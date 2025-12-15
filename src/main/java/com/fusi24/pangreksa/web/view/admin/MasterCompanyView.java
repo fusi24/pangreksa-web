@@ -182,6 +182,23 @@ public class MasterCompanyView extends Main {
         nameField.setRequired(true);
         nameField.setMaxLength(100);
 
+        companyBinder.forField(registrationNumberField)
+                .withValidator(value -> value == null || value.matches("\\d+"),
+                        "Registration number wajib angka")
+                .bind(HrCompany::getRegistrationNumber, HrCompany::setRegistrationNumber);
+
+        companyBinder.forField(phoneField)
+                .withValidator(value -> value == null || value.matches("\\d+"),
+                        "Nomor telepon wajib angka")
+                .bind(HrCompany::getPhone, HrCompany::setPhone);
+
+        companyBinder.forField(emailField)
+                .withValidator(value -> value == null || value.contains("@"),
+                        "Email harus mengandung '@'")
+                .bind(HrCompany::getEmail, HrCompany::setEmail);
+
+
+
         shortNameField.setMaxLength(20);
         shortNameField.setAutocapitalize(Autocapitalize.CHARACTERS);
 
@@ -225,17 +242,8 @@ public class MasterCompanyView extends Main {
         companyBinder.forField(shortNameField)
                 .bind(HrCompany::getShortName, HrCompany::setShortName);
 
-        companyBinder.forField(registrationNumberField)
-                .bind(HrCompany::getRegistrationNumber, HrCompany::setRegistrationNumber);
-
         companyBinder.forField(establishmentDateField)
                 .bind(HrCompany::getEstablishmentDate, HrCompany::setEstablishmentDate);
-
-        companyBinder.forField(phoneField)
-                .bind(HrCompany::getPhone, HrCompany::setPhone);
-
-        companyBinder.forField(emailField)
-                .bind(HrCompany::getEmail, HrCompany::setEmail);
 
         companyBinder.forField(websiteField)
                 .bind(HrCompany::getWebsite, HrCompany::setWebsite);
