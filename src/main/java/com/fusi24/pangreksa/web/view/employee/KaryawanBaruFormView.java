@@ -14,6 +14,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import org.springframework.beans.factory.annotation.Autowired;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
@@ -38,6 +39,11 @@ import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.server.streams.InMemoryUploadHandler;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.web.service.PersonPtkpService;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.fusi24.pangreksa.web.service.PersonService;
+import com.fusi24.pangreksa.web.service.PersonPtkpService;
+
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +59,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import com.fusi24.pangreksa.web.service.PersonTanggunganService;
 
 @Route("karyawan-baru-form-page-access")
 @PageTitle("Karyawan Baru Form")
@@ -66,6 +73,10 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
     private final CommonService commonService;
     private final PersonService personService;
     private Authorization auth;
+
+    private PersonPtkpService personPtkpService;
+    private PersonTanggunganService personTanggunganService;
+
 
     public static final String VIEW_NAME = "Karyawan Baru Form";
 
@@ -141,6 +152,22 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
     private TextField filename = new TextField("Filename");
     private TextField path = new TextField("Path");
 
+    // ================= TANGGUNGAN =================
+    HorizontalLayout tanggunganLayout = new HorizontalLayout();
+
+    private TextField tgName = new TextField("Nama");
+    private ComboBox<String> tgRelation = new ComboBox<>("Hubungan");
+    private DatePicker tgDob = new DatePicker("Tanggal Lahir");
+    private ComboBox<GenderEnum> tgGender = new ComboBox<>("Jenis Kelamin");
+    private Checkbox tgStillDependent = new Checkbox("Masih Tanggungan");
+
+    private Grid<HrPersonTanggungan> gridTanggungan;
+    private List<HrPersonTanggungan> tanggunganList = new ArrayList<>();
+    private HrPersonTanggungan tanggunganData;
+    private Checkbox jointIncomeField = new Checkbox("Penghasilan Suami & Istri Digabung (K/I)");
+
+
+
     // Grids
     private Grid<HrPersonAddress> gridAddress;
     private Grid<HrPersonContact> gridContacts;
@@ -158,10 +185,17 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
     private HrPersonEducation educationData;
     private HrPersonDocument documentData;
 
-    public KaryawanBaruFormView(CurrentUser currentUser, CommonService commonService, PersonService personService) {
+    public KaryawanBaruFormView(CurrentUser currentUser,
+                                CommonService commonService,
+                                PersonService personService,
+                                PersonTanggunganService personTanggunganService,
+                                PersonPtkpService personPtkpService) {
+
         this.currentUser = currentUser;
         this.commonService = commonService;
         this.personService = personService;
+        this.personTanggunganService = personTanggunganService;
+        this.personPtkpService = personPtkpService;
 
         this.auth = commonService.getAuthorization(
                 currentUser.require(),
@@ -237,6 +271,8 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         tabSheet.add("Contacts", contactsLayout);
         tabSheet.add("Educations", educationLayout);
         tabSheet.add("Documents", documentsLayout);
+        tabSheet.add("Tanggungan", tanggunganLayout);
+
 
         tabSheet.getStyle().setWidth("100%");
 
@@ -244,6 +280,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         createContactsForm();
         createEducationForm();
         createDocumentForm();
+        createTanggunganForm();
 
         HorizontalLayout masterLayout = new HorizontalLayout(createAvatarUploadLayout(), personFormLayout, toolbarLayoutMaster);
         masterLayout.setWidthFull();
@@ -372,8 +409,25 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                 dob,
                 nationality,
                 religion,
-                marriage
+                marriage,
+                jointIncomeField   // ⬅️ TAMBAHKAN DI SINI
         );
+
+        // ===== PTKP K/I VISIBILITY =====
+        jointIncomeField.setVisible(false);
+
+        marriage.addValueChangeListener(e -> {
+            boolean married = e.getValue() != null
+                    && !e.getValue().name().equalsIgnoreCase("SINGLE")
+                    && !e.getValue().name().equalsIgnoreCase("TK");
+
+            jointIncomeField.setVisible(married);
+
+            if (!married) {
+                jointIncomeField.setValue(false);
+            }
+        });
+
     }
 
     private static final String CIRCLE_PX = "200px";
@@ -873,6 +927,60 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         documentsLayout.add(gridDocument, documentFormLayout);
     }
 
+    private void createTanggunganForm() {
+        tgRelation.setItems("Suami", "Istri", "Anak Kandung");
+        tgGender.setItems(GenderEnum.values());
+        tgDob.setI18n(DatePickerUtil.getIndonesianI18n());
+        tgStillDependent.setEnabled(false);
+
+        tgDob.addValueChangeListener(e -> updateDependentStatus());
+        tgRelation.addValueChangeListener(e -> updateDependentStatus());
+
+        FormLayout tanggunganForm = new FormLayout(
+                tgName, tgRelation, tgDob, tgGender, tgStillDependent
+        );
+
+        gridTanggungan = new Grid<>(HrPersonTanggungan.class, false);
+        gridTanggungan.addColumn(HrPersonTanggungan::getName).setHeader("Nama");
+        gridTanggungan.addColumn(HrPersonTanggungan::getRelation).setHeader("Hubungan");
+        gridTanggungan.addColumn(HrPersonTanggungan::getDob).setHeader("Tanggal Lahir");
+        gridTanggungan.addColumn(t -> t.getGender().name()).setHeader("Gender");
+        gridTanggungan.addColumn(t -> t.getStillDependent() ? "Ya" : "Tidak")
+                .setHeader("Masih Tanggungan");
+
+        gridTanggungan.addComponentColumn(t -> {
+            Button edit = new Button(VaadinIcon.PENCIL.create(), e -> loadTanggungan(t));
+            Button del = new Button(VaadinIcon.TRASH.create(), e -> {
+                if (t.getId() != null) {
+                    personTanggunganService.delete(t);
+                }
+                tanggunganList.remove(t);
+                gridTanggungan.setItems(tanggunganList);
+            });
+            return new HorizontalLayout(edit, del);
+        }).setHeader("Action");
+
+        gridTanggungan.setItems(tanggunganList);
+        gridTanggungan.setHeight("250px");
+
+        tanggunganLayout.add(gridTanggungan, tanggunganForm);
+    }
+    private void updateDependentStatus() {
+        if (tgDob.getValue() == null) {
+            tgStillDependent.setValue(false);
+            return;
+        }
+
+        int age = java.time.Period.between(tgDob.getValue(), LocalDate.now()).getYears();
+        boolean still = age <= 21;
+
+        if ("Suami".equals(tgRelation.getValue()) || "Istri".equals(tgRelation.getValue())) {
+            still = false;
+        }
+
+        tgStillDependent.setValue(still);
+    }
+
     // Helper to populate address fields for editing
     private void populateAddressFields(HrPersonAddress address) {
         this.addressData = address;
@@ -1073,7 +1181,8 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                     clearForm(false, false, false, true, false);
                     this.educationData = null;
                 }
-                case 3 -> { // --- DOCUMENT ---
+                case 3 -> {
+                    // --- DOCUMENT ---
                     // 1. Validasi Wajib
                     boolean valid = true;
                     if (typeDocument.getValue() == null) { typeDocument.setInvalid(true); valid = false; }
@@ -1108,9 +1217,73 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                     clearForm(false, false, false, false, true);
                     this.documentData = null;
                 }
+
+                case 4 -> { // === TANGGUNGAN (OPS B: LANGSUNG DB) ===
+
+                    // 1. Validasi form
+                    if (tgName.isEmpty() || tgRelation.isEmpty() || tgDob.isEmpty() || tgGender.isEmpty()) {
+                        Notification.show("Semua field tanggungan wajib diisi");
+                        return;
+                    }
+
+                    // 2. Pastikan person sudah disimpan
+                    if (personData == null || personData.getId() == null) {
+                        Notification.show(
+                                "Simpan data karyawan terlebih dahulu sebelum menambahkan tanggungan",
+                                4000,
+                                Notification.Position.MIDDLE
+                        );
+                        return;
+                    }
+
+                    // 3. Create / Update entity
+                    HrPersonTanggungan t =
+                            tanggunganData != null ? tanggunganData : new HrPersonTanggungan();
+
+                    t.setName(tgName.getValue());
+                    t.setRelation(tgRelation.getValue());
+                    t.setDob(tgDob.getValue());
+                    t.setGender(tgGender.getValue());
+                    t.setStillDependent(tgStillDependent.getValue());
+
+                    // ⬅️ INI PALING PENTING
+                    t.setPerson(personData);
+
+                    // 4. SAVE KE DATABASE
+                    HrPersonTanggungan saved = personTanggunganService.save(t);
+
+                    // 5. Update UI
+                    tanggunganList = personTanggunganService.findByPerson(personData);
+                    gridTanggungan.setItems(tanggunganList);
+
+                    clearTanggunganForm();
+                    tanggunganData = null;
+                }
+
+
             }
         });
 
+    }
+
+    private void loadTanggungan(HrPersonTanggungan t) {
+        this.tanggunganData = t;
+
+        tgName.setValue(t.getName());
+        tgRelation.setValue(t.getRelation());
+        tgDob.setValue(t.getDob());
+        tgGender.setValue(t.getGender());
+        tgStillDependent.setValue(
+                t.getStillDependent() != null ? t.getStillDependent() : false
+        );
+    }
+    private void clearTanggunganForm() {
+        tgName.clear();
+        tgRelation.clear();
+        tgDob.clear();
+        tgGender.clear();
+        tgStillDependent.clear();
+        tanggunganData = null;
     }
 
     private void populateDemoDate() {
@@ -1331,6 +1504,19 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
         personService.workingWithPerson(person, appUser);
         personService.savePerson();
+        this.personData = person;
+
+        // ================= PTKP AUTO GENERATE =================
+        List<HrPersonTanggungan> dbTanggungan =
+                personTanggunganService.findByPerson(person);
+
+        personPtkpService.generateAndSavePtkp(
+                person,
+                person.getMarriage(),
+                dbTanggungan,
+                Boolean.TRUE.equals(jointIncomeField.getValue())
+        );
+
 
         personService.saveAllInformation(
                 addressList,
@@ -1477,6 +1663,9 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
             this.gridContacts.setItems(this.contactList);
             this.gridEducation.setItems(this.educationList);
             this.gridDocument.setItems(this.documentList);
+            this.tanggunganList =
+                    personTanggunganService.findByPerson(this.personData);
+            this.gridTanggungan.setItems(this.tanggunganList);
 
             log.debug("loaded person: {} {} {} {} {}", this.personData.getFirstName(), addressList.size(), contactList.size(), educationList.size(), documentList.size());
             demoButton.setEnabled(false);
