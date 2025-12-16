@@ -1,7 +1,9 @@
 package com.fusi24.pangreksa.web.service;
 
 import com.fusi24.pangreksa.web.model.entity.HrPersonPtkp;
+import com.fusi24.pangreksa.web.model.entity.MasterPtkp;
 import com.fusi24.pangreksa.web.model.enumerate.MarriageEnum;
+import com.fusi24.pangreksa.web.repo.MasterPtkpRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -10,51 +12,47 @@ import java.time.LocalDate;
 @Service
 public class PtkpCalculatorService {
 
-    // PTKP rules (berlaku sejak 2016)
-    private static final BigDecimal BASE_TK = BigDecimal.valueOf(54_000_000);
-    private static final BigDecimal DEPENDENT = BigDecimal.valueOf(4_500_000);
-    private static final BigDecimal BASE_KI = BigDecimal.valueOf(112_500_000);
+    private final MasterPtkpRepository masterPtkpRepository;
 
-    /**
-     * @param marriageStatus status perkawinan
-     * @param dependentCount jumlah tanggungan (maks 3)
-     * @param jointIncome true jika penghasilan suami-istri digabung (K/I)
-     */
-    public HrPersonPtkp calculate(
+    public PtkpCalculatorService(MasterPtkpRepository masterPtkpRepository) {
+        this.masterPtkpRepository = masterPtkpRepository;
+    }
+
+    public HrPersonPtkp calculateFromMaster(
             MarriageEnum marriageStatus,
             int dependentCount,
             boolean jointIncome
     ) {
-        HrPersonPtkp ptkp = new HrPersonPtkp();
 
-        // maksimal 3 tanggungan
+        // 1. Normalisasi tanggungan (max 3)
         int dep = Math.min(Math.max(dependentCount, 0), 3);
 
-        BigDecimal amount;
-        String code;
-
+        // 2. Generate KODE PTKP
+        String kodePtkp;
         if (jointIncome) {
-            // K/I/0
-            amount = BASE_KI;
-            code = "K/I/0";
+            kodePtkp = "K/I/0";
+        } else if (marriageStatus != null &&
+                !marriageStatus.name().equalsIgnoreCase("SINGLE") &&
+                !marriageStatus.name().equalsIgnoreCase("TK")) {
+            kodePtkp = "K/" + dep;
         } else {
-            amount = BASE_TK;
-
-            if (marriageStatus != null && marriageStatus.name().equalsIgnoreCase("YES")) {
-                amount = amount.add(DEPENDENT);
-                code = "K/" + dep;
-            } else {
-                code = "TK/" + dep;
-            }
-
-            amount = amount.add(DEPENDENT.multiply(BigDecimal.valueOf(dep)));
+            kodePtkp = "TK/" + dep;
         }
 
+        // 3. Ambil dari MASTER
+        MasterPtkp master = masterPtkpRepository
+                .findByKodePtkpAndAktifTrue(kodePtkp)
+                .orElseThrow(() ->
+                        new IllegalStateException("Master PTKP tidak ditemukan: " + kodePtkp)
+                );
+
+        // 4. Map ke entity karyawan_ptkp
+        HrPersonPtkp ptkp = new HrPersonPtkp();
         ptkp.setMarriageStatus(marriageStatus);
-        ptkp.setPtkpCode(code);
-        ptkp.setPtkpAmount(amount);
+        ptkp.setPtkpCode(master.getKodePtkp());
+        ptkp.setPtkpAmount(master.getNominal());
         ptkp.setValidFrom(LocalDate.now());
-        ptkp.setValidTo(null); // aktif sampai diganti
+        ptkp.setValidTo(null);
 
         return ptkp;
     }

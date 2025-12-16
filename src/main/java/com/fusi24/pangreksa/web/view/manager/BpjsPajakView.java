@@ -30,6 +30,11 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.H3;
+
+import com.fusi24.pangreksa.web.model.entity.MasterPtkp;
+import com.fusi24.pangreksa.web.service.MasterPtkpService;
 
 import java.util.List;
 
@@ -68,10 +73,19 @@ public class BpjsPajakView extends Main {
             "e53eb8ac-a133-481a-a0ad-1cb892f0b740"
     );
 
-    public BpjsPajakView(CurrentUser currentUser, CommonService commonService, SystemService systemService) {
-        this.currentUser = currentUser;
+    private Grid<MasterPtkp> ptkpGrid;
+    private List<MasterPtkp> ptkpList;
+    private final MasterPtkpService masterPtkpService;
+
+    public BpjsPajakView(CurrentUser currentUser,
+                         CommonService commonService,
+                         SystemService systemService,
+                         MasterPtkpService masterPtkpService) {
+
+        this.currentUser = currentUser;   // ✅ FIX UTAMA
         this.commonService = commonService;
         this.systemService = systemService;
+        this.masterPtkpService = masterPtkpService;
 
         this.auth = commonService.getAuthorization(
                 currentUser.require(),
@@ -96,6 +110,50 @@ public class BpjsPajakView extends Main {
         }
     }
 
+    private Component createPtkpTable() {
+
+        ptkpGrid = new Grid<>(MasterPtkp.class, false);
+
+        ptkpGrid.addColumn(MasterPtkp::getKodePtkp)
+                .setHeader("Kode PTKP");
+
+        ptkpGrid.addColumn(MasterPtkp::getGolongan)
+                .setHeader("Golongan");
+
+        ptkpGrid.addColumn(MasterPtkp::getJumlahTanggungan)
+                .setHeader("Jumlah Tanggungan");
+
+        ptkpGrid.addColumn(MasterPtkp::getNominal)
+                .setHeader("Nominal (Rp)");
+
+        ptkpGrid.addColumn(new ComponentRenderer<>(ptkp -> {
+            Button edit = new Button("Edit");
+            Button del = new Button("Delete");
+
+            edit.setEnabled(auth.canEdit);
+            del.setEnabled(auth.canDelete);
+
+            del.addClickListener(e -> {
+                masterPtkpService.delete(ptkp);
+                refreshPtkpGrid();
+            });
+
+            return new HorizontalLayout(edit, del);
+        })).setHeader("Action");
+
+        refreshPtkpGrid();
+        ptkpGrid.setWidthFull();
+
+        return ptkpGrid;
+    }
+
+
+    private void refreshPtkpGrid() {
+        ptkpList = masterPtkpService.findAll();
+        ptkpGrid.setItems(ptkpList);
+    }
+
+
     private void createBody() {
         this.body = new VerticalLayout();
         body.setPadding(false);
@@ -119,7 +177,12 @@ public class BpjsPajakView extends Main {
         virtualList.setItems(systemList);
         virtualList.setRenderer(systemRenderer);
 
-        body.add(toolbarLayoutMaster, virtualList);
+        body.add(
+                toolbarLayoutMaster,
+                virtualList,
+                new H3("Master PTKP"),
+                createPtkpTable()
+        );
 
 
         add(body);

@@ -42,7 +42,7 @@ public class PersonPtkpService {
                 .filter(t -> Boolean.TRUE.equals(t.getStillDependent()))
                 .count();
 
-        HrPersonPtkp ptkp = calculatorService.calculate(
+        HrPersonPtkp ptkp = calculatorService.calculateFromMaster(
                 marriageStatus,
                 dependentCount,
                 jointIncome
