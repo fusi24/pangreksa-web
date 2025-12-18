@@ -207,40 +207,52 @@ public class BpjsPajakView extends Main {
 
 
     private void createBody() {
+
         this.body = new VerticalLayout();
-        body.setPadding(false);
-        body.setSpacing(false);
+        body.setPadding(true);
+        body.setSpacing(true);
+        body.setWidthFull();
 
-        this.setHeightFull();
-        body.setHeightFull();
-
-        // Inisiasi toolbar Master
+        // ====== TOOLBAR ATAS ======
         toolbarLayoutMaster = new HorizontalLayout();
-        toolbarLayoutMaster.setAlignItems(FlexComponent.Alignment.END);
-
+        toolbarLayoutMaster.setAlignItems(FlexComponent.Alignment.CENTER);
         toolbarLayoutMaster.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
         toolbarLayoutMaster.setWidthFull();
+        toolbarLayoutMaster.setSpacing(true);
 
-        this.systemList =  systemService.findSystemsByIds(this.idStrings);
+        saveButton = new Button("Save");
+        Button btnAddPtkp = new Button("Add Master PTKP");
+
+        btnAddPtkp.addClickListener(e -> openPtkpDialog(null));
+
+        toolbarLayoutMaster.add(saveButton, btnAddPtkp);
+
+        // ====== JUDUL MASTER PTKP ======
+        H3 ptkpTitle = new H3("Master PTKP");
+
+        // ====== GRID PTKP ======
+        Component ptkpTable = createPtkpTable();
+
+        // ====== SYSTEM LIST (VirtualList) ======
+        this.systemList = systemService.findSystemsByIds(this.idStrings);
         virtualList = new VirtualList<>();
         virtualList.setItems(systemList);
         virtualList.setRenderer(systemRenderer);
 
-        saveButton = new Button("Save");
+        VerticalLayout systemSection = new VerticalLayout();
+        systemSection.setPadding(true);
+        systemSection.setSpacing(true);
 
-        toolbarLayoutMaster.add(saveButton);
+        H3 systemTitle = new H3("Pengaturan Sistem");
+        systemSection.add(systemTitle, virtualList);
 
-        Button btnAddPtkp = new Button("Add Master PTKP");
-        btnAddPtkp.addClickListener(e -> openPtkpDialog(null));
-        toolbarLayoutMaster.add(btnAddPtkp);
-
+        // ====== TAMBAHKAN KE BODY ======
         body.add(
-                new H3("Master PTKP"),
-                createPtkpTable(),
                 toolbarLayoutMaster,
-                virtualList
+                ptkpTitle,
+                ptkpTable,
+                systemSection
         );
-
 
         add(body);
     }
