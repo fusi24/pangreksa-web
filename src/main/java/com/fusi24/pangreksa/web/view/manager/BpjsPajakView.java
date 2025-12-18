@@ -140,8 +140,8 @@ public class BpjsPajakView extends Main {
             Button edit = new Button("Edit", ev -> openPtkpDialog(ptkp));
             Button del = new Button("Delete");
 
-            edit.setEnabled(auth.canEdit);
-            del.setEnabled(auth.canDelete);
+            edit.setEnabled(true);
+            del.setEnabled(true);
 
             del.addClickListener(e -> {
                 masterPtkpService.delete(ptkp);
@@ -204,6 +204,7 @@ public class BpjsPajakView extends Main {
 
         dialog.open();
     }
+
 
 
     private void createBody() {
