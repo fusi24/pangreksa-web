@@ -32,7 +32,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H3;
+// Vaadin Components
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.textfield.NumberField;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.textfield.IntegerField;
 
+// Java
+import java.math.BigDecimal;
 import com.fusi24.pangreksa.web.model.entity.MasterPtkp;
 import com.fusi24.pangreksa.web.service.MasterPtkpService;
 
@@ -60,6 +68,7 @@ public class BpjsPajakView extends Main {
     Button saveButton;
 
     private HorizontalLayout toolbarLayoutMaster;
+
 
     private List<FwSystem> systemList;
 
@@ -110,6 +119,7 @@ public class BpjsPajakView extends Main {
         }
     }
 
+
     private Component createPtkpTable() {
 
         ptkpGrid = new Grid<>(MasterPtkp.class, false);
@@ -127,7 +137,7 @@ public class BpjsPajakView extends Main {
                 .setHeader("Nominal (Rp)");
 
         ptkpGrid.addColumn(new ComponentRenderer<>(ptkp -> {
-            Button edit = new Button("Edit");
+            Button edit = new Button("Edit", ev -> openPtkpDialog(ptkp));
             Button del = new Button("Delete");
 
             edit.setEnabled(auth.canEdit);
@@ -153,6 +163,48 @@ public class BpjsPajakView extends Main {
         ptkpGrid.setItems(ptkpList);
     }
 
+    private void openPtkpDialog(MasterPtkp existing) {
+
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle(existing == null ? "Tambah PTKP" : "Edit PTKP");
+
+        TextField kode = new TextField("Kode PTKP");
+        TextField gol = new TextField("Golongan");
+        IntegerField tanggungan = new IntegerField("Jumlah Tanggungan");
+        tanggungan.setMin(0);
+        tanggungan.setMax(3);
+        NumberField nominal = new NumberField("Nominal");
+
+        if (existing != null) {
+            kode.setValue(existing.getKodePtkp());
+            gol.setValue(existing.getGolongan());
+            tanggungan.setValue(existing.getJumlahTanggungan());
+            nominal.setValue(existing.getNominal().doubleValue());
+        }
+
+        Button save = new Button("Save", evt -> {
+
+            MasterPtkp m = (existing == null ? new MasterPtkp() : existing);
+
+            m.setKodePtkp(kode.getValue());
+            m.setGolongan(gol.getValue());
+            m.setJumlahTanggungan(tanggungan.getValue());
+            m.setNominal(BigDecimal.valueOf(nominal.getValue()));
+
+            masterPtkpService.save(m);
+
+            refreshPtkpGrid();
+            dialog.close();
+        });
+
+        Button cancel = new Button("Cancel", evt -> dialog.close());
+
+        dialog.add(kode, gol, tanggungan, nominal);
+        dialog.getFooter().add(cancel, save);
+
+        dialog.open();
+    }
+
 
     private void createBody() {
         this.body = new VerticalLayout();
@@ -166,9 +218,6 @@ public class BpjsPajakView extends Main {
         toolbarLayoutMaster = new HorizontalLayout();
         toolbarLayoutMaster.setAlignItems(FlexComponent.Alignment.END);
 
-        saveButton = new Button("Save");
-
-        toolbarLayoutMaster.add(saveButton);
         toolbarLayoutMaster.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
         toolbarLayoutMaster.setWidthFull();
 
@@ -177,11 +226,19 @@ public class BpjsPajakView extends Main {
         virtualList.setItems(systemList);
         virtualList.setRenderer(systemRenderer);
 
+        saveButton = new Button("Save");
+
+        toolbarLayoutMaster.add(saveButton);
+
+        Button btnAddPtkp = new Button("Add Master PTKP");
+        btnAddPtkp.addClickListener(e -> openPtkpDialog(null));
+        toolbarLayoutMaster.add(btnAddPtkp);
+
         body.add(
-                toolbarLayoutMaster,
-                virtualList,
                 new H3("Master PTKP"),
-                createPtkpTable()
+                createPtkpTable(),
+                toolbarLayoutMaster,
+                virtualList
         );
 
 

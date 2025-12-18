@@ -1,5 +1,7 @@
 package com.fusi24.pangreksa.web.view.employee;
 
+import com.fusi24.pangreksa.web.service.PersonPtkpService;
+import com.fusi24.pangreksa.web.service.PersonTanggunganService;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.util.DatePickerUtil;
@@ -40,6 +42,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -144,6 +147,23 @@ public class MyProfileView extends Main {
     private List<HrPersonDocument> documentList = new ArrayList<>();
 
     private HrPerson personData;
+
+    @Autowired
+    private PersonTanggunganService personTanggunganService;
+
+    @Autowired
+    private PersonPtkpService personPtkpService;
+
+    private Grid<HrPersonTanggungan> gridTanggungan;
+    private List<HrPersonTanggungan> tanggunganList = new ArrayList<>();
+
+    // Form fields
+    private TextField tgName = new TextField("Nama");
+    private ComboBox<String> tgRelation = new ComboBox<>("Hubungan");
+    private DatePicker tgDob = new DatePicker("Tanggal Lahir");
+    private ComboBox<GenderEnum> tgGender = new ComboBox<>("Jenis Kelamin");
+    private Checkbox tgStillDependent = new Checkbox("Masih Tanggungan");
+
     private HrPersonAddress addressData;
     private HrPersonContact contactData;
     private HrPersonEducation educationData;
@@ -196,6 +216,9 @@ public class MyProfileView extends Main {
         this.contactList = personService.getPersonContacts();
         this.educationList = personService.getPersonEducations();
         this.documentList = personService.getPersonDocuments();
+        this.tanggunganList = personTanggunganService.findByPerson(personData);
+        if (gridTanggungan != null)
+            gridTanggungan.setItems(tanggunganList);
 
         // Populate Person fields
         firstName.setValue(personData.getFirstName() != null ? personData.getFirstName() : "");
@@ -285,6 +308,8 @@ public class MyProfileView extends Main {
         tabSheet.add("Contacts", contactsLayout);
         tabSheet.add("Educations", educationLayout);
         tabSheet.add("Documents", documentsLayout);
+        VerticalLayout tanggunganLayout = createTanggunganTab();
+        tabSheet.add("Tanggungan", tanggunganLayout);
 
         tabSheet.getStyle().setWidth("100%");
 
@@ -971,6 +996,85 @@ public class MyProfileView extends Main {
         filename.setValue(document.getFilename() != null ? document.getFilename() : "");
         path.setValue(document.getPath() != null ? document.getPath() : "");
     }
+
+    private VerticalLayout createTanggunganTab() {
+
+        tgRelation.setItems("Suami", "Istri", "Anak");
+        tgGender.setItems(GenderEnum.values());
+        tgDob.setI18n(DatePickerUtil.getIndonesianI18n());
+
+        Button btnAdd = new Button("Tambah", VaadinIcon.PLUS.create(), e -> {
+            if (tgName.isEmpty() || tgRelation.isEmpty() || tgDob.isEmpty() || tgGender.isEmpty()) {
+                Notification.show("Semua field wajib diisi");
+                return;
+            }
+
+            HrPersonTanggungan t = new HrPersonTanggungan();
+            t.setPerson(personData);
+            t.setName(tgName.getValue());
+            t.setRelation(tgRelation.getValue());
+            t.setDob(tgDob.getValue());
+            t.setGender(tgGender.getValue());
+            t.setStillDependent(tgStillDependent.getValue());
+
+            personTanggunganService.save(t);
+            reloadTanggunganData();
+            recalcPtkp();
+
+            tgName.clear();
+            tgRelation.clear();
+            tgDob.clear();
+            tgGender.clear();
+            tgStillDependent.clear();
+        });
+
+        // GRID
+        gridTanggungan = new Grid<>(HrPersonTanggungan.class, false);
+        gridTanggungan.addColumn(HrPersonTanggungan::getName).setHeader("Nama");
+        gridTanggungan.addColumn(HrPersonTanggungan::getRelation).setHeader("Hubungan");
+        gridTanggungan.addColumn(HrPersonTanggungan::getDob).setHeader("Tgl Lahir");
+        gridTanggungan.addColumn(HrPersonTanggungan::getGender).setHeader("Gender");
+        gridTanggungan.addColumn(t -> t.getStillDependent() ? "Ya" : "Tidak").setHeader("Masih Tanggungan");
+
+        gridTanggungan.addComponentColumn(t -> {
+            Button del = new Button(VaadinIcon.TRASH.create(), e -> {
+                personTanggunganService.delete(t);
+                reloadTanggunganData();
+                recalcPtkp();
+            });
+            return del;
+        }).setHeader("Aksi");
+
+        VerticalLayout form = new VerticalLayout(
+                new HorizontalLayout(tgName, tgRelation, tgDob),
+                new HorizontalLayout(tgGender, tgStillDependent, btnAdd)
+        );
+
+        VerticalLayout wrapper = new VerticalLayout(form, gridTanggungan);
+        wrapper.setPadding(false);
+        wrapper.setSpacing(true);
+
+        return wrapper;
+    }
+
+    private void reloadTanggunganData() {
+        if (personData != null && personData.getId() != null) {
+            tanggunganList = personTanggunganService.findByPerson(personData);
+            gridTanggungan.setItems(tanggunganList);
+        }
+    }
+
+    private void recalcPtkp() {
+        if (personData == null) return;
+
+        personPtkpService.generateAndSavePtkp(
+                personData,
+                personData.getMarriage(),
+                tanggunganList,
+                false
+        );
+    }
+
 
     private void setListener() {
 
