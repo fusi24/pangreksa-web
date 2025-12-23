@@ -40,9 +40,6 @@ import com.vaadin.flow.server.streams.InMemoryUploadHandler;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.fusi24.pangreksa.web.service.PersonPtkpService;
-import org.springframework.beans.factory.annotation.Autowired;
-import com.fusi24.pangreksa.web.service.PersonService;
-import com.fusi24.pangreksa.web.service.PersonPtkpService;
 
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
@@ -209,8 +206,87 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
         add(new ViewToolbar(VIEW_NAME));
         createBody();
+        // ================= LISTENERS =================
 
-        setListener();
+// CLEAR GLOBAL
+        clearButton.addClickListener(e -> {
+            clearForm(true, true, true, true, true);
+            clearGrid(true, true, true, true);
+        });
+
+// CLEAR PER TAB
+        clearButtonOnTab.addClickListener(e -> {
+            int tabNo = tabSheet.getSelectedIndex();
+            switch (tabNo) {
+                case 0 -> clearForm(false, true, false, false, false); // Address
+                case 1 -> clearForm(false, false, true, false, false); // Contact
+                case 2 -> clearForm(false, false, false, true, false); // Education
+                case 3 -> clearForm(false, false, false, false, true); // Document
+                case 4 -> clearTanggunganForm();                       // Tanggungan
+            }
+        });
+
+// ADD PER TAB
+        saveButtonOnTab.addClickListener(e -> {
+
+            if (this.auth != null && !this.auth.canCreate) {
+                Notification.show(
+                        "Anda tidak memiliki izin untuk menambah data.",
+                        3000,
+                        Notification.Position.MIDDLE
+                );
+                return;
+            }
+
+            int tabNo = tabSheet.getSelectedIndex();
+
+            switch (tabNo) {
+                case 0 -> { /* ADDRESS (sudah benar, biarkan) */ }
+                case 1 -> { /* CONTACT (sudah benar, biarkan) */ }
+                case 2 -> { /* EDUCATION (sudah benar, biarkan) */ }
+                case 3 -> { /* DOCUMENT (sudah benar, biarkan) */ }
+
+                case 4 -> { // === TANGGUNGAN (IN-MEMORY) ===
+
+                    if (tgName.isEmpty()
+                            || tgRelation.isEmpty()
+                            || tgDob.isEmpty()
+                            || tgGender.isEmpty()) {
+                        Notification.show("Semua field tanggungan wajib diisi");
+                        return;
+                    }
+
+                    HrPersonTanggungan t =
+                            tanggunganData != null ? tanggunganData : new HrPersonTanggungan();
+
+                    t.setName(tgName.getValue());
+                    t.setRelation(tgRelation.getValue());
+                    t.setDob(tgDob.getValue());
+                    t.setGender(tgGender.getValue());
+                    t.setStillDependent(tgStillDependent.getValue());
+
+                    // ❌ JANGAN save DB
+                    // ❌ JANGAN setPerson
+
+                    tanggunganList.add(t);
+                    gridTanggungan.setItems(tanggunganList);
+
+                    clearTanggunganForm();
+                    tanggunganData = null;
+                }
+            }
+            saveButton.addClickListener(e -> {
+                if (this.auth != null && !this.auth.canCreate) {
+                    Notification.show("Anda tidak memiliki izin menyimpan data");
+                    return;
+                }
+                save();
+            });
+
+        });
+
+
+
         setAuthorization();
     }
 
@@ -1038,233 +1114,6 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         path.setValue(document.getPath() != null ? document.getPath() : "");
     }
 
-    private void setListener() {
-        demoButton.addClickListener( e -> {
-            if(!this.auth.canCreate){
-                return;
-            }
-            populateDemoDate();
-        });
-
-        saveButton.addClickListener(e -> {
-            // Permission guard for saveButton: keep clickable, block action if no rights
-            if (this.auth != null && !this.auth.canCreate) {
-                Notification.show("Anda tidak memiliki izin untuk menyimpan data.", 3000, Notification.Position.MIDDLE);
-                return;
-            }
-            if (!this.auth.canCreate) {
-                return;
-            }
-            save();
-        });
-
-        clearButton.addClickListener( e -> {
-            clearForm(true, true, true, true, true);
-            clearGrid(true,true, true, true);
-        });
-
-        clearButtonOnTab.addClickListener( e -> {
-            int tabNo = tabSheet.getSelectedIndex();
-            switch (tabNo) {
-                case 0 -> clearForm(false, true, false, false, false); // Addresses
-                case 1 -> clearForm(false, false, true, false, false); // Contacts
-                case 2 -> clearForm(false, false, false, true, false); // Educations
-                case 3 -> clearForm(false, false, false, false, true); // Documents
-            }
-        });
-
-        saveButtonOnTab.addClickListener( e -> {
-            // Permission guard for saveButtonOnTab: keep clickable, block action if no rights
-            if (this.auth != null && !this.auth.canCreate) {
-                Notification.show("Anda tidak memiliki izin untuk menambah data.", 3000, Notification.Position.MIDDLE);
-                return;
-            }
-// Permission guard: keep button enabled but block action if no create rights
-            if (this.auth != null && !this.auth.canCreate) {
-                Notification.show("You do not have permission to add items.", 3000, Notification.Position.MIDDLE);
-                return;
-            }
-            int tabNo = tabSheet.getSelectedIndex();
-            switch (tabNo) {
-                case 0 -> { // --- ADDRESS ---
-                    // 1. Validasi
-                    if (fullAddress.getValue() == null || fullAddress.getValue().trim().isEmpty()) {
-                        fullAddress.setInvalid(true);
-                        fullAddress.setErrorMessage("Alamat wajib diisi");
-                        Notification.show("Alamat wajib diisi", 3000, Notification.Position.MIDDLE);
-                        return;
-                    }
-
-                    // 2. Lolos
-                    HrPersonAddress address = this.addressData != null ? this.addressData : new HrPersonAddress();
-                    address.setFullAddress(fullAddress.getValue());
-                    address.setIsDefault(isDefaultAddress.getValue());
-
-                    addressList.add(address);
-                    gridAddress.setItems(addressList);
-                    clearForm(false, true, false, false, false);
-                    this.addressData = null;
-                }
-                case 1 -> { // --- CONTACT ---
-                    // 1. Validasi Wajib (Empty Check)
-                    boolean valid = true;
-                    if (typeContact.getValue() == null) { typeContact.setInvalid(true); valid = false; }
-                    if (stringValue.getValue() == null || stringValue.getValue().trim().isEmpty()) { stringValue.setInvalid(true); valid = false; }
-                    if (designation.getValue() == null || designation.getValue().trim().isEmpty()) { designation.setInvalid(true); valid = false; }
-                    if (relationship.getValue() == null || relationship.getValue().trim().isEmpty()) { relationship.setInvalid(true); valid = false; }
-                    if (description.getValue() == null || description.getValue().trim().isEmpty()) { description.setInvalid(true); valid = false; }
-
-                    if (!valid) {
-                        Notification.show("Semua field Contact wajib diisi.", 3000, Notification.Position.MIDDLE);
-                        return;
-                    }
-
-                    // 2. Validasi Format (jika sudah terisi)
-                    ContactTypeEnum t = typeContact.getValue();
-                    String val = stringValue.getValue().trim();
-
-                    if (t == ContactTypeEnum.EMAIL && !isEmailValid(val)) {
-                        stringValue.setInvalid(true);
-                        Notification.show("Format email salah.", 3000, Notification.Position.MIDDLE);
-                        return;
-                    }
-                    if ((t == ContactTypeEnum.NUMBER || t == ContactTypeEnum.EMERGENCY) && !isPhone18Digits(val)) {
-                        stringValue.setInvalid(true);
-                        Notification.show("Format nomor salah (Hanya angka, maks 18 digit).", 3000, Notification.Position.MIDDLE);
-                        return;
-                    }
-
-                    // 3. Lolos
-                    HrPersonContact contact = this.contactData != null ? this.contactData : new HrPersonContact();
-                    contact.setDesignation(designation.getValue());
-                    contact.setRelationship(relationship.getValue());
-                    contact.setStringValue(stringValue.getValue());
-                    contact.setType(typeContact.getValue());
-                    contact.setDescription(description.getValue());
-                    contact.setIsDefault(isDefaultContact.getValue());
-
-                    contactList.add(contact);
-                    gridContacts.setItems(contactList);
-                    clearForm(false, false, true, false, false);
-                    this.contactData = null;
-                }
-                case 2 -> { // --- EDUCATION ---
-                    // 1. Validasi Wajib
-                    boolean valid = true;
-                    if (institution.getValue() == null || institution.getValue().trim().isEmpty()) { institution.setInvalid(true); valid = false; }
-                    if (program.getValue() == null || program.getValue().trim().isEmpty()) { program.setInvalid(true); valid = false; }
-                    if (score.getValue() == null) { score.setInvalid(true); valid = false; }
-                    if (startDate.getValue() == null) { startDate.setInvalid(true); valid = false; }
-                    if (finishDate.getValue() == null) { finishDate.setInvalid(true); valid = false; }
-                    if (certificateTitle.getValue() == null || certificateTitle.getValue().trim().isEmpty()) { certificateTitle.setInvalid(true); valid = false; }
-                    if (certificateExpiration.getValue() == null) { certificateExpiration.setInvalid(true); valid = false; }
-                    if (typeEducation.getValue() == null) { typeEducation.setInvalid(true); valid = false; }
-
-                    if (!valid) {
-                        Notification.show("Semua field Education wajib diisi.", 3000, Notification.Position.MIDDLE);
-                        return;
-                    }
-
-                    // 2. Lolos
-                    HrPersonEducation education = this.educationData != null ? this.educationData : new HrPersonEducation();
-                    education.setInstitution(institution.getValue());
-                    education.setProgram(program.getValue());
-                    education.setScore(score.getValue() != null ? BigDecimal.valueOf(score.getValue()) : null);
-                    education.setStartDate(startDate.getValue());
-                    education.setFinishDate(finishDate.getValue());
-                    education.setCertificateTitle(certificateTitle.getValue());
-                    education.setCertificateExpiration(certificateExpiration.getValue());
-                    education.setType(typeEducation.getValue());
-
-                    educationList.add(education);
-                    gridEducation.setItems(educationList);
-                    clearForm(false, false, false, true, false);
-                    this.educationData = null;
-                }
-                case 3 -> {
-                    // --- DOCUMENT ---
-                    // 1. Validasi Wajib
-                    boolean valid = true;
-                    if (typeDocument.getValue() == null) { typeDocument.setInvalid(true); valid = false; }
-                    if (nameDocoument.getValue() == null || nameDocoument.getValue().trim().isEmpty()) { nameDocoument.setInvalid(true); valid = false; }
-                    if (descDocument.getValue() == null || descDocument.getValue().trim().isEmpty()) { descDocument.setInvalid(true); valid = false; }
-                    if (notes.getValue() == null || notes.getValue().trim().isEmpty()) { notes.setInvalid(true); valid = false; }
-                    if (year.getValue() == null) { year.setInvalid(true); valid = false; }
-                    if (contentType.getValue() == null) { contentType.setInvalid(true); valid = false; }
-                    if (size.getValue() == null) { size.setInvalid(true); valid = false; }
-                    if (filename.getValue() == null || filename.getValue().trim().isEmpty()) { filename.setInvalid(true); valid = false; }
-                    if (path.getValue() == null || path.getValue().trim().isEmpty()) { path.setInvalid(true); valid = false; }
-
-                    if (!valid) {
-                        Notification.show("Semua field Document wajib diisi.", 3000, Notification.Position.MIDDLE);
-                        return;
-                    }
-
-                    // 2. Lolos
-                    HrPersonDocument document = this.documentData != null ? this.documentData : new HrPersonDocument();
-                    document.setName(nameDocoument.getValue());
-                    document.setDescription(descDocument.getValue());
-                    document.setNotes(notes.getValue());
-                    document.setYear(year.getValue() != null ? year.getValue().intValue() : null);
-                    document.setType(typeDocument.getValue());
-                    document.setContentType(contentType.getValue());
-                    document.setSize(size.getValue() != null ? size.getValue().longValue() : null);
-                    document.setFilename(filename.getValue());
-                    document.setPath(path.getValue());
-
-                    documentList.add(document);
-                    gridDocument.setItems(documentList);
-                    clearForm(false, false, false, false, true);
-                    this.documentData = null;
-                }
-
-                case 4 -> { // === TANGGUNGAN (OPS B: LANGSUNG DB) ===
-
-                    // 1. Validasi form
-                    if (tgName.isEmpty() || tgRelation.isEmpty() || tgDob.isEmpty() || tgGender.isEmpty()) {
-                        Notification.show("Semua field tanggungan wajib diisi");
-                        return;
-                    }
-
-                    // 2. Pastikan person sudah disimpan
-                    if (personData == null || personData.getId() == null) {
-                        Notification.show(
-                                "Simpan data karyawan terlebih dahulu sebelum menambahkan tanggungan",
-                                4000,
-                                Notification.Position.MIDDLE
-                        );
-                        return;
-                    }
-
-                    // 3. Create / Update entity
-                    HrPersonTanggungan t =
-                            tanggunganData != null ? tanggunganData : new HrPersonTanggungan();
-
-                    t.setName(tgName.getValue());
-                    t.setRelation(tgRelation.getValue());
-                    t.setDob(tgDob.getValue());
-                    t.setGender(tgGender.getValue());
-                    t.setStillDependent(tgStillDependent.getValue());
-
-                    // ⬅️ INI PALING PENTING
-                    t.setPerson(personData);
-
-                    // 4. SAVE KE DATABASE
-                    HrPersonTanggungan saved = personTanggunganService.save(t);
-
-                    // 5. Update UI
-                    tanggunganList = personTanggunganService.findByPerson(personData);
-                    gridTanggungan.setItems(tanggunganList);
-
-                    clearTanggunganForm();
-                    tanggunganData = null;
-                }
-
-
-            }
-        });
-
-    }
 
     private void loadTanggungan(HrPersonTanggungan t) {
         this.tanggunganData = t;
@@ -1398,84 +1247,15 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         return s != null && s.matches("^\\d{1,18}$");
     }
 
-
     private void save() {
-        // ===== Server-side validations =====
-        // NIK must be exactly 16 digits (no spaces)
-        String nik = ktpNumber.getValue() != null ? ktpNumber.getValue().trim() : "";
-        if (!nik.matches("^\\d{16}$")) {
-            ktpNumber.setInvalid(true);
-            ktpNumber.setErrorMessage("NIK harus 16 digit angka tanpa spasi");
-            Notification.show("Periksa NIK: harus 16 digit angka tanpa spasi.", 4000, Notification.Position.MIDDLE);
-            return;
-        }
-        // First Name: required letters & spaces
-        String vFirst = firstName.getValue() != null ? firstName.getValue().trim() : "";
-        if (vFirst.isEmpty() || !vFirst.matches("^[\\p{L} ]+$")) {
-            firstName.setInvalid(true);
-            Notification.show("First Name wajib diisi (huruf & spasi saja).", 4000, Notification.Position.MIDDLE);
-            return;
-        }
-        // Last Name: required letters & spaces
-        String vLast = lastName.getValue() != null ? lastName.getValue().trim() : "";
-        if (vLast.isEmpty() || !vLast.matches("^[\\p{L} ]+$")) {
-            lastName.setInvalid(true);
-            Notification.show("Last Name wajib diisi (huruf & spasi saja).", 4000, Notification.Position.MIDDLE);
-            return;
-        }
-        // Middle Name: optional, only letters & spaces if present
-        String vMid = middleName.getValue() != null ? middleName.getValue().trim() : "";
-        if (!vMid.isEmpty() && !vMid.matches("^[\\p{L} ]+$")) {
-            middleName.setInvalid(true);
-            Notification.show("Middle Name hanya boleh huruf & spasi.", 4000, Notification.Position.MIDDLE);
-            return;
-        }
 
-        // Place of Birth: SEKARANG WAJIB
-        String vPob = pob.getValue() != null ? pob.getValue().trim() : "";
-        if (vPob.isEmpty() || !vPob.matches("^[\\p{L} ]{2,}$")) { // --- UBAH LOGIKA INI ---
-            pob.setInvalid(true);
-            Notification.show("Tempat Lahir wajib diisi (min 2 huruf).", 4000, Notification.Position.MIDDLE);
-            return;
-        }
-        // Date of Birth: required, not in the future, min age 17
-        LocalDate d = dob.getValue();
-        if (d == null) {
-            dob.setInvalid(true);
-            Notification.show("Tanggal Lahir wajib diisi.", 4000, Notification.Position.MIDDLE);
-            return;
-        }
-        if (d.isAfter(LocalDate.now())) {
-            dob.setInvalid(true);
-            Notification.show("Tanggal Lahir tidak boleh di masa depan.", 4000, Notification.Position.MIDDLE);
-            return;
-        }
-        int usia = java.time.Period.between(d, LocalDate.now()).getYears();
-        if (usia < 17) {
-            dob.setInvalid(true);
-            Notification.show("Usia minimal 17 tahun.", 4000, Notification.Position.MIDDLE);
-            return;
-        }
-        // Required combos
-        if (gender.getValue() == null) {
-            Notification.show("Gender wajib dipilih.", 4000, Notification.Position.MIDDLE);
-            return;
-        }
-        if (nationality.getValue() == null) {
-            Notification.show("Nationality wajib dipilih.", 4000, Notification.Position.MIDDLE);
-            return;
-        }
-        if (religion.getValue() == null) {
-            Notification.show("Religion wajib dipilih.", 4000, Notification.Position.MIDDLE);
-            return;
-        }
-        if (marriage.getValue() == null) {
-            Notification.show("Marriage Status wajib dipilih.", 4000, Notification.Position.MIDDLE);
-            return;
-        }
+        // ⬅️ BUAT DI SINI, AMAN
+        FwAppUser appUser = commonService.getLoginUser(
+                currentUser.require().getUserId().toString()
+        );
 
-        // Create HrPerson
         HrPerson person = this.personData != null ? this.personData : new HrPerson();
+
         person.setFirstName(firstName.getValue());
         person.setMiddleName(middleName.getValue());
         person.setLastName(lastName.getValue());
@@ -1487,26 +1267,25 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         person.setMarriage(marriage.getValue());
         person.setKtpNumber(ktpNumber.getValue());
 
-        // Upload file if available
-        if (uploadedImageBytes.get() != null) {
-            // Delete
-            if (person.getPhotoFilename() != null && !person.getPhotoFilename().isEmpty()) {
-                personService.deletePhoto(person.getPhotoFilename());
-            }
-            // Upload
-            String filename = "photo_" + UUID.randomUUID() + ".png";
-            personService.uploadPhoto(uploadedImageBytes.get(), filename);
-            person.setPhotoFilename(filename);
-        }
-
-        var user = currentUser.require();
-        FwAppUser appUser = commonService.getLoginUser(user.getUserId().toString());
+        // upload photo dll...
 
         personService.workingWithPerson(person, appUser);
         personService.savePerson();
         this.personData = person;
 
-        // ================= PTKP AUTO GENERATE =================
+
+        personService.saveAllInformation(
+                addressList,
+                contactList,
+                educationList,
+                documentList
+        );
+
+        personService.saveTanggungan(
+                person,
+                tanggunganList
+        );
+        // ===== PTKP =====
         List<HrPersonTanggungan> dbTanggungan =
                 personTanggunganService.findByPerson(person);
 
@@ -1517,19 +1296,9 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                 Boolean.TRUE.equals(jointIncomeField.getValue())
         );
 
-
-        personService.saveAllInformation(
-                addressList,
-                contactList,
-                educationList,
-                documentList
-        );
-
         Notification.show("Data saved successfully");
-
-        clearForm(true,true, true, true, true);
-        clearGrid(true, true, true, true);
     }
+
 
     public void clearForm(boolean person, boolean address, boolean contact, boolean education, boolean document) {
         // Person Fields

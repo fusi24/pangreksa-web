@@ -23,7 +23,9 @@ import java.util.UUID;
 
 @Service
 public class PersonService {
+
     private static final Logger log = LoggerFactory.getLogger(PersonService.class);
+
 
     private final HrPersonRespository hrPersonRespository;
     private final HrPersonContactRepository hrPersonContactRepository;
@@ -43,27 +45,37 @@ public class PersonService {
     private static final int NO_RETRIEVE = 10;
 
     private String PERSON_PHOTO_PATH;
-
-    public PersonService(HrPersonRespository personRepository,
-                         HrPersonContactRepository contactRepository,
-                         HrPersonAddressRepository addressRepository,
-                         HrPersonEducationRepository educationRepository,
-                         HrPersonDocumentRepository documentRepository,
-                         HrPersonPositionRepository hrPersonPositionRepository,
-                         HrCompanyRepository hrCompanyRepository,
-                         FwAppUserRepository appUserRepository,
-                         FwSystemRepository systemRepository) {
+    private final HrPersonTanggunganRepository hrPersonTanggunganRepository;
+    public PersonService(
+            HrPersonRespository personRepository,
+            HrPersonContactRepository contactRepository,
+            HrPersonAddressRepository addressRepository,
+            HrPersonEducationRepository educationRepository,
+            HrPersonDocumentRepository documentRepository,
+            HrPersonTanggunganRepository tanggunganRepository,
+            HrPersonPositionRepository hrPersonPositionRepository,
+            HrCompanyRepository hrCompanyRepository,
+            FwAppUserRepository appUserRepository,
+            FwSystemRepository systemRepository
+    ) {
         this.hrPersonRespository = personRepository;
         this.hrPersonContactRepository = contactRepository;
         this.hrPersonAddressRepository = addressRepository;
         this.hrPersonEducationRepository = educationRepository;
         this.hrPersonDocumentRepository = documentRepository;
+
+        // 🔥 INI YANG KEMARIN KURANG
+        this.hrPersonTanggunganRepository = tanggunganRepository;
+
         this.hrPersonPositionRepository = hrPersonPositionRepository;
         this.hrCompanyRepository = hrCompanyRepository;
         this.appUserRepository = appUserRepository;
-        this.systemRepository =  systemRepository;
+        this.systemRepository = systemRepository;
 
-        PERSON_PHOTO_PATH = systemRepository.findById(UUID.fromString("a4b91eca-9367-4b90-8ac2-71115817056f")).orElseThrow().getStringVal();
+        PERSON_PHOTO_PATH = systemRepository
+                .findById(UUID.fromString("a4b91eca-9367-4b90-8ac2-71115817056f"))
+                .orElseThrow()
+                .getStringVal();
     }
 
     public byte[] getPhotoAsByteArray(String filename) {
@@ -181,9 +193,17 @@ public class PersonService {
     public void saveEducation(List<HrPersonEducation> educationList) {
         if (hrPerson != null) {
             for (HrPersonEducation education : educationList) {
-                education.setCreatedBy( education.getCreatedBy() != null ? education.getCreatedBy() : user);
-                education.setUpdatedBy(user);
+
                 education.setPerson(hrPerson);
+
+                if (education.getId() == null) {
+                    education.setCreatedBy(user);
+                    education.setCreatedAt(LocalDateTime.now());
+                }
+
+                education.setUpdatedBy(user);
+                education.setUpdatedAt(LocalDateTime.now());
+
                 hrPersonEducationRepository.save(education);
             }
         } else {
@@ -295,49 +315,79 @@ public class PersonService {
         return positions; // Assuming you want the first position, adjust as needed
     }
 
-    public void saveAllInformation(List<HrPersonAddress> addresses,
-                                       List<HrPersonContact> contacts,
-                                       List<HrPersonEducation> educations,
-                                       List<HrPersonDocument> documents) {
+    @Transactional
+    public void saveAllInformation(
+            List<HrPersonAddress> addresses,
+            List<HrPersonContact> contacts,
+            List<HrPersonEducation> educations,
+            List<HrPersonDocument> documents
+    ) {
+
+        // pastikan person tersimpan
         this.hrPerson = hrPersonRespository.save(hrPerson);
 
-        for( HrPersonAddress address : addresses) {
+        // ===== ADDRESS =====
+        for (HrPersonAddress address : addresses) {
             address.setPerson(hrPerson);
-            address.setCreatedBy(address.getCreatedBy() != null ? address.getCreatedBy() : user);
-            address.setCreatedAt(address.getCreatedAt() != null ? address.getCreatedAt() : LocalDateTime.now());
+
+            if (address.getId() == null) {
+                address.setCreatedBy(user);
+                address.setCreatedAt(LocalDateTime.now());
+            }
+
             address.setUpdatedBy(user);
             address.setUpdatedAt(LocalDateTime.now());
+
             hrPersonAddressRepository.save(address);
         }
 
-        for( HrPersonContact contact : contacts) {
+        // ===== CONTACT =====
+        for (HrPersonContact contact : contacts) {
             contact.setPerson(hrPerson);
-            contact.setCreatedBy(contact.getCreatedBy() != null ? contact.getCreatedBy() : user);
-            contact.setCreatedAt(contact.getCreatedAt() != null ? contact.getCreatedAt() : LocalDateTime.now());
+
+            if (contact.getId() == null) {
+                contact.setCreatedBy(user);
+                contact.setCreatedAt(LocalDateTime.now());
+            }
+
             contact.setUpdatedBy(user);
             contact.setUpdatedAt(LocalDateTime.now());
+
             hrPersonContactRepository.save(contact);
         }
 
-        for( HrPersonEducation education : educations) {
+        // ===== EDUCATION (INI YANG FIX UTAMA) =====
+        for (HrPersonEducation education : educations) {
             education.setPerson(hrPerson);
-            education.setCreatedBy(education.getCreatedBy() != null ? education.getCreatedBy() : user);
-            education.setCreatedAt(education.getCreatedAt() != null ? education.getCreatedAt() : LocalDateTime.now());
+
+            // ❗ JANGAN PERCAYA education.getCreatedBy()
+            if (education.getId() == null) {
+                education.setCreatedBy(user);          // 🔥 PASTI FwAppUser
+                education.setCreatedAt(LocalDateTime.now());
+            }
+
             education.setUpdatedBy(user);
             education.setUpdatedAt(LocalDateTime.now());
+
             hrPersonEducationRepository.save(education);
         }
 
-        for( HrPersonDocument document : documents) {
+        // ===== DOCUMENT =====
+        for (HrPersonDocument document : documents) {
             document.setPerson(hrPerson);
-            document.setCreatedBy(document.getCreatedBy() != null ? document.getCreatedBy() : user);
-            document.setCreatedAt(document.getCreatedAt() != null ? document.getCreatedAt() : LocalDateTime.now());
+
+            if (document.getId() == null) {
+                document.setCreatedBy(user);
+                document.setCreatedAt(LocalDateTime.now());
+            }
+
             document.setUpdatedBy(user);
             document.setUpdatedAt(LocalDateTime.now());
+
             hrPersonDocumentRepository.save(document);
         }
-
     }
+
 
     public void deleteAddress(HrPersonAddress address) {
         if (address == null || address.getId() == null) {
@@ -428,5 +478,23 @@ public class PersonService {
         return managerPositionsList.get(0).getPerson();
     }
 
+    @Transactional
+    public void saveTanggungan(
+            HrPerson person,
+            List<HrPersonTanggungan> tanggunganList
+    ) {
+        if (person == null) {
+            throw new IllegalStateException("Person belum tersimpan");
+        }
+
+        if (tanggunganList == null || tanggunganList.isEmpty()) {
+            return;
+        }
+
+        for (HrPersonTanggungan t : tanggunganList) {
+            t.setPerson(person);
+            hrPersonTanggunganRepository.save(t);
+        }
+    }
 
 }
