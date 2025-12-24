@@ -206,6 +206,18 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
         add(new ViewToolbar(VIEW_NAME));
         createBody();
+
+        saveButton.addClickListener(e -> {
+            if (this.auth != null && !this.auth.canCreate) {
+                Notification.show(
+                        "Anda tidak memiliki izin menyimpan data",
+                        3000,
+                        Notification.Position.MIDDLE
+                );
+                return;
+            }
+            save();
+        });
         // ================= LISTENERS =================
 
 // CLEAR GLOBAL
@@ -242,7 +254,28 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
             switch (tabNo) {
                 case 0 -> { /* ADDRESS (sudah benar, biarkan) */ }
-                case 1 -> { /* CONTACT (sudah benar, biarkan) */ }
+                case 1 -> {
+                    boolean valid = true;
+
+                    if (typeContact.getValue() == null) valid = false;
+                    if (stringValue.isEmpty()) valid = false;
+                    if (designation.isEmpty()) valid = false;
+
+                    if (typeContact.getValue() == ContactTypeEnum.EMERGENCY) {
+                        if (relationship.isEmpty()) valid = false;
+                        if (description.isEmpty()) valid = false;
+                    }
+
+                    if (!valid) {
+                        Notification.show(
+                                "Field wajib belum lengkap (Relationship & Description wajib untuk Emergency Contact)",
+                                3000,
+                                Notification.Position.MIDDLE
+                        );
+                        return;
+                    }
+
+                }
                 case 2 -> { /* EDUCATION (sudah benar, biarkan) */ }
                 case 3 -> { /* DOCUMENT (sudah benar, biarkan) */ }
 
@@ -275,13 +308,6 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                     tanggunganData = null;
                 }
             }
-            saveButton.addClickListener(e -> {
-                if (this.auth != null && !this.auth.canCreate) {
-                    Notification.show("Anda tidak memiliki izin menyimpan data");
-                    return;
-                }
-                save();
-            });
 
         });
 
@@ -664,12 +690,28 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
     private void createContactsForm() {
         typeContact.setItems(ContactTypeEnum.values());
 
+        typeContact.addValueChangeListener(e -> {
+            ContactTypeEnum type = e.getValue();
+
+            boolean isEmergency = type == ContactTypeEnum.EMERGENCY;
+
+            // Relationship & Description hanya mandatory jika EMERGENCY
+            relationship.setRequiredIndicatorVisible(isEmergency);
+            description.setRequiredIndicatorVisible(isEmergency);
+
+            if (!isEmergency) {
+                relationship.setInvalid(false);
+                description.setInvalid(false);
+            }
+        });
+
+
         // --- TAMBAHKAN INDIKATOR WAJIB ---
         typeContact.setRequiredIndicatorVisible(true);
         stringValue.setRequiredIndicatorVisible(true);
         designation.setRequiredIndicatorVisible(true);
-        relationship.setRequiredIndicatorVisible(true);
-        description.setRequiredIndicatorVisible(true);
+        relationship.setRequiredIndicatorVisible(false);
+        description.setRequiredIndicatorVisible(false);
         // ---------------------------------
 
         // ===== Added contact type dynamic validation =====
@@ -815,7 +857,6 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         startDate.setRequiredIndicatorVisible(true);
         finishDate.setRequiredIndicatorVisible(true);
         certificateTitle.setRequiredIndicatorVisible(true);
-        certificateExpiration.setRequiredIndicatorVisible(true);
         // ---------------------
 
         // Create FormLayout
