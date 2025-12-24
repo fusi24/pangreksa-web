@@ -207,6 +207,25 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         add(new ViewToolbar(VIEW_NAME));
         createBody();
 
+        demoButton.addClickListener(e -> {
+            try {
+                populateDemoDate();
+                Notification.show(
+                        "Dummy data berhasil diisi",
+                        2000,
+                        Notification.Position.MIDDLE
+                );
+            } catch (Exception ex) {
+                Notification.show(
+                        "Gagal mengisi dummy data",
+                        3000,
+                        Notification.Position.MIDDLE
+                );
+                log.error("Error populate demo data", ex);
+            }
+        });
+
+
         saveButton.addClickListener(e -> {
             if (this.auth != null && !this.auth.canCreate) {
                 Notification.show(
@@ -253,11 +272,32 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
             int tabNo = tabSheet.getSelectedIndex();
 
             switch (tabNo) {
-                case 0 -> { /* ADDRESS (sudah benar, biarkan) */ }
+
+                // ================= ADDRESS =================
+                case 0 -> {
+                    if (fullAddress.isEmpty()) {
+                        Notification.show("Alamat wajib diisi");
+                        return;
+                    }
+
+                    HrPersonAddress address =
+                            addressData != null ? addressData : new HrPersonAddress();
+
+                    address.setFullAddress(fullAddress.getValue());
+                    address.setIsDefault(isDefaultAddress.getValue());
+
+                    addressList.add(address);
+                    gridAddress.setItems(addressList);
+
+                    clearForm(false, true, false, false, false);
+                    addressData = null;
+                }
+
+                // ================= CONTACT =================
                 case 1 -> {
                     boolean valid = true;
 
-                    if (typeContact.getValue() == null) valid = false;
+                    if (typeContact.isEmpty()) valid = false;
                     if (stringValue.isEmpty()) valid = false;
                     if (designation.isEmpty()) valid = false;
 
@@ -268,19 +308,101 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
                     if (!valid) {
                         Notification.show(
-                                "Field wajib belum lengkap (Relationship & Description wajib untuk Emergency Contact)",
+                                "Field wajib belum lengkap (Relationship & Description wajib untuk Emergency)",
                                 3000,
                                 Notification.Position.MIDDLE
                         );
                         return;
                     }
 
+                    HrPersonContact contact =
+                            contactData != null ? contactData : new HrPersonContact();
+
+                    contact.setType(typeContact.getValue());
+                    contact.setStringValue(stringValue.getValue());
+                    contact.setDesignation(designation.getValue());
+                    contact.setRelationship(relationship.getValue());
+                    contact.setDescription(description.getValue());
+                    contact.setIsDefault(isDefaultContact.getValue());
+
+                    contactList.add(contact);
+                    gridContacts.setItems(contactList);
+
+                    clearForm(false, false, true, false, false);
+                    contactData = null;
                 }
-                case 2 -> { /* EDUCATION (sudah benar, biarkan) */ }
-                case 3 -> { /* DOCUMENT (sudah benar, biarkan) */ }
 
-                case 4 -> { // === TANGGUNGAN (IN-MEMORY) ===
+                // ================= EDUCATION =================
+                case 2 -> {
+                    if (institution.isEmpty()
+                            || program.isEmpty()
+                            || score.isEmpty()
+                            || startDate.isEmpty()
+                            || finishDate.isEmpty()
+                            || certificateTitle.isEmpty()
+                            || typeEducation.isEmpty()) {
 
+                        Notification.show("Semua field Education wajib diisi");
+                        return;
+                    }
+
+                    HrPersonEducation edu =
+                            educationData != null ? educationData : new HrPersonEducation();
+
+                    edu.setInstitution(institution.getValue());
+                    edu.setProgram(program.getValue());
+                    edu.setScore(BigDecimal.valueOf(score.getValue()));
+                    edu.setStartDate(startDate.getValue());
+                    edu.setFinishDate(finishDate.getValue());
+                    edu.setCertificateTitle(certificateTitle.getValue());
+                    edu.setCertificateExpiration(certificateExpiration.getValue()); // BOLEH NULL
+                    edu.setType(typeEducation.getValue());
+
+                    educationList.add(edu);
+                    gridEducation.setItems(educationList);
+
+                    clearForm(false, false, false, true, false);
+                    educationData = null;
+                }
+
+                // ================= DOCUMENT =================
+                case 3 -> {
+                    if (typeDocument.isEmpty()
+                            || nameDocoument.isEmpty()
+                            || descDocument.isEmpty()
+                            || notes.isEmpty()
+                            || year.isEmpty()
+                            || contentType.isEmpty()
+                            || size.isEmpty()
+                            || filename.isEmpty()
+                            || path.isEmpty()) {
+
+                        Notification.show("Semua field Document wajib diisi");
+                        return;
+                    }
+
+                    HrPersonDocument doc =
+                            documentData != null ? documentData : new HrPersonDocument();
+
+                    doc.setType(typeDocument.getValue());
+                    doc.setName(nameDocoument.getValue());
+                    doc.setDescription(descDocument.getValue());
+                    doc.setNotes(notes.getValue());
+                    doc.setYear(year.getValue().intValue());
+                    doc.setContentType(contentType.getValue());
+                    doc.setSize(size.getValue().longValue());
+                    doc.setFilename(filename.getValue());
+                    doc.setPath(path.getValue());
+
+                    documentList.add(doc);
+                    gridDocument.setItems(documentList);
+
+                    clearForm(false, false, false, false, true);
+                    documentData = null;
+                }
+
+                // ================= TANGGUNGAN =================
+                case 4 -> {
                     if (tgName.isEmpty()
                             || tgRelation.isEmpty()
                             || tgDob.isEmpty()
@@ -298,9 +420,6 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                     t.setGender(tgGender.getValue());
                     t.setStillDependent(tgStillDependent.getValue());
 
-                    // ❌ JANGAN save DB
-                    // ❌ JANGAN setPerson
-
                     tanggunganList.add(t);
                     gridTanggungan.setItems(tanggunganList);
 
@@ -308,8 +427,8 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                     tanggunganData = null;
                 }
             }
-
         });
+
 
 
 
@@ -1338,6 +1457,30 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         );
 
         Notification.show("Data saved successfully");
+
+        // ================= RESET UI SETELAH SAVE =================
+
+// reset form
+        clearForm(true, true, true, true, true);
+
+// reset grid
+        clearGrid(true, true, true, true);
+
+// reset tanggungan
+        tanggunganList.clear();
+        gridTanggungan.setItems(tanggunganList);
+
+// reset state object
+        personData = null;
+        addressData = null;
+        contactData = null;
+        educationData = null;
+        documentData = null;
+        tanggunganData = null;
+
+// reset tab ke awal (optional tapi recommended)
+        tabSheet.setSelectedIndex(0);
+
     }
 
 
