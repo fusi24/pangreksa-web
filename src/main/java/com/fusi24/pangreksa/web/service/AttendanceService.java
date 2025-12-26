@@ -15,9 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -249,43 +247,56 @@ public class AttendanceService {
     }
 
     private void setStatusBasedOnSchedule(HrAttendance att) {
-        // No check-in → ALPHA (absent)
         if (att.getCheckIn() == null) {
             att.setStatus("ALPHA");
             return;
         }
 
-        // Defer final status until check-out is recorded
         if (att.getCheckOut() == null) {
-            // Optional: set a temporary status like "MASUK" or leave unchanged
-            // For your requirement, we do nothing or reset to neutral
-            // Example: att.setStatus(null); // or "MASUK"
-            return; // DO NOT set final status yet
+            // Still working – don't set final status
+            return;
         }
 
-        // Both check-in and check-out exist → evaluate full attendance
+        // Convert to Jakarta time
+        ZonedDateTime actualInJakarta = att.getCheckIn().atZone(JAKARTA_ZONE);
+        ZonedDateTime actualOutJakarta = att.getCheckOut().atZone(JAKARTA_ZONE);
 
-        // Convert UTC instants to Jakarta local times
-        LocalTime actualIn = att.getCheckIn().atZone(JAKARTA_ZONE).toLocalTime();
-        LocalTime actualOut = att.getCheckOut().atZone(JAKARTA_ZONE).toLocalTime();
+        LocalDate checkInDate = actualInJakarta.toLocalDate();
 
-        LocalTime scheduledIn = att.getWorkSchedule().getCheckIn();   // Jakarta time
-        LocalTime scheduledOut = att.getWorkSchedule().getCheckOut(); // Jakarta time
+        // Assume work schedule is defined for a standard day (e.g., 08:00–17:00)
+        LocalTime scheduledInTime = att.getWorkSchedule().getCheckIn();   // e.g., 08:00
+        LocalTime scheduledOutTime = att.getWorkSchedule().getCheckOut(); // e.g., 17:00
 
-        // Default: assume on time
+        // Build scheduled window on the check-in day
+        LocalDateTime scheduledIn = LocalDateTime.of(checkInDate, scheduledInTime);
+        LocalDateTime scheduledOut = LocalDateTime.of(checkInDate, scheduledOutTime);
+
+        // Allow checkout up to (e.g.) 12 hours into the next day for night shifts
+        // You can adjust this logic based on your policy
+        if (actualOutJakarta.toLocalDate().isAfter(checkInDate)) {
+            // If checked out next day, shift scheduledOut to next day too
+            // But only if actualOut is after scheduledOut (i.e., didn't finish early)
+            // Alternative: define max allowed checkout (e.g., +1 day)
+            scheduledOut = scheduledOut.plusDays(1);
+        }
+
+        // Now compare full LocalDateTime (via ZonedDateTime for safety)
+        ZonedDateTime scheduledInZoned = scheduledIn.atZone(JAKARTA_ZONE);
+        ZonedDateTime scheduledOutZoned = scheduledOut.atZone(JAKARTA_ZONE);
+
         String status = "HADIR";
 
-        // Check for late arrival
-        if (actualIn.isAfter(scheduledIn.plusMinutes(15))) {
+        // Late arrival: after scheduledIn + 15 mins
+        if (actualInJakarta.isAfter(scheduledInZoned.plusMinutes(15))) {
             status = "TERLAMBAT";
         }
 
-        // Check for early departure
-        if (actualOut.isBefore(scheduledOut.minusMinutes(30))) {
+        // Early departure: before scheduledOut - 30 mins
+        if (actualOutJakarta.isBefore(scheduledOutZoned.minusMinutes(30))) {
             status = "PULANG_CEPAT";
         }
-        // Check for overtime (only if not already early leave)
-        else if (actualOut.isAfter(scheduledOut.plusHours(1))) {
+        // Overtime: after scheduledOut + 1 hour (and not early)
+        else if (actualOutJakarta.isAfter(scheduledOutZoned.plusHours(1))) {
             status = "OVERTIME";
         }
 

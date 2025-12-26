@@ -7,6 +7,7 @@ import com.fusi24.pangreksa.web.model.entity.HrWorkScheduleAssignment;
 import com.fusi24.pangreksa.web.repo.HrPersonPositionRepository;
 import com.fusi24.pangreksa.web.repo.HrWorkScheduleAssignmentRepository;
 import com.fusi24.pangreksa.web.repo.HrWorkScheduleRepository;
+import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,7 +59,7 @@ public class HrWorkScheduleService {
         Long orgStructureId = position.getPosition().getOrgStructure().getId();
 
         // 2. Find schedule assignment for this org structure
-        Optional<HrWorkScheduleAssignment> assignmentOpt = scheduleAssignmentRepo.findByOrgStructureId(
+        Optional<HrWorkScheduleAssignment> assignmentOpt = scheduleAssignmentRepo.findFirstByOrgStructureId(
                         orgStructureId
                 );
 
@@ -71,7 +72,12 @@ public class HrWorkScheduleService {
         Long scheduleId = assignmentOpt.map(p -> p.getSchedule()).map(HrWorkSchedule::getId).orElse(scheduleAll.getId());
 
         // 3. Fetch the actual schedule
-        return workScheduleRepo.findById(scheduleId).orElse(null);
+        HrWorkSchedule schedule = workScheduleRepo.findById(scheduleId).orElse(null);
+        if(BooleanUtils.isNotTrue(schedule.getIsActive())){
+            return null;
+        }
+
+        return schedule;
     }
 
     public boolean hasActiveScheduleForUser(FwAppUser appUser, LocalDate date) {
