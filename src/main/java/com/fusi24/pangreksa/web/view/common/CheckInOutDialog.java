@@ -16,6 +16,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 public class CheckInOutDialog extends Dialog {
 
@@ -79,7 +81,9 @@ public class CheckInOutDialog extends Dialog {
 
     private void handleCheckIn() {
         try {
-            attendance.setCheckIn(LocalDateTime.now());
+            attendance.setCheckIn(
+                    ZonedDateTime.now(ZoneId.of("Asia/Jakarta")).toLocalDateTime()
+            );
             attendance.setNotes(notesField.getValue());
             attendanceService.saveAttendance(attendance, currentUser.require());
             Notification.show("Clock-In berhasil", 3000, Notification.Position.MIDDLE);
@@ -91,7 +95,9 @@ public class CheckInOutDialog extends Dialog {
 
     private void handleCheckOut() {
         try {
-            attendance.setCheckOut(LocalDateTime.now());
+            attendance.setCheckOut(
+                    ZonedDateTime.now(ZoneId.of("Asia/Jakarta")).toLocalDateTime()
+            );
             attendance.setNotes(notesField.getValue());
             attendanceService.saveAttendance(attendance, currentUser.require());
             Notification.show("Clock-Out berhasil", 3000, Notification.Position.MIDDLE);
