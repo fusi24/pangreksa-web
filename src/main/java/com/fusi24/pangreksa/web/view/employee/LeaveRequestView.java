@@ -189,36 +189,39 @@ public class LeaveRequestView extends Main {
         submittedToCombo.setPlaceholder("Type to search");
         submittedToCombo.setClearButtonVisible(true);
 
+        submittedToCombo.setItems(query -> {
+            String filter = query.getFilter().orElse("");
+            int offset = query.getOffset();
+            int limit = query.getLimit();
+
+            List<HrPerson> persons = personService.findPersonByKeyword(filter);
+
+            HrPerson manager = getManager();
+            if (manager != null && !persons.contains(manager)) {
+                persons.add(manager);
+            }
+
+            return persons.stream()
+                    .skip(offset)
+                    .limit(limit);
+        });
+
         // set value as getManager(), but first set items
         HrPerson manager = getManager();
         if (manager != null) {
             submittedToCombo.setValue(manager);
         } else {
-            submittedToCombo.setHelperText("Manager not found. Please contact HR.");
+            submittedToCombo.setHelperText(
+                    "Manager not found. Please contact HR."
+            );
         }
+
 
 
         // optional, tapi bagus untuk ditentukan
         submittedToCombo.setPageSize(20);
 
-        submittedToCombo.setItems(query -> {
-            String filter = query.getFilter().orElse("");
-            log.debug("Searching persons with filter: {}", filter);
 
-            // WAJIB: panggil getOffset & getLimit agar sesuai kontrak DataProvider
-            int offset = query.getOffset();
-            int limit = query.getLimit();
-
-            List<HrPerson> managers = personService.findPersonByKeyword(filter);
-            if (manager != null && !managers.contains(manager)) {
-                managers.add(manager);
-            }
-
-            // Hormati offset & limit
-            return managers.stream()
-                    .skip(offset)
-                    .limit(limit);
-        });
 
 
         if (manager != null) {
@@ -262,6 +265,17 @@ public class LeaveRequestView extends Main {
 
         ComboBox<HrPerson> finalSubmittedToCombo = submittedToCombo;
         submitButton.addClickListener(e -> {
+
+            HrPerson approver = submittedToCombo.getValue();
+            if (approver == null) {
+                Notification.show(
+                        "Please select an approver before submitting.",
+                        3000,
+                        Notification.Position.MIDDLE
+                );
+                return;
+            }
+
             if (this.auth.canCreate) {
                 HrLeaveApplication request = HrLeaveApplication.builder()
                         .leaveAbsenceType(leaveAbsenceTypeDropdown.getValue())
@@ -269,16 +283,11 @@ public class LeaveRequestView extends Main {
                         .endDate(endDate.getValue())
                         .reason(reason.getValue())
                         .status(LeaveStatusEnum.SUBMITTED)
-                        .submittedTo(finalSubmittedToCombo.getValue())
+                        .submittedTo(approver)
                         .build();
 
-                log.debug("Submitting leave request: {} {} {} {}",
-                        request.getLeaveAbsenceType() != null ? request.getLeaveAbsenceType().getLabel() : "",
-                        request.getStartDate(),
-                        request.getEndDate(),
-                        request.getStatus());
-
                 request = leaveService.saveApplication(request, currentUser.require());
+
                 if (request.getId() != null) {
                     Notification.show("Leave request submitted successfully!");
                     populateGrid();
@@ -288,6 +297,7 @@ public class LeaveRequestView extends Main {
                 requestButton.setEnabled(true);
             }
         });
+
 
         // Validasi leave balance hanya untuk Cuti Tahunan (misal id = 1).
         // Untuk leave type lain (menikah, ibadah, dll), submitButton tetap enabled.
