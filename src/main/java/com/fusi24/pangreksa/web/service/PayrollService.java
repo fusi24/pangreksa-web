@@ -3,9 +3,6 @@ package com.fusi24.pangreksa.web.service;
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.repo.*;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fusi24.pangreksa.web.model.entity.HrSalaryAllowance;
 import com.fusi24.pangreksa.web.repo.HrSalaryAllowanceRepository;
-
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -92,7 +88,6 @@ public class PayrollService {
         return hrSalaryBaseLevelRepository.findByCompanyAndIsActiveTrueOrderByLevelCodeAsc(appUser.getCompany());
     }
 
-
     public List<HrSalaryAllowance> getAllSalaryAllowances(boolean includeInactive) {
         if (includeInactive)
             return hrSalaryAllowanceRepository.findByCompanyOrderByNameAsc(appUser.getCompany());
@@ -127,13 +122,9 @@ public class PayrollService {
         FwAppUser appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
 
         if (salaryAllowance.getId() == null) {
-            // ===== Tambahan penting untuk record baru =====
-            // Pastikan company ter-set agar lolos query getAllSalaryAllowances(...)
             if (salaryAllowance.getCompany() == null) {
                 salaryAllowance.setCompany(appUser.getCompany());
             }
-            // (opsional) set default endDate kalau memang harus null untuk "aktif"
-            // if (salaryAllowance.getEndDate() == null) salaryAllowance.setEndDate(null);
 
             salaryAllowance.setCreatedBy(appUser);
             salaryAllowance.setUpdatedBy(appUser);
@@ -142,7 +133,6 @@ public class PayrollService {
         } else {
             salaryAllowance.setUpdatedBy(appUser);
             salaryAllowance.setUpdatedAt(LocalDateTime.now());
-            // Jaga-jaga kalau ada data lama yang belum punya company
             if (salaryAllowance.getCompany() == null) {
                 salaryAllowance.setCompany(appUser.getCompany());
             }
@@ -171,19 +161,16 @@ public class PayrollService {
     public HrPayroll savePayroll(HrPayroll data, AppUserInfo userInfo) {
         FwAppUser appUser = this.findAppUserByUserId(userInfo.getUserId().toString());
 
-        // Set createdBy and createdAt for new records
         if (data.getId() == null) {
             data.setCreatedBy(appUser);
             data.setCreatedAt(LocalDateTime.now());
         }
 
-        // Always set updatedBy and updatedAt when saving (both new and existing)
         data.setUpdatedBy(appUser);
         data.setUpdatedAt(LocalDateTime.now());
 
         HrPayroll saved = hrPayrollRepository.save(data);
 
-        // Trigger payroll calculation
         calculatePayroll(saved);
 
         return saved;
@@ -196,115 +183,98 @@ public class PayrollService {
 
     @Transactional
     public HrPayrollCalculation calculatePayroll(HrPayroll payrollInput) {
-        // 1. Fetch configs
-        BigDecimal bpjsHealthRate = systemService.getConfigNumericValue("Persentase Tarif BPJS Kesehatan (%)").divide(BigDecimal.valueOf(100)); // 1% → 0.01
-        BigDecimal bpjsJhtRate = systemService.getConfigNumericValue("Persentase Tarif BPJS JHT (%)").divide(BigDecimal.valueOf(100)); // 2% → 0.02
-        BigDecimal bpjsJpRate = systemService.getConfigNumericValue("Persentase Tarif BPJS JP (%)").divide(BigDecimal.valueOf(100)); // 1% → 0.01
+        // Entity HrPayrollCalculation pada schema saat ini hanya menyimpan agregat (gross/allowance/overtime/bonus/deduct/net).
+        // Maka perhitungan di sini disesuaikan agar sejalan dengan kolom yang tersedia.
 
-        BigDecimal bpjsHealthCap = systemService.getConfigNumericValue("Batas Upah BPJS Kesehatan");
-        BigDecimal bpjsJpCap = systemService.getConfigNumericValue("Batas Upah BPJS JP");
+        if (payrollInput == null) {
+            throw new IllegalArgumentException("Payroll input must not be null");
+        }
 
-        // Determine PTKP based on employee's tax status (assuming you have it in HrPerson)
-        // status pajak dapet darimana? asumsi TKO semua
-//        String taxStatus = payrollInput.getPerson().getTaxStatus(); // e.g., "TK/0"
-        String taxStatus = "TK0";
-        BigDecimal ptkp = switch (taxStatus) {
-            case "TK/0" -> systemService.getConfigNumericValue("PTKP TK0");
-            case "TK/1" -> systemService.getConfigNumericValue("PTKP TK1"); // ← Add this key if needed
-            case "K/0" -> systemService.getConfigNumericValue("PTKP K0");
-            // ... add more cases as needed
-            default -> systemService.getConfigNumericValue("PTKP TK0"); // fallback
-        };
+        // ==== Derive base salary + fixed allowances from existing master data (jika tersedia) ====
+        BigDecimal baseSalary = BigDecimal.ZERO;
+        BigDecimal fixedAllowance = BigDecimal.ZERO;
 
-        String roundingRule = systemService.getConfigStringValue("PEMBULATAN PKP"); // e.g., "FLOOR"
+        if (payrollInput.getPerson() != null) {
+            try {
+                FwAppUser personUser = appUserRepository.findByPersonId(payrollInput.getPerson().getId())
+                        .orElseThrow(() -> new RuntimeException("Person user not found"));
 
-        FwAppUser personUser = appUserRepository.findByPersonId(payrollInput.getPerson().getId()).orElseThrow(() -> new RuntimeException("Person not found"));
-        HrSalaryEmployeeLevel salaryEmployeeLevel = hrSalaryEmployeeLevelRepository.findByAppUserId(personUser.getId()).orElseThrow(() -> new RuntimeException("Salary Employee Level not found"));
-        HrPersonPosition personPosition = hrPersonPositionRepository.findFirstByPersonId(payrollInput.getPerson().getId());
-        List<HrSalaryPositionAllowance> allowances = hrSalaryPositionAllowanceRepository.findByPositionAndCompanyOrderByUpdatedAtAsc(personPosition.getPosition(), personPosition.getCompany());
+                HrSalaryEmployeeLevel salaryEmployeeLevel = hrSalaryEmployeeLevelRepository.findByAppUserId(personUser.getId())
+                        .orElseThrow(() -> new RuntimeException("Salary Employee Level not found"));
 
-        // 2. Calculate Gross
-        BigDecimal baseSalary = salaryEmployeeLevel.getBaseLevel().getBaseSalary();
-        BigDecimal fixedAllowance = BigDecimal.valueOf(allowances.stream().mapToDouble(p -> p.getAllowance().getAmount().doubleValue()).sum());
-        BigDecimal variableAllowances = payrollInput.getVariableAllowances() != null ? payrollInput.getVariableAllowances() : BigDecimal.ZERO;
-        BigDecimal overtimeAmount = payrollInput.getOvertimeAmount() != null ? payrollInput.getOvertimeAmount() : BigDecimal.ZERO;
-        BigDecimal annualBonus = payrollInput.getAnnualBonus() != null ? payrollInput.getAnnualBonus() : BigDecimal.ZERO;
+                baseSalary = salaryEmployeeLevel.getBaseLevel() == null ? BigDecimal.ZERO : salaryEmployeeLevel.getBaseLevel().getBaseSalary();
 
+                HrPersonPosition personPosition = hrPersonPositionRepository.findFirstByPersonId(payrollInput.getPerson().getId());
+                if (personPosition != null && personPosition.getPosition() != null) {
+                    List<HrSalaryPositionAllowance> allowances = hrSalaryPositionAllowanceRepository
+                            .findByPositionAndCompanyOrderByUpdatedAtAsc(personPosition.getPosition(), personPosition.getCompany());
+
+                    fixedAllowance = BigDecimal.valueOf(
+                            allowances.stream().mapToDouble(p -> p.getAllowance().getAmount().doubleValue()).sum()
+                    );
+                }
+            } catch (Exception ex) {
+                // Jangan memblokir proses kalkulasi kalau master belum lengkap; gunakan default 0.
+                log.warn("Skipping base salary/fixed allowance derivation: {}", ex.getMessage());
+            }
+        }
+
+        // ==== Variable allowance / overtime / bonus / deductions (dari payroll input snapshot) ====
+        BigDecimal variableAllowances = parseBigDecimalSafe(payrollInput.getAllowancesValue());
+        BigDecimal overtimeAmount = payrollInput.getOvertimeValuePayment() == null ? BigDecimal.ZERO : payrollInput.getOvertimeValuePayment();
+        BigDecimal totalBonus = payrollInput.getAnnualBonus() == null ? BigDecimal.ZERO : payrollInput.getAnnualBonus();
+        BigDecimal otherDeductions = payrollInput.getOtherDeductions() == null ? BigDecimal.ZERO : payrollInput.getOtherDeductions();
+
+        BigDecimal totalAllowances = fixedAllowance.add(variableAllowances);
+        BigDecimal totalOvertimes = overtimeAmount;
+
+        // Gross = base + allowance + overtime + bonus
         BigDecimal grossSalary = baseSalary
-                .add(fixedAllowance)
-                .add(variableAllowances)
-                .add(overtimeAmount)
-                .add(annualBonus);
+                .add(totalAllowances)
+                .add(totalOvertimes)
+                .add(totalBonus);
 
-        // 3. Calculate BPJS Deductions (capped)
-        BigDecimal bpjsHealthBase = grossSalary.compareTo(bpjsHealthCap) > 0 ? bpjsHealthCap : grossSalary;
-        BigDecimal bpjsHealthDeduction = bpjsHealthBase.multiply(bpjsHealthRate);
-
-        BigDecimal bpjsJhtDeduction = grossSalary.multiply(bpjsJhtRate); // no cap for JHT (as per common practice)
-
-        BigDecimal bpjsJpBase = grossSalary.compareTo(bpjsJpCap) > 0 ? bpjsJpCap : grossSalary;
-        BigDecimal bpjsJpDeduction = bpjsJpBase.multiply(bpjsJpRate);
-
-        // 4. Annual Income Before Tax
-        BigDecimal annualIncomeBeforeTax = grossSalary.multiply(BigDecimal.valueOf(12));
-
-        // 5. Taxable Income Calculation
-        BigDecimal annualTaxableIncome = annualIncomeBeforeTax.subtract(ptkp);
-        if (annualTaxableIncome.compareTo(BigDecimal.ZERO) < 0) {
-            annualTaxableIncome = BigDecimal.ZERO;
+        // Total taxable: pada schema saat ini disimpan sebagai agregat; gunakan gross - other deductions sebagai pendekatan.
+        BigDecimal totalTaxable = grossSalary.subtract(otherDeductions);
+        if (totalTaxable.compareTo(BigDecimal.ZERO) < 0) {
+            totalTaxable = BigDecimal.ZERO;
         }
 
-        // Apply rounding rule to monthly taxable income
-        BigDecimal monthlyTaxableIncome = annualTaxableIncome.divide(BigDecimal.valueOf(12), 0, RoundingMode.DOWN); // default: FLOOR
-
-        if ("CEILING".equalsIgnoreCase(roundingRule)) {
-            monthlyTaxableIncome = annualTaxableIncome.divide(BigDecimal.valueOf(12), 0, RoundingMode.UP);
-        } else if ("HALF_UP".equalsIgnoreCase(roundingRule)) {
-            monthlyTaxableIncome = annualTaxableIncome.divide(BigDecimal.valueOf(12), 0, RoundingMode.HALF_UP);
-        }
-        // else: FLOOR (default)
-
-        // 6. Calculate PPh 21 using HrTaxBracket
-        BigDecimal pph21Amount = calculatePPh21(monthlyTaxableIncome, annualTaxableIncome);
-
-        // 7. Other Deductions
-        BigDecimal otherDeductions = payrollInput.getOtherDeductions() != null ? payrollInput.getOtherDeductions() : BigDecimal.ZERO;
-        BigDecimal previousThpPaid = payrollInput.getPreviousThpPaid() != null ? payrollInput.getPreviousThpPaid() : BigDecimal.ZERO;
-
-        // 8. Net Take Home Pay
-        BigDecimal netTakeHomePay = grossSalary
-                .subtract(bpjsHealthDeduction)
-                .subtract(bpjsJhtDeduction)
-                .subtract(bpjsJpDeduction)
-                .subtract(pph21Amount)
-                .subtract(otherDeductions)
-                .subtract(previousThpPaid);
-
-        // 9. Build and Save Calculation Result
+        // Net THP (schema saat ini tidak menyimpan komponen pajak/BPJS; gunakan gross - other deductions)
+        BigDecimal netTakeHomePay = grossSalary.subtract(otherDeductions);
 
         HrPayrollCalculation current = hrPayrollCalculationRepository.findFirstByPayrollInputId(payrollInput.getId());
 
         HrPayrollCalculation calculation = HrPayrollCalculation.builder()
+                .id(current == null ? null : current.getId())
                 .payrollInput(payrollInput)
                 .grossSalary(grossSalary)
-                .bpjsHealthDeduction(bpjsHealthDeduction)
-                .bpjsJhtDeduction(bpjsJhtDeduction)
-                .bpjsJpDeduction(bpjsJpDeduction)
-                .annualIncomeBeforeTax(annualIncomeBeforeTax)
-                .ptkpApplied(ptkp)
-                .taxableIncome(monthlyTaxableIncome)
-                .pph21Amount(pph21Amount)
+                .totalAllowances(totalAllowances)
+                .totalOvertimes(totalOvertimes)
+                .totalBonus(totalBonus)
+                .totalOtherDeductions(otherDeductions)
+                .totalTaxable(totalTaxable)
                 .netTakeHomePay(netTakeHomePay)
                 .calculatedAt(LocalDateTime.now())
                 .notes("Calculated automatically on save")
-                .id(current == null ? null : current.getId())
                 .build();
 
         return hrPayrollCalculationRepository.save(calculation);
     }
 
+    private BigDecimal parseBigDecimalSafe(String raw) {
+        if (raw == null) return BigDecimal.ZERO;
+        String s = raw.trim();
+        if (s.isEmpty()) return BigDecimal.ZERO;
+        try {
+            s = s.replace(",", "");
+            return new BigDecimal(s);
+        } catch (Exception ex) {
+            return BigDecimal.ZERO;
+        }
+    }
+
     private BigDecimal calculatePPh21(BigDecimal monthlyTaxableIncome, BigDecimal annualTaxableIncome) {
-        // Fetch tax brackets ordered by min_income
         List<HrTaxBracket> brackets = hrTaxBracketRepository.findAllByOrderByMinIncomeAsc();
 
         BigDecimal annualTax = BigDecimal.ZERO;
@@ -313,7 +283,7 @@ public class PayrollService {
         for (HrTaxBracket bracket : brackets) {
             BigDecimal min = bracket.getMinIncome();
             BigDecimal max = bracket.getMaxIncome() != null ? bracket.getMaxIncome() : new BigDecimal("999999999999");
-            BigDecimal rate = bracket.getTaxRate().divide(BigDecimal.valueOf(100)); // if stored as 5, 15, etc.
+            BigDecimal rate = bracket.getTaxRate().divide(BigDecimal.valueOf(100));
 
             if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
 
@@ -325,7 +295,6 @@ public class PayrollService {
             remaining = remaining.subtract(taxableInBracket);
         }
 
-        // Return monthly PPh21
         return annualTax.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
     }
 
@@ -352,8 +321,8 @@ public class PayrollService {
             LocalDate startOfNextYear = startOfYear.plusYears(1);
             spec = spec.and((root, query, cb) ->
                     cb.and(
-                            cb.greaterThanOrEqualTo(root.get("payrollMonth"), startOfYear),
-                            cb.lessThan(root.get("payrollMonth"), startOfNextYear)
+                            cb.greaterThanOrEqualTo(root.get("payrollDate"), startOfYear),
+                            cb.lessThan(root.get("payrollDate"), startOfNextYear)
                     )
             );
         }
@@ -363,8 +332,8 @@ public class PayrollService {
             LocalDate startOfNextMonth = startOfMonth.plusMonths(1);
             spec = spec.and((root, query, cb) ->
                     cb.and(
-                            cb.greaterThanOrEqualTo(root.get("payrollMonth"), startOfMonth),
-                            cb.lessThan(root.get("payrollMonth"), startOfNextMonth)
+                            cb.greaterThanOrEqualTo(root.get("payrollDate"), startOfMonth),
+                            cb.lessThan(root.get("payrollDate"), startOfNextMonth)
                     )
             );
         }
@@ -382,15 +351,13 @@ public class PayrollService {
         String lowerCaseSearchTerm = "%" + searchTerm.toLowerCase() + "%";
         return (root, query, cb) -> {
 
-            Join<HrPayroll, HrPerson> personJoin = root.join("person");
+            // Search berdasarkan snapshot nama di hr_payroll (first_name/last_name)
             return cb.or(
-                    cb.like(cb.lower(personJoin.get("firstName")), lowerCaseSearchTerm),
-                    cb.like(cb.lower(personJoin.get("lastName")), lowerCaseSearchTerm)
+                    cb.like(cb.lower(root.get("firstName")), lowerCaseSearchTerm),
+                    cb.like(cb.lower(root.get("lastName")), lowerCaseSearchTerm)
             );
         };
     }
-
-
 
     public List<HrPerson> getActiveEmployees() {
         if (appUser == null) {
