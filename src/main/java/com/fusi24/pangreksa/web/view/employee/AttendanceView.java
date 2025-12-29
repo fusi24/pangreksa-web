@@ -137,9 +137,9 @@ public class AttendanceView extends Main {
                 .setHeader("Karyawan").setAutoWidth(true);
         grid.addColumn(att -> att.getAttendanceDate().format(dateFormatter))
                 .setHeader("Tanggal").setWidth("120px");
-        grid.addColumn(att -> att.getCheckIn() != null ? att.getCheckIn().format(DateTimeFormatter.ofPattern("HH:mm")) : "-")
+        grid.addColumn(att -> att.getCheckIn() != null ? att.getCheckIn().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) : "-")
                 .setHeader("Clock-In").setWidth("100px");
-        grid.addColumn(att -> att.getCheckOut() != null ? att.getCheckOut().format(DateTimeFormatter.ofPattern("HH:mm")) : "-")
+        grid.addColumn(att -> att.getCheckOut() != null ? att.getCheckOut().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) : "-")
                 .setHeader("Clock-Out").setWidth("100px");
         grid.addColumn(HrAttendance::getStatus).setHeader("Status").setWidth("130px");
         grid.addColumn(HrAttendance::getNotes).setHeader("Catatan").setAutoWidth(true);
