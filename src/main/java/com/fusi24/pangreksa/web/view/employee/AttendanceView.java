@@ -41,6 +41,7 @@ import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -256,11 +257,11 @@ public class AttendanceView extends Main {
             clockOutBtn.addClickListener(e -> {
                 // Set current Jakarta time (or your system's local time)
                 // If you're using Jakarta time explicitly:
-                // ZoneId jakartaZone = ZoneId.of("Asia/Jakarta");
-                // LocalDateTime now = LocalDateTime.now(jakartaZone);
+                 ZoneId jakartaZone = ZoneId.of("Asia/Jakarta");
+                 LocalDateTime now = LocalDateTime.now(jakartaZone);
 
                 // Or just use system default if already configured correctly:
-                LocalDateTime now = LocalDateTime.now();
+//                LocalDateTime now = LocalDateTime.now();
 
                 attendance.setCheckOut(now);
                 try {
