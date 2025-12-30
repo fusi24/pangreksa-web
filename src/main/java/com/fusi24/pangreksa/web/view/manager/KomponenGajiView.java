@@ -247,7 +247,8 @@ public class KomponenGajiView extends Main {
         salaryBaseLevelGrid.addColumn(new ComponentRenderer<>(item -> {
             HorizontalLayout actions = new HorizontalLayout();
 
-            Button editBtn = new Button("Edit", ev -> {
+            Button detail = new Button("Detail", e -> openSalaryBaseLevelDetail(item));
+            Button edit = new Button("Edit", e -> {
                 SalaryBaseLevelDialog dialog = new SalaryBaseLevelDialog(
                         salaryBaseLevelService,
                         currentAppUser.getCompany(),
@@ -258,20 +259,20 @@ public class KomponenGajiView extends Main {
                 dialog.open();
             });
 
-            Button deleteBtn = new Button("Delete", ev -> {
-                if (!auth.canDelete) return;
-                if (item.getId() != null) {
+            Button delete = new Button("Delete", e -> {
+                if (auth.canDelete && item.getId() != null) {
                     salaryBaseLevelService.delete(item);
                     populateSalaryBaseLevelGrid(withInactiveBasicSalary.getValue());
                 }
             });
 
-            editBtn.setEnabled(auth.canEdit);
-            deleteBtn.setEnabled(auth.canDelete);
+            detail.setEnabled(auth.canView);
+            edit.setEnabled(auth.canEdit);
+            delete.setEnabled(auth.canDelete);
 
-            actions.add(editBtn, deleteBtn);
+            actions.add(detail, edit, delete);
             return actions;
-        })).setHeader("Action").setFlexGrow(0).setAutoWidth(true);
+        })).setHeader("Actions").setAutoWidth(true);
 
         VerticalLayout salaryBaseLevelLayout = new VerticalLayout(functionMenuLayout, salaryBaseLevelGrid);
         salaryBaseLevelLayout.setSpacing(false);
@@ -441,6 +442,39 @@ public class KomponenGajiView extends Main {
         populateOrgStructureGrid();
 
         return allowancePackageLayout;
+    }
+
+
+    private void openSalaryBaseLevelDetail(HrSalaryBaseLevel sbl) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Salary Base Level Detail");
+        dialog.setWidth("500px");
+
+        FormLayout layout = new FormLayout();
+        layout.add(
+                ro("Company", sbl.getCompany() != null ? sbl.getCompany().getName() : "-"),
+                ro("Level Code", sbl.getLevelCode()),
+                ro("Amount", decimalAmountFormater(sbl.getBaseSalary())),
+                ro("Start Date", String.valueOf(sbl.getStartDate())),
+                ro("End Date", String.valueOf(sbl.getEndDate())),
+                ro("Active", Boolean.TRUE.equals(sbl.getIsActive()) ? "Yes" : "No"),
+                ro("Reason", sbl.getReason())
+        );
+
+        Button close = new Button("Close", e -> dialog.close());
+        dialog.getFooter().add(close);
+
+        dialog.add(layout);
+        dialog.open();
+    }
+
+
+    private TextField ro(String label, String value) {
+        TextField f = new TextField(label);
+        f.setValue(value != null ? value : "-");
+        f.setReadOnly(true);
+        f.setWidthFull();
+        return f;
     }
 
     private Component createAllowancePackageDetailFunction() {
@@ -634,15 +668,20 @@ public class KomponenGajiView extends Main {
     private void calculateTotalAllowance(){
         BigDecimal total = BigDecimal.ZERO;
 
-        List<HrSalaryPositionAllowance> positionAllowanceList =
+        List<HrSalaryPositionAllowance> list =
                 positionAllowanceGrid.getListDataView().getItems().toList();
 
-        for(HrSalaryPositionAllowance pa : positionAllowanceList){
-            if  (
+        for (HrSalaryPositionAllowance pa : list) {
+            if (pa.getAllowance() == null || pa.getAllowance().getAmount() == null) {
+                continue;
+            }
+
+            if (
                     (calcullationDateTF.getValue().isAfter(pa.getStartDate())
                             || calcullationDateTF.getValue().isEqual(pa.getStartDate()))
                             &&
-                            (pa.getEndDate() == null || calcullationDateTF.getValue().isBefore(pa.getEndDate()))
+                            (pa.getEndDate() == null
+                                    || calcullationDateTF.getValue().isBefore(pa.getEndDate()))
             ) {
                 total = total.add(pa.getAllowance().getAmount());
             }
@@ -650,6 +689,7 @@ public class KomponenGajiView extends Main {
 
         totalallowanceTF.setValue(decimalAmountFormater(total));
     }
+
 
     /* =========================
        LISTENER

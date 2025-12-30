@@ -133,18 +133,71 @@ public class LeaveRequestView extends Main {
         add(body);
     }
 
-    private Grid gridLeaveApplication(){
+    private Grid gridLeaveApplication() {
         leaveAppGrid = new Grid<>(HrLeaveApplication.class, false);
-        //add column
-        leaveAppGrid.addColumn(HrLeaveApplication::getSubmittedAt).setHeader("Submitted").setSortable(true);
-        leaveAppGrid.addColumn( l -> l.getLeaveAbsenceType().getLabel()).setHeader("Type").setSortable(true);
-        leaveAppGrid.addColumn(HrLeaveApplication::getStartDate).setHeader("Start Date").setSortable(true);
-        leaveAppGrid.addColumn(HrLeaveApplication::getTotalDays).setHeader("Total Days").setSortable(true);
-        leaveAppGrid.addColumn(l -> l.getSubmittedTo().getFirstName() + " " +l.getSubmittedTo().getLastName()).setHeader("Approver").setSortable(true);
-        leaveAppGrid.addColumn(HrLeaveApplication::getStatus).setHeader("Status").setSortable(true);
+
+        leaveAppGrid.addColumn(HrLeaveApplication::getSubmittedAt)
+                .setHeader("Submitted")
+                .setSortable(true);
+
+        leaveAppGrid.addColumn(l -> l.getLeaveAbsenceType().getLabel())
+                .setHeader("Type");
+
+        leaveAppGrid.addColumn(l ->
+                l.getStartDate() + " - " + l.getEndDate()
+        ).setHeader("Period");
+
+        leaveAppGrid.addColumn(HrLeaveApplication::getTotalDays)
+                .setHeader("Days");
+
+        leaveAppGrid.addColumn(HrLeaveApplication::getStatus)
+                .setHeader("Status");
+
+        leaveAppGrid.addComponentColumn(this::createLeaveActions)
+                .setHeader("Actions");
 
         return leaveAppGrid;
     }
+    private HorizontalLayout createLeaveActions(HrLeaveApplication leave) {
+        Button detail = new Button("Detail");
+        detail.addClickListener(e -> openLeaveDetailDialog(leave));
+        return new HorizontalLayout(detail);
+    }
+
+    private void openLeaveDetailDialog(HrLeaveApplication l) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Leave Request Detail");
+        dialog.setWidth("500px");
+
+        FormLayout layout = new FormLayout();
+        layout.add(
+                ro("Type", l.getLeaveAbsenceType().getLabel()),
+                ro("Period", l.getStartDate() + " - " + l.getEndDate()),
+                ro("Total Days", String.valueOf(l.getTotalDays())),
+                ro("Status", l.getStatus().name()),
+                ro("Approver",
+                        l.getSubmittedTo() != null
+                                ? l.getSubmittedTo().getFirstName() + " " + l.getSubmittedTo().getLastName()
+                                : "-"),
+                ro("Reason", l.getReason())
+        );
+
+        Button close = new Button("Close", e -> dialog.close());
+        dialog.getFooter().add(close);
+
+        dialog.add(layout);
+        dialog.open();
+    }
+
+    private TextArea ro(String label, String value) {
+        TextArea f = new TextArea(label);
+        f.setValue(value != null ? value : "-");
+        f.setReadOnly(true);
+        f.setWidthFull();
+        return f;
+    }
+
+
 
     private void populateGrid(){
         leaveAppGrid.setItems(Collections.emptyList());
@@ -220,13 +273,6 @@ public class LeaveRequestView extends Main {
 
         // optional, tapi bagus untuk ditentukan
         submittedToCombo.setPageSize(20);
-
-
-
-
-        if (manager != null) {
-            submittedToCombo.setValue(manager);
-        }
 
         Button generateReasonButton = new Button("Help with reason..");
         Button cancelButton = new Button("Cancel");

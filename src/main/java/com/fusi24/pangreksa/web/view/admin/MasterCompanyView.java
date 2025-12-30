@@ -149,31 +149,134 @@ public class MasterCompanyView extends Main {
     private void configureCompanyGrid() {
         companyGrid.removeAllColumns();
 
-        companyGrid.addColumn(company -> company.getParent() != null ? company.getParent().getName() : "")
-                .setHeader("Parent Company");
-        companyGrid.addColumn(HrCompany::getName).setHeader("Name");
-        companyGrid.addColumn(HrCompany::getShortName).setHeader("Short Name");
-        companyGrid.addColumn(HrCompany::getRegistrationNumber).setHeader("Registration Number");
-        companyGrid.addColumn(HrCompany::getPhone).setHeader("Phone");
-        companyGrid.addColumn(HrCompany::getEmail).setHeader("Email");
-        companyGrid.addColumn(HrCompany::getWebsite).setHeader("Website");
+        companyGrid.addColumn(HrCompany::getName)
+                .setHeader("Name")
+                .setAutoWidth(true);
+
+        companyGrid.addColumn(HrCompany::getShortName)
+                .setHeader("Short Name");
+
+        companyGrid.addColumn(c -> c.getParent() != null ? c.getParent().getName() : "-")
+                .setHeader("Parent");
+
         companyGrid.addColumn(c -> BooleanUtils.toString(c.getIsActive(), "Active", "Inactive"))
-                .setHeader("Active");
-        companyGrid.addColumn(c -> BooleanUtils.toString(c.getIsHrManaged(), "Yes", "No"))
-                .setHeader("HR Managed");
+                .setHeader("Status");
 
-        companyGrid.addComponentColumn(company -> {
-            Button edit = new Button("Edit");
-            edit.addClickListener(e -> openEditCompanyDialog(company));
-            return edit;
-        }).setHeader("Edit");
-
-        companyGrid.addComponentColumn(company -> {
-            Button delete = new Button("Delete");
-            delete.addClickListener(e -> deleteCompany(company));
-            return delete;
-        }).setHeader("Delete");
+        companyGrid.addComponentColumn(this::createCompanyActions)
+                .setHeader("Actions")
+                .setAutoWidth(true);
     }
+
+    private HorizontalLayout createCompanyActions(HrCompany company) {
+        Button detail = new Button("Detail");
+        detail.addClickListener(e -> openCompanyDetailDialog(company));
+
+        Button edit = new Button("Edit");
+        edit.addClickListener(e -> openEditCompanyDialog(company));
+
+        Button delete = new Button("Delete");
+        delete.addClickListener(e -> deleteCompany(company));
+
+        return new HorizontalLayout(detail, edit, delete);
+    }
+
+    private HorizontalLayout createBranchActions(HrCompanyBranch branch) {
+        Button detail = new Button("Detail");
+        detail.addClickListener(e -> openBranchDetailDialog(branch));
+
+        Button edit = new Button("Edit");
+        edit.addClickListener(e -> openEditBranchDialog(branch));
+
+        Button delete = new Button("Delete");
+        delete.addClickListener(e -> deleteBranch(branch));
+
+        return new HorizontalLayout(detail, edit, delete);
+    }
+
+    private void openBranchDetailDialog(HrCompanyBranch b) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Branch Detail");
+        dialog.setWidth("500px");
+
+        FormLayout layout = new FormLayout();
+        layout.add(
+                ro("Company", b.getCompany() != null ? b.getCompany().getName() : "-"),
+                ro("Branch Code", b.getBranchCode()),
+                ro("Branch Name", b.getBranchName()),
+                ro("Address", b.getBranchAddress()),
+                ro("City", b.getBranchAddressCity()),
+                ro("Province", b.getBranchAddressProvince()),
+                ro("Timezone", b.getBranchTimezone()),
+                ro("Latitude", b.getBranchLatitude() != null ? b.getBranchLatitude().toPlainString() : "-"),
+                ro("Longitude", b.getBranchLongitude() != null ? b.getBranchLongitude().toPlainString() : "-")
+        );
+
+        Button close = new Button("Close", e -> dialog.close());
+        dialog.getFooter().add(close);
+
+        dialog.add(layout);
+        dialog.open();
+    }
+
+
+    private void openCompanyDetailDialog(HrCompany c) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Company Detail");
+        dialog.setWidth("500px");
+
+        FormLayout layout = new FormLayout();
+        layout.add(
+                ro("Name", c.getName()),
+                ro("Short Name", c.getShortName()),
+                ro("Parent Company", c.getParent() != null ? c.getParent().getName() : "-"),
+                ro("Registration Number", c.getRegistrationNumber()),
+                ro("Establishment Date",
+                        c.getEstablishmentDate() != null ? c.getEstablishmentDate().toString() : "-"),
+                ro("Phone", c.getPhone()),
+                ro("Email", c.getEmail()),
+                ro("Website", c.getWebsite()),
+                ro("HR Managed", BooleanUtils.toString(c.getIsHrManaged(), "Yes", "No")),
+                ro("Status", BooleanUtils.toString(c.getIsActive(), "Active", "Inactive")),
+                ro("Notes", c.getNotes())
+        );
+
+        Button close = new Button("Close", e -> dialog.close());
+        dialog.getFooter().add(close);
+
+        dialog.add(layout);
+        dialog.open();
+    }
+
+    private void configureBranchGrid() {
+        branchGrid.removeAllColumns();
+
+        branchGrid.addColumn(b -> b.getCompany() != null ? b.getCompany().getName() : "-")
+                .setHeader("Company");
+
+        branchGrid.addColumn(HrCompanyBranch::getBranchCode)
+                .setHeader("Code");
+
+        branchGrid.addColumn(HrCompanyBranch::getBranchName)
+                .setHeader("Branch Name");
+
+        branchGrid.addColumn(HrCompanyBranch::getBranchAddressCity)
+                .setHeader("City");
+
+        branchGrid.addColumn(HrCompanyBranch::getBranchTimezone)
+                .setHeader("Timezone");
+
+        branchGrid.addComponentColumn(this::createBranchActions)
+                .setHeader("Actions");
+    }
+
+    private TextField ro(String label, String value) {
+        TextField f = new TextField(label);
+        f.setValue(value != null ? value : "-");
+        f.setReadOnly(true);
+        f.setWidthFull();
+        return f;
+    }
+
 
     private void configureCompanyForm() {
         parentField.setItemLabelGenerator(c -> c != null ? c.getName() : "");
@@ -396,34 +499,6 @@ public class MasterCompanyView extends Main {
         return layout;
     }
 
-    private void configureBranchGrid() {
-        branchGrid.removeAllColumns();
-
-        branchGrid.addColumn(b -> b.getCompany() != null ? b.getCompany().getName() : "")
-                .setHeader("Perusahaan");
-        branchGrid.addColumn(HrCompanyBranch::getBranchCode).setHeader("Kode Cabang");
-        branchGrid.addColumn(HrCompanyBranch::getBranchName).setHeader("Nama Cabang");
-        branchGrid.addColumn(HrCompanyBranch::getBranchAddressCity).setHeader("Kota");
-        branchGrid.addColumn(HrCompanyBranch::getBranchAddressProvince).setHeader("Provinsi");
-        branchGrid.addColumn(HrCompanyBranch::getBranchTimezone).setHeader("Zona Waktu");
-
-        branchGrid.addColumn(b -> {
-            if (b.getBranchLatitude() == null || b.getBranchLongitude() == null) return "";
-            return b.getBranchLatitude() + ", " + b.getBranchLongitude();
-        }).setHeader("Koordinat");
-
-        branchGrid.addComponentColumn(branch -> {
-            Button edit = new Button("Edit");
-            edit.addClickListener(e -> openEditBranchDialog(branch));
-            return edit;
-        }).setHeader("Edit");
-
-        branchGrid.addComponentColumn(branch -> {
-            Button delete = new Button("Delete");
-            delete.addClickListener(e -> deleteBranch(branch));
-            return delete;
-        }).setHeader("Delete");
-    }
 
     private Component buildBranchToolbar() {
         branchSearchField.setPlaceholder("Search by code, name, city, province...");

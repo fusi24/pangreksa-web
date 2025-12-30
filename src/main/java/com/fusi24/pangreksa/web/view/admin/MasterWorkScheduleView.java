@@ -92,35 +92,83 @@ public class MasterWorkScheduleView extends Main {
 
     private void configureGrid() {
         grid.removeAllColumns();
-        grid.addColumn(HrWorkSchedule::getName).setHeader("Name");
-        grid.addColumn(ws -> ws.getType() != null ? ws.getType().name() : "").setHeader("Type");
-        grid.addColumn(ws -> formatTime(ws.getCheckIn())).setHeader("Check-In");
-        grid.addColumn(ws -> formatTime(ws.getCheckOut())).setHeader("Check-Out");
-        grid.addColumn(ws -> formatTime(ws.getBreakStart())).setHeader("Break Start");
-        grid.addColumn(ws -> formatTime(ws.getBreakEnd())).setHeader("Break End");
-        grid.addColumn(ws -> ws.getLabel() != null ? ws.getLabel().name() : "").setHeader("Label");
-        grid.addColumn(ws -> BooleanUtils.toString(ws.getIsOvertimeAuto(), "Yes", "No")).setHeader("Overtime Auto");
-        grid.addColumn(ws -> {
-            if ("All".equals(ws.getAssignmentScope())) return "All";
-            return ws.getAssignments().stream()
-                    .map(a -> a.getOrgStructure() != null ? a.getOrgStructure().getName() : "")
-                    .filter(s -> !s.isEmpty())
-                    .collect(Collectors.joining(", "));
-        }).setHeader("Assignment");
-        grid.addColumn(ws -> BooleanUtils.toString(ws.getIsActive(), "Active", "Inactive")).setHeader("Status");
 
-        grid.addComponentColumn(ws -> {
-            Button edit = new Button("Edit");
-            edit.addClickListener(e -> openEditDialog(ws));
-            return edit;
-        }).setHeader("Edit");
+        grid.addColumn(HrWorkSchedule::getName).setHeader("Name").setAutoWidth(true);
+        grid.addColumn(ws -> ws.getType() != null ? ws.getType().name() : "")
+                .setHeader("Type");
 
-        grid.addComponentColumn(ws -> {
-            Button delete = new Button("Delete");
-            delete.addClickListener(e -> deleteSchedule(ws));
-            return delete;
-        }).setHeader("Delete");
+        grid.addColumn(ws -> formatTime(ws.getCheckIn()))
+                .setHeader("Check-In");
+
+        grid.addColumn(ws -> formatTime(ws.getCheckOut()))
+                .setHeader("Check-Out");
+
+        grid.addColumn(ws -> ws.getLabel() != null ? ws.getLabel().name() : "")
+                .setHeader("Label");
+
+        grid.addColumn(ws -> BooleanUtils.toString(ws.getIsActive(), "Active", "Inactive"))
+                .setHeader("Status");
+
+        grid.addComponentColumn(this::createActionButtons)
+                .setHeader("Actions")
+                .setAutoWidth(true);
     }
+
+    private HorizontalLayout createActionButtons(HrWorkSchedule ws) {
+        Button detail = new Button("Detail");
+        detail.addClickListener(e -> openDetailDialog(ws));
+
+        Button edit = new Button("Edit");
+        edit.addClickListener(e -> openEditDialog(ws));
+
+        return new HorizontalLayout(detail, edit);
+    }
+
+    private void openDetailDialog(HrWorkSchedule ws) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Work Schedule Detail");
+        dialog.setWidth("500px");
+
+        FormLayout layout = new FormLayout();
+
+        layout.add(
+                createReadOnlyField("Name", ws.getName()),
+                createReadOnlyField("Type", ws.getType() != null ? ws.getType().name() : "-"),
+                createReadOnlyField("Check-In", formatTime(ws.getCheckIn())),
+                createReadOnlyField("Check-Out", formatTime(ws.getCheckOut())),
+                createReadOnlyField("Break Start", formatTime(ws.getBreakStart())),
+                createReadOnlyField("Break End", formatTime(ws.getBreakEnd())),
+                createReadOnlyField("Label", ws.getLabel() != null ? ws.getLabel().name() : "-"),
+                createReadOnlyField("Overtime Auto", BooleanUtils.toString(ws.getIsOvertimeAuto(), "Yes", "No")),
+                createReadOnlyField("Assignment", resolveAssignment(ws)),
+                createReadOnlyField("Status", BooleanUtils.toString(ws.getIsActive(), "Active", "Inactive"))
+        );
+
+        Button close = new Button("Close", e -> dialog.close());
+        dialog.getFooter().add(close);
+
+        dialog.add(layout);
+        dialog.open();
+    }
+
+    private TextField createReadOnlyField(String label, String value) {
+        TextField field = new TextField(label);
+        field.setValue(value != null ? value : "");
+        field.setReadOnly(true);
+        field.setWidthFull();
+        return field;
+    }
+
+    private String resolveAssignment(HrWorkSchedule ws) {
+        if ("All".equals(ws.getAssignmentScope())) {
+            return "All Organization";
+        }
+        return ws.getAssignments().stream()
+                .map(a -> a.getOrgStructure().getName())
+                .collect(Collectors.joining(", "));
+    }
+
+
 
     private String formatTime(LocalTime time) {
         return time != null ? time.toString() : "";
