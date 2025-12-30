@@ -6,9 +6,18 @@ import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrPayroll;
 import com.fusi24.pangreksa.web.model.entity.HrPayrollCalculation;
+import com.fusi24.pangreksa.web.model.entity.HrSalaryAllowance;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.PayrollService;
 import com.fusi24.pangreksa.web.service.SystemService;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
+import com.vaadin.flow.component.textfield.BigDecimalField;
+import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.combobox.MultiSelectComboBox;
+import com.vaadin.flow.data.binder.BeanValidationBinder;
+import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -46,6 +55,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 
 
 @Route("payroll-list-page-access")
@@ -68,6 +78,8 @@ public class PayrollView extends Main {
 
     private ComboBox<Integer> yearFilter = new ComboBox<>();
     private ComboBox<Integer> monthFilter = new ComboBox<>();
+
+    private Dialog addPayrollDialog = new Dialog();
 
     MutableObject<HrPayroll> mObject = new MutableObject<>();
 
@@ -199,10 +211,8 @@ public class PayrollView extends Main {
         searchField.setClearButtonVisible(true);
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
 
-        // Add Payroll Button (placeholder - nanti kita bahas)
-        Button addButton = new Button("Add Payroll", e -> {
-            Notification.show("Add Payroll clicked", 2000, Notification.Position.MIDDLE);
-        });
+        // Add Payroll Button
+        Button addButton = new Button("Add Payroll", e -> openAddPayrollDialog());
         addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         // Year Filter
@@ -302,6 +312,265 @@ public class PayrollView extends Main {
         );
 
         grid.setDataProvider(dataProvider);
+    }
+
+    private void openAddPayrollDialog() {
+        addPayrollDialog.removeAll();
+
+        AddPayrollForm form = new AddPayrollForm(payrollService, currentUser, () -> {
+            addPayrollDialog.close();
+            applyFilters();
+        });
+
+        addPayrollDialog.add(form);
+        addPayrollDialog.setWidth("900px");
+        addPayrollDialog.open();
+    }
+
+    public static class AddPayrollForm extends FormLayout {
+
+        private final PayrollService payrollService;
+        private final CurrentUser currentUser;
+        private final Runnable onSaveSuccess;
+
+        private final ComboBox<Integer> yearField = new ComboBox<>();
+        private final ComboBox<Integer> monthField = new ComboBox<>();
+
+        private final IntegerField attendanceDaysField = new IntegerField();
+        private final IntegerField overtimeMinutesField = new IntegerField();
+
+        private final RadioButtonGroup<String> overtimePaymentType = new RadioButtonGroup<>();
+        private final BigDecimalField overtimeStaticNominal = new BigDecimalField();
+        private final IntegerField overtimePercent = new IntegerField();
+
+        private final RadioButtonGroup<String> allowanceMode = new RadioButtonGroup<>();
+        private final MultiSelectComboBox<HrSalaryAllowance> allowanceMultiSelect = new MultiSelectComboBox<>();
+
+        private final Button saveButton = new Button("Save");
+        private final Button cancelButton = new Button("Cancel");
+
+        private final Binder<PayrollService.AddPayrollRequest> binder =
+                new BeanValidationBinder<>(PayrollService.AddPayrollRequest.class);
+
+        public AddPayrollForm(PayrollService payrollService, CurrentUser currentUser, Runnable onSaveSuccess) {
+            this.payrollService = payrollService;
+            this.currentUser = currentUser;
+            this.onSaveSuccess = onSaveSuccess;
+
+            configureFields();
+            configureBinder();
+            configureLayout();
+            configureActions();
+        }
+
+        private void configureFields() {
+            int y = LocalDate.now().getYear();
+
+            yearField.setPlaceholder("Year");
+            yearField.setItems(y - 5, y - 4, y - 3, y - 2, y - 1, y, y + 1);
+            yearField.setValue(y);
+            yearField.setWidthFull();
+
+            monthField.setPlaceholder("Month");
+            monthField.setItems(1,2,3,4,5,6,7,8,9,10,11,12);
+            monthField.setItemLabelGenerator(m -> Month.of(m).getDisplayName(TextStyle.FULL, new Locale("id", "ID")));
+            monthField.setValue(LocalDate.now().getMonthValue());
+            monthField.setWidthFull();
+
+            attendanceDaysField.setPlaceholder("0 - 31");
+            attendanceDaysField.setMin(0);
+            attendanceDaysField.setMax(31);
+            attendanceDaysField.setValue(null);
+            attendanceDaysField.setWidthFull();
+
+            overtimeMinutesField.setPlaceholder("0 - 60");
+            overtimeMinutesField.setMin(0);
+            overtimeMinutesField.setMax(60);
+            overtimeMinutesField.setValue(null);
+            overtimeMinutesField.setWidthFull();
+
+            overtimePaymentType.setLabel(null); // label kita taruh di FormItem
+            overtimePaymentType.setItems("STATIC", "PERCENTAGE");
+            overtimePaymentType.setValue("STATIC");
+            overtimePaymentType.setWidthFull();
+
+            overtimeStaticNominal.setPlaceholder("Rp 0");
+            overtimeStaticNominal.setWidthFull();
+            overtimeStaticNominal.setValue(null);
+
+            overtimePercent.setPlaceholder("0 - 100 (%)");
+            overtimePercent.setMin(0);
+            overtimePercent.setMax(100);
+            overtimePercent.setValue(null);
+            overtimePercent.setWidthFull();
+
+            overtimeStaticNominal.setVisible(true);
+            overtimePercent.setVisible(false);
+
+            overtimePaymentType.addValueChangeListener(e -> {
+                boolean isStatic = "STATIC".equals(e.getValue());
+                overtimeStaticNominal.setVisible(isStatic);
+                overtimePercent.setVisible(!isStatic);
+            });
+
+            allowanceMode.setLabel(null);
+            allowanceMode.setItems("NO ALLOWANCE", "SELECT ALLOWANCE", "BENEFITS PACKAGE");
+            allowanceMode.setValue("NO ALLOWANCE");
+            allowanceMode.setWidthFull();
+
+            allowanceMultiSelect.setPlaceholder("Select one or more allowances");
+            allowanceMultiSelect.setWidthFull();
+            allowanceMultiSelect.setVisible(false);
+
+            allowanceMultiSelect.setItemLabelGenerator(a ->
+                    a.getName() + " (Rp " + FormattingUtils.formatPayrollAmount(a.getAmount()) + ")"
+            );
+
+            refreshAllowanceOptions();
+
+            yearField.addValueChangeListener(e -> refreshAllowanceOptions());
+            monthField.addValueChangeListener(e -> refreshAllowanceOptions());
+
+            allowanceMode.addValueChangeListener(e -> {
+                boolean show = "SELECT ALLOWANCE".equals(e.getValue());
+                allowanceMultiSelect.setVisible(show);
+            });
+
+            saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        }
+
+        private void refreshAllowanceOptions() {
+            LocalDate payrollDate = LocalDate.of(yearField.getValue(), monthField.getValue(), 1);
+            allowanceMultiSelect.setItems(payrollService.getSelectableAllowancesForPayrollDate(payrollDate));
+        }
+
+        private void configureBinder() {
+            PayrollService.AddPayrollRequest bean = new PayrollService.AddPayrollRequest();
+            bean.setYear(yearField.getValue());
+            bean.setMonth(monthField.getValue());
+            bean.setParamAttendanceDays(0);
+            bean.setOvertimeMinutes(0);
+            bean.setOvertimePaymentType("STATIC");
+            bean.setOvertimeStaticNominal(BigDecimal.ZERO);
+            bean.setOvertimePercent(0);
+            bean.setAllowanceMode("NO ALLOWANCE");
+
+            binder.setBean(bean);
+
+            binder.forField(yearField).asRequired("Year required")
+                    .bind(PayrollService.AddPayrollRequest::getYear, PayrollService.AddPayrollRequest::setYear);
+
+            binder.forField(monthField).asRequired("Month required")
+                    .bind(PayrollService.AddPayrollRequest::getMonth, PayrollService.AddPayrollRequest::setMonth);
+
+            binder.forField(attendanceDaysField)
+                    .bind(PayrollService.AddPayrollRequest::getParamAttendanceDays, PayrollService.AddPayrollRequest::setParamAttendanceDays);
+
+            binder.forField(overtimeMinutesField)
+                    .bind(PayrollService.AddPayrollRequest::getOvertimeMinutes, PayrollService.AddPayrollRequest::setOvertimeMinutes);
+
+            binder.forField(overtimePaymentType)
+                    .bind(PayrollService.AddPayrollRequest::getOvertimePaymentType, PayrollService.AddPayrollRequest::setOvertimePaymentType);
+
+            binder.forField(overtimeStaticNominal)
+                    .bind(PayrollService.AddPayrollRequest::getOvertimeStaticNominal, PayrollService.AddPayrollRequest::setOvertimeStaticNominal);
+
+            binder.forField(overtimePercent)
+                    .bind(PayrollService.AddPayrollRequest::getOvertimePercent, PayrollService.AddPayrollRequest::setOvertimePercent);
+
+            binder.forField(allowanceMode)
+                    .bind(PayrollService.AddPayrollRequest::getAllowanceMode, PayrollService.AddPayrollRequest::setAllowanceMode);
+        }
+
+        private void configureLayout() {
+            setWidthFull();
+
+            setResponsiveSteps(
+                    new ResponsiveStep("0", 1),
+                    new ResponsiveStep("700px", 2)
+            );
+
+            // Section: Periode Payroll
+            Span s1 = new Span("Periode Payroll");
+            s1.getStyle().set("font-weight", "600");
+            s1.getStyle().set("margin-top", "0.25rem");
+
+            add(s1);
+            setColspan(s1, 2);
+
+            FormItem fiYear = addFormItem(yearField, "Year");
+            FormItem fiMonth = addFormItem(monthField, "Month");
+            fiYear.getStyle().set("margin-top", "0");
+            fiMonth.getStyle().set("margin-top", "0");
+
+            // Section: Parameter
+            Span s2 = new Span("Parameter Attendance & Overtime");
+            s2.getStyle().set("font-weight", "600");
+            s2.getStyle().set("margin-top", "0.75rem");
+
+            add(s2);
+            setColspan(s2, 2);
+
+            addFormItem(attendanceDaysField, "Total Hari Kerja (input manual)");
+            addFormItem(overtimeMinutesField, "Overtime dihitung (menit 0-60)");
+
+            addFormItem(overtimePaymentType, "Bayaran Overtime");
+            // slot kanan untuk field sesuai pilihan (static / percentage)
+            // dibuat rapi: kita taruh keduanya, yang tidak aktif hidden
+            addFormItem(overtimeStaticNominal, "Nominal Upah (Rp)");
+            addFormItem(overtimePercent, "Persentase (Percentage)");
+
+            // Section: Allowance
+            Span s3 = new Span("Allowance");
+            s3.getStyle().set("font-weight", "600");
+            s3.getStyle().set("margin-top", "0.75rem");
+
+            add(s3);
+            setColspan(s3, 2);
+
+            addFormItem(allowanceMode, "Allowance Option");
+
+            // Multi select dibuat full row agar enak
+            FormItem fiAllow = addFormItem(allowanceMultiSelect, "Select Allowance");
+            setColspan(fiAllow, 2);
+
+            HorizontalLayout buttons = new HorizontalLayout(saveButton, cancelButton);
+            buttons.setWidthFull();
+            buttons.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+
+            add(buttons);
+            setColspan(buttons, 2);
+        }
+
+        private void configureActions() {
+            saveButton.addClickListener(e -> {
+                PayrollService.AddPayrollRequest bean = binder.getBean();
+
+                bean.setYear(yearField.getValue());
+                bean.setMonth(monthField.getValue());
+
+                if ("SELECT ALLOWANCE".equals(bean.getAllowanceMode())) {
+                    Set<HrSalaryAllowance> selected = allowanceMultiSelect.getSelectedItems();
+                    bean.setSelectedAllowances(new ArrayList<>(selected));
+                } else {
+                    bean.setSelectedAllowances(new ArrayList<>());
+                }
+
+                if (binder.writeBeanIfValid(bean)) {
+                    try {
+                        payrollService.createPayrollBulk(bean, currentUser.require());
+                        Notification.show("Payroll created successfully", 3000, Notification.Position.MIDDLE);
+                        onSaveSuccess.run();
+                    } catch (Exception ex) {
+                        Notification.show("Error create payroll: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
+                        ex.printStackTrace();
+                    }
+                }
+            });
+
+            cancelButton.addClickListener(e -> onSaveSuccess.run());
+        }
     }
 
     private List<Integer> getRecentYears(int pastYears) {
