@@ -70,7 +70,7 @@ public class LeaveBalanceDataView extends Main {
 
         addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
                 LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
-
+        setSizeFull();
         add(new ViewToolbar(VIEW_NAME));
         createBody();
 
@@ -88,7 +88,7 @@ public class LeaveBalanceDataView extends Main {
         this.body = new VerticalLayout();
         body.setPadding(false);
         body.setSpacing(false);
-
+        body.setSizeFull();
         companyDropdown = new ComboBox<>("Company");
         companyDropdown.setItems(companyService.getallCompanies());
         companyDropdown.setItemLabelGenerator(HrCompany::getName);
@@ -109,25 +109,30 @@ public class LeaveBalanceDataView extends Main {
         headerFunction.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
         headerFunction.setAlignItems(FlexComponent.Alignment.BASELINE);
 
-        body.add(headerFunction, createLeaveGenerationLogGrid());
+        Grid<HrLeaveGenerationLog> grid = createLeaveGenerationLogGrid();
+        grid.setSizeFull();
+
+        body.add(headerFunction, grid);
+        body.setFlexGrow(1, grid);
 
         add(body);
     }
 
-    private Grid createLeaveGenerationLogGrid() {
-        this.leaveGenerationLogGrid = new Grid<>(HrLeaveGenerationLog.class, false);
+    private Grid<HrLeaveGenerationLog> createLeaveGenerationLogGrid() {
+        leaveGenerationLogGrid = new Grid<>(HrLeaveGenerationLog.class, false);
+
         leaveGenerationLogGrid.addColumn(log -> log.getCompany().getName()).setHeader("Company");
         leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getYear).setHeader("Year");
         leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getDataGenerated).setHeader("Total Data");
         leaveGenerationLogGrid.addColumn(log -> log.getCreatedBy().getUsername()).setHeader("Created By");
         leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getCreatedAt).setHeader("Created At");
-        leaveGenerationLogGrid.setWidthFull();
-        leaveGenerationLogGrid.setHeight("400px");
 
+        leaveGenerationLogGrid.setSizeFull(); // ⬅️ penting
         leaveGenerationLogGrid.setItems(Collections.emptyList());
 
-        return this.leaveGenerationLogGrid;
+        return leaveGenerationLogGrid;
     }
+
 
     private void setListener() {
         checkButton.addClickListener( e -> {
