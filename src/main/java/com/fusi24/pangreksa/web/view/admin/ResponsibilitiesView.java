@@ -86,7 +86,7 @@ public class ResponsibilitiesView extends Main {
 
         addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
                 LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
-
+        setSizeFull();
         add(new ViewToolbar(VIEW_NAME));
         add(createBody());
 
@@ -343,6 +343,7 @@ public class ResponsibilitiesView extends Main {
         this.body = new VerticalLayout();
         body.setPadding(false);
         body.setSpacing(false);
+        body.setSizeFull();
 
         responsibilityDropdown = new ComboBox<>("Responsibility");
         populateButton = new Button("Populate");
@@ -377,10 +378,36 @@ public class ResponsibilitiesView extends Main {
 
         this.tabsheet = new TabSheet();
         tabsheet.setWidthFull();
-        tabsheet.add("Menu Management", new VerticalLayout(functionMenuListGrid, addMenuListGrid()));
-        tabsheet.add("Responsibility List", new VerticalLayout(functionResponsibilitiesListGrid, addResponsibilitiesListGrid()));
+
+        VerticalLayout menuTab = new VerticalLayout();
+        menuTab.setSizeFull();
+        menuTab.setPadding(false);
+        menuTab.setSpacing(false);
+
+        Grid<FwResponsibilitiesMenu> menuGrid = addMenuListGrid();
+        menuGrid.setSizeFull();
+
+        menuTab.add(functionMenuListGrid, menuGrid);
+        menuTab.setFlexGrow(1, menuGrid);
+
+        tabsheet.add("Menu Management", menuTab);
+
+// ===== TAB: RESPONSIBILITY LIST =====
+        VerticalLayout respTab = new VerticalLayout();
+        respTab.setSizeFull();
+        respTab.setPadding(false);
+        respTab.setSpacing(false);
+
+        Grid<FwResponsibilities> respGrid = addResponsibilitiesListGrid();
+        respGrid.setSizeFull();
+
+        respTab.add(functionResponsibilitiesListGrid, respGrid);
+        respTab.setFlexGrow(1, respGrid);
+
+        tabsheet.add("Responsibility List", respTab);
 
         body.add(tabsheet);
+        body.setFlexGrow(1, tabsheet);
 
         return body;
     }
