@@ -245,7 +245,16 @@ public class BpjsPajakView extends Main {
         systemSection.setSpacing(true);
 
         H3 systemTitle = new H3("Pengaturan Sistem");
-        systemSection.add(systemTitle, virtualList);
+        Button saveSystemButton = new Button("Save Pengaturan Sistem");
+        saveSystemButton.addClickListener(event -> {
+            for (FwSystem system : systemList) {
+                log.debug("Saving Key: {}, Value: {}", system.getKey(), system.getStringVal());
+                systemService.saveSystem(system);
+            }
+            Notification.show("Pengaturan Sistem berhasil disimpan");
+        });
+
+        systemSection.add(systemTitle, virtualList, saveSystemButton);
 
         // ====== TAMBAHKAN KE BODY ======
         body.add(
