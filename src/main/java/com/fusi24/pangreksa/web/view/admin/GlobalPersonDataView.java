@@ -75,7 +75,7 @@ public class GlobalPersonDataView extends Main {
 
         addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
                 LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
-
+        setSizeFull();
         add(new ViewToolbar(VIEW_NAME));
         createBody();
 
@@ -93,7 +93,7 @@ public class GlobalPersonDataView extends Main {
         this.body = new VerticalLayout();
         body.setPadding(false);
         body.setSpacing(false);
-
+        body.setSizeFull();
         companyDropdown = new ComboBox<>("Company");
         companyDropdown.setItems(companyService.getallCompanies());
         companyDropdown.setItemLabelGenerator(HrCompany::getName);
@@ -127,181 +127,70 @@ public class GlobalPersonDataView extends Main {
 
     private void createTabSheet() {
         tabsheet = new TabSheet();
+        tabsheet.setSizeFull();
+
         PrettyTime prettyTime = new PrettyTime();
 
         VerticalLayout tabA = new VerticalLayout();
-        tabsheet.add("Employees", tabA);
+        tabA.setSizeFull();
+        tabA.setPadding(false);
+        tabA.setSpacing(false);
+
         VerticalLayout tabB = new VerticalLayout();
+        tabB.setSizeFull();
+        tabB.setPadding(false);
+        tabB.setSpacing(false);
+
+        tabsheet.add("Employees", tabA);
         tabsheet.add("Unassigned Persons", tabB);
-        tabsheet.getStyle().setFlexGrow("1").setWidth("100%");
 
         gridEmployees = new Grid<>(HrPersonPosition.class, false);
-        gridEmployees.setSelectionMode(Grid.SelectionMode.SINGLE);
-        // Name
+        gridEmployees.setSizeFull();
+
         gridEmployees.addColumn(pos -> {
-            HrPerson person = pos.getPerson();
-            return person != null ? person.getFirstName() : "";
-        }).setHeader("First Name").setSortable(true);
+            HrPerson p = pos.getPerson();
+            return p != null ? p.getFirstName() : "";
+        }).setHeader("First Name");
+
         gridEmployees.addColumn(pos -> {
-            HrPerson person = pos.getPerson();
-            return person != null ? person.getLastName() : "";
-        }).setHeader("Last Name").setSortable(true);
-        // Position
+            HrPerson p = pos.getPerson();
+            return p != null ? p.getLastName() : "";
+        }).setHeader("Last Name");
+
         gridEmployees.addColumn(pos -> {
             HrPosition position = pos.getPosition();
             return position != null ? position.getName() : "";
-        }).setHeader("Position").setSortable(true);
-        gridEmployees.addColumn(pos -> {
-            HrPosition position = pos.getPosition();
-            return position != null ? position.getOrgStructure().getName() : "";
-        }).setHeader("Org Structure").setSortable(true);
-        // Start Date
-        gridEmployees.addColumn(HrPersonPosition::getStartDate).setHeader("Start Date").setSortable(true);
-        // Action column with delete button (icon only, no title)
-        gridEmployees.addColumn(new ComponentRenderer<>(personPosition -> {
-            HorizontalLayout actionLayout = new HorizontalLayout();
+        }).setHeader("Position");
 
-            // Edit button
-            Button editButton = new Button();
-            editButton.setIcon(VaadinIcon.EDIT.create());
-            editButton.getElement().setAttribute("title", "Edit Person");
-            editButton.addClickListener(e -> {
-                UI.getCurrent().navigate(ROUTE_EDIT + personPosition.getPerson().getId());
-            });
-            if (!this.auth.canEdit) {
-                editButton.setEnabled(false);
-            }
+        gridEmployees.addColumn(HrPersonPosition::getStartDate)
+                .setHeader("Start Date");
 
-            actionLayout.add(editButton);
-            return actionLayout;
-        })).setHeader("").setAutoWidth(true);
 
         gridUnassignedPersons = new Grid<>(HrPerson.class, false);
-        gridUnassignedPersons.setSelectionMode(Grid.SelectionMode.SINGLE);
-        gridUnassignedPersons.addColumn(HrPerson::getFirstName).setHeader("First Name").setSortable(true);
-        gridUnassignedPersons.addColumn(HrPerson::getLastName).setHeader("Last Name").setSortable(true);
+        gridUnassignedPersons.setSizeFull();
+
+        gridUnassignedPersons.addColumn(HrPerson::getFirstName)
+                .setHeader("First Name");
+
+        gridUnassignedPersons.addColumn(HrPerson::getLastName)
+                .setHeader("Last Name");
+
         gridUnassignedPersons.addColumn(person ->
-                person.getCreatedAt() != null ? prettyTime.format(person.getCreatedAt()) : ""
-        ).setHeader("Created Date").setSortable(false);
-        // Action column with delete button (icon only, no title)
-        gridUnassignedPersons.addColumn(new ComponentRenderer<>(person -> {
-            HorizontalLayout actionLayout = new HorizontalLayout();
-
-            // Edit button
-            Button editButton = new Button();
-            editButton.setIcon(VaadinIcon.EDIT.create());
-            editButton.getElement().setAttribute("title", "Edit Person");
-            editButton.addClickListener(e -> {
-                UI.getCurrent().navigate(ROUTE_EDIT + person.getId());
-            });
-            if (!this.auth.canEdit) {
-                editButton.setEnabled(false);
-            }
-
-            // Assign to Company button
-            Button assignButton = new Button();
-            assignButton.setIcon(VaadinIcon.WORKPLACE.create());
-            assignButton.getElement().setAttribute("title", "Assign to Company");
-            assignButton.addClickListener(e -> {
-                Dialog dialog = new Dialog();
-
-                HrCompany company = companyDropdown.getValue();
-
-                VerticalLayout dialogLayout = new VerticalLayout();
-                ComboBox<HrOrgStructure> orgStructureDropdown = new ComboBox<>("Org. Structure");
-                ComboBox<HrPosition> positionDropdown = new ComboBox<>("Position");
-                DatePicker startDatePicker = new DatePicker("Start Date");
-                DatePicker endDatePicker = new DatePicker("End Date");
-                Checkbox isPrimaryCheckbox = new Checkbox("Is Primary");
-                Checkbox isActingCheckbox = new Checkbox("Is Acting");
-
-                ComboBox<HrPerson> requestedByDropdown = new ComboBox<>("Requested By");
-                requestedByDropdown.setItemLabelGenerator(p -> p.getFirstName() + " " + (p.getLastName() != null ? p.getLastName() : ""));
-                requestedByDropdown.setPlaceholder("Unassigned");
-                requestedByDropdown.setClearButtonVisible(true);
-
-                requestedByDropdown.setItems(query -> {
-                    String filter = query.getFilter().orElse("");
-                    int offset = query.getOffset();
-                    int limit = query.getLimit(); // not used in this example, but can be used for pagination
-                    log.debug("Searching persons with filter: {}", filter);
-                    return personService.findPersonByKeyword(filter).stream();
-                } );
-
-                positionDropdown.setItemLabelGenerator(HrPosition::getName);
-                positionDropdown.setEnabled(false);
-                requestedByDropdown.setWidth("400px");
-
-                orgStructureDropdown.setItems(companyService.getAllOrgStructuresInCompany(company));
-                orgStructureDropdown.setItemLabelGenerator(HrOrgStructure::getName);
-                orgStructureDropdown.setWidth("400px");
-
-                orgStructureDropdown.addValueChangeListener( event -> {
-                    positionDropdown.setItems(Collections.emptyList());
-                    List<HrPosition> positions = companyService.getAllPositionsInOrganization(company, event.getValue());
-                    log.debug("found {} positions",positions.size());
-                    if (!positions.isEmpty()) {
-                        positionDropdown.setItems(positions);
-                        positionDropdown.setEnabled(true);
-                    } else {
-                        positionDropdown.setEnabled(false);
-                    }
-                });
-
-                positionDropdown.setWidth("400px");
-
-                HorizontalLayout buttonLayout = new HorizontalLayout();
-                Button cancelButton = new Button("Cancel", event -> dialog.close());
-                Button saveButton = new Button("Save");
-
-                if(!this.auth.canEdit){
-                    saveButton.setEnabled(false);
-                }
-
-                saveButton.addClickListener(event -> {
-                    log.debug("Saving Org Structure {} and Position {} to Person {}",
-                            orgStructureDropdown.getValue(), positionDropdown.getValue(), person.getFirstName());
-
-                    // Create HrPersonPosition using builder
-                    HrPersonPosition personPosition = HrPersonPosition.builder()
-                            .person(person)
-                            .position(positionDropdown.getValue())
-                            .startDate(startDatePicker.getValue())
-                            .endDate(endDatePicker.getValue())
-                            .isActing(isActingCheckbox.getValue())
-                            .isPrimary(isPrimaryCheckbox.getValue())
-                            .requestedBy(requestedByDropdown.getValue())
-                            .company(company)
-                            .build();
-
-                    personService.savePersonPosition(personPosition, currentUser.require());
-
-                    dialog.close();
-                });
-
-                buttonLayout.add(cancelButton, saveButton);
-                dialogLayout.add(orgStructureDropdown, positionDropdown,
-                        new HorizontalLayout(startDatePicker, endDatePicker),
-                        new HorizontalLayout(isPrimaryCheckbox, isActingCheckbox),
-                        requestedByDropdown,
-                        buttonLayout);
-                dialog.add(dialogLayout);
-                dialog.open();
-            });
-
-            if(!this.auth.canEdit){
-                assignButton.setEnabled(false);
-            }
-
-            actionLayout.add(editButton, assignButton);
-            return actionLayout;
-        })).setHeader("").setAutoWidth(true);
+                person.getCreatedAt() != null
+                        ? new PrettyTime().format(person.getCreatedAt())
+                        : ""
+        ).setHeader("Created Date");
 
         tabA.add(gridEmployees);
+        tabA.setFlexGrow(1, gridEmployees);
+
         tabB.add(gridUnassignedPersons);
+        tabB.setFlexGrow(1, gridUnassignedPersons);
+
 
 
         body.add(tabsheet);
+        body.setFlexGrow(1, tabsheet);
     }
 
     private void setListener() {
