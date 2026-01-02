@@ -226,7 +226,7 @@ public class BpjsPajakView extends Main {
 
         btnAddPtkp.addClickListener(e -> openPtkpDialog(null));
 
-        toolbarLayoutMaster.add(saveButton, btnAddPtkp);
+        toolbarLayoutMaster.add(btnAddPtkp);
 
         // ====== JUDUL MASTER PTKP ======
         H3 ptkpTitle = new H3("Master PTKP");

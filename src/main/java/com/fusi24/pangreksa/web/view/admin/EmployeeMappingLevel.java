@@ -38,8 +38,6 @@ import java.util.*;
 public class EmployeeMappingLevel extends Main {
     private static final long serialVersionUID = 33L;
     private static final Logger log = LoggerFactory.getLogger(EmployeeMappingLevel.class);
-
-
     private final CurrentUser currentUser;
     private final CommonService commonService;
     private final AdminService adminService;

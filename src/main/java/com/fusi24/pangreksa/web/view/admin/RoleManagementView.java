@@ -43,12 +43,9 @@ import java.util.*;
 public class RoleManagementView extends Main {
     private static final long serialVersionUID = 33L;
     private static final Logger log = LoggerFactory.getLogger(RoleManagementView.class);
-
     public static final String VIEW_NAME = "Manajemen Role User";
-
     private final CurrentUser currentUser;
     private final RoleManagementService roleService;
-
     private VerticalLayout body;
     private TextField searchField;
     private Button populateButton;

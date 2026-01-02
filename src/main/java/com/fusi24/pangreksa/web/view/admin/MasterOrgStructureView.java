@@ -77,6 +77,7 @@ public class MasterOrgStructureView extends Main {
         addToolbar();
         add(grid, dialog);
         refreshGrid();
+
     }
 
     private void configureGrid() {

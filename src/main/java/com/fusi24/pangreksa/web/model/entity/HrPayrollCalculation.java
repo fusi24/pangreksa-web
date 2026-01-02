@@ -16,38 +16,48 @@ import java.time.LocalDateTime;
 public class HrPayrollCalculation {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "global_hr_seq")
+    @SequenceGenerator(name = "global_hr_seq", sequenceName = "global_hr_seq", allocationSize = 1)
+    private Long id;
 
-    // FK: hr_payroll_calculations.payroll_input_id -> hr_payroll.id
+    // === Reference to Payroll Input ===
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payroll_input_id")
+    @JoinColumn(name = "payroll_input_id", nullable = false, foreignKey = @ForeignKey(name = "fk_payroll_calculation_input"))
     private HrPayroll payrollInput;
 
+    // === Calculation Results ===
     @Column(name = "gross_salary", precision = 15, scale = 2)
     private BigDecimal grossSalary;
 
-    @Column(name = "total_allowances", precision = 15, scale = 2)
-    private BigDecimal totalAllowances;
+    @Column(name = "bpjs_health_deduction", precision = 15, scale = 2)
+    private BigDecimal bpjsHealthDeduction;
 
-    @Column(name = "total_overtimes", precision = 15, scale = 2)
-    private BigDecimal totalOvertimes;
+    @Column(name = "bpjs_jht_deduction", precision = 15, scale = 2)
+    private BigDecimal bpjsJhtDeduction;
 
-    @Column(name = "total_bonus", precision = 15, scale = 2)
-    private BigDecimal totalBonus;
+    @Column(name = "bpjs_jp_deduction", precision = 15, scale = 2)
+    private BigDecimal bpjsJpDeduction;
 
-    @Column(name = "total_other_deductions", precision = 15, scale = 2)
-    private BigDecimal totalOtherDeductions;
+    @Column(name = "annual_income_before_tax", precision = 15, scale = 2)
+    private BigDecimal annualIncomeBeforeTax;
 
-    @Column(name = "total_taxable", precision = 15, scale = 2)
-    private BigDecimal totalTaxable;
+    @Column(name = "ptkp_applied", precision = 15, scale = 2)
+    private BigDecimal ptkpApplied;
+
+    @Column(name = "taxable_income", precision = 15, scale = 2)
+    private BigDecimal taxableIncome;
+
+    @Column(name = "pph21_amount", precision = 15, scale = 2)
+    private BigDecimal pph21Amount;
 
     @Column(name = "net_take_home_pay", precision = 15, scale = 2)
     private BigDecimal netTakeHomePay;
 
-    @Column(name = "calculated_at", updatable = false)
+    // === Audit timestamp (if not already in AuditableEntity) ===
+    @Column(name = "calculated_at", nullable = false, updatable = false)
     private LocalDateTime calculatedAt = LocalDateTime.now();
 
-    @Column(name = "notes", columnDefinition = "text")
+    // === Optional Notes ===
+    @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 }
