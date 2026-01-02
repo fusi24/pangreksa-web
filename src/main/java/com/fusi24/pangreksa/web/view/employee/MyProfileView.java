@@ -1003,31 +1003,6 @@ public class MyProfileView extends Main {
         tgGender.setItems(GenderEnum.values());
         tgDob.setI18n(DatePickerUtil.getIndonesianI18n());
 
-        Button btnAdd = new Button("Tambah", VaadinIcon.PLUS.create(), e -> {
-            if (tgName.isEmpty() || tgRelation.isEmpty() || tgDob.isEmpty() || tgGender.isEmpty()) {
-                Notification.show("Semua field wajib diisi");
-                return;
-            }
-
-            HrPersonTanggungan t = new HrPersonTanggungan();
-            t.setPerson(personData);
-            t.setName(tgName.getValue());
-            t.setRelation(tgRelation.getValue());
-            t.setDob(tgDob.getValue());
-            t.setGender(tgGender.getValue());
-            t.setStillDependent(tgStillDependent.getValue());
-
-            personTanggunganService.save(t);
-            reloadTanggunganData();
-            recalcPtkp();
-
-            tgName.clear();
-            tgRelation.clear();
-            tgDob.clear();
-            tgGender.clear();
-            tgStillDependent.clear();
-        });
-
         // GRID
         gridTanggungan = new Grid<>(HrPersonTanggungan.class, false);
         gridTanggungan.addColumn(HrPersonTanggungan::getName).setHeader("Nama");
@@ -1047,7 +1022,7 @@ public class MyProfileView extends Main {
 
         VerticalLayout form = new VerticalLayout(
                 new HorizontalLayout(tgName, tgRelation, tgDob),
-                new HorizontalLayout(tgGender, tgStillDependent, btnAdd)
+                new HorizontalLayout(tgGender, tgStillDependent)
         );
 
         VerticalLayout wrapper = new VerticalLayout(form, gridTanggungan);
@@ -1242,6 +1217,35 @@ public class MyProfileView extends Main {
                         save(); // Save ke DB
                     };
                 }
+
+                case 4 -> {
+                    // Validasi
+                    if (tgName.isEmpty() || tgRelation.isEmpty() || tgDob.isEmpty() || tgGender.isEmpty()) {
+                        Notification.show("Semua field Tanggungan wajib diisi.", 3000, Notification.Position.MIDDLE);
+                        return;
+                    }
+
+                    actionToConfirm = () -> {
+                        HrPersonTanggungan t = new HrPersonTanggungan();
+                        t.setPerson(personData);
+                        t.setName(tgName.getValue());
+                        t.setRelation(tgRelation.getValue());
+                        t.setDob(tgDob.getValue());
+                        t.setGender(tgGender.getValue());
+                        t.setStillDependent(tgStillDependent.getValue());
+
+                        personTanggunganService.save(t);
+                        reloadTanggunganData();
+                        recalcPtkp();
+
+                        tgName.clear();
+                        tgRelation.clear();
+                        tgDob.clear();
+                        tgGender.clear();
+                        tgStillDependent.clear();
+                    };
+                }
+
             }
 
             // 3. Munculkan Dialog Konfirmasi jika validasi lolos

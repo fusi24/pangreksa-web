@@ -77,7 +77,7 @@ public class UserManagementView extends Main {
 
         addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
                 LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
-
+        setHeightFull();
         add(new ViewToolbar(VIEW_NAME));
         createBody();
 
@@ -99,7 +99,7 @@ public class UserManagementView extends Main {
         this.body = new VerticalLayout();
         body.setPadding(false);
         body.setSpacing(false);
-
+        body.setSizeFull();
         searchField = new TextField("Search Filter");
         addButton = new Button("Add User");
         populateButton = new Button("Populate");
@@ -128,6 +128,7 @@ public class UserManagementView extends Main {
             });
             return usernameField;
         })).setHeader("Username").setSortable(true);
+        gridUsers.setSizeFull();
 
         // Email editable (inline TextField)
         gridUsers.addColumn(new ComponentRenderer<>(user -> {
@@ -325,6 +326,7 @@ public class UserManagementView extends Main {
 
 
         body.add(row, gridUsers);
+        body.setFlexGrow(1, gridUsers);
 
         add(body);
     }

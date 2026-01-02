@@ -70,6 +70,7 @@ public class MasterOrgStructureView extends Main {
 
         addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
                 LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        setHeightFull();
 
         configureGrid();
         configureForm();

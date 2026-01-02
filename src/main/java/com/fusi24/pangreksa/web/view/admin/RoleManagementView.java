@@ -75,7 +75,7 @@ public class RoleManagementView extends Main {
                 LumoUtility.Padding.MEDIUM,
                 LumoUtility.Gap.SMALL
         );
-
+        setHeightFull();
         add(new ViewToolbar(VIEW_NAME));
         createBody();
         setListeners();
@@ -108,6 +108,7 @@ public class RoleManagementView extends Main {
         body = new VerticalLayout();
         body.setPadding(false);
         body.setSpacing(false);
+        body.setSizeFull();
 
         searchField = new TextField("Input Nama Karyawan");
         searchField.setPlaceholder("Ketik nama karyawan...");
@@ -136,8 +137,6 @@ public class RoleManagementView extends Main {
         // Grid
         grid = new Grid<>(RowModel.class, false);
         grid.setWidthFull();
-        grid.setHeight("66vh");
-
         grid.addColumn(RowModel::getUsername)
                 .setHeader("ID Pengguna")
                 .setWidth("70px")
@@ -183,6 +182,7 @@ public class RoleManagementView extends Main {
                 .setFrozenToEnd(true);
 
         body.add(bar, grid);
+        body.setFlexGrow(1, grid);
         add(body);
     }
 

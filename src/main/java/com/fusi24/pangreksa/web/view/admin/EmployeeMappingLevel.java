@@ -79,15 +79,22 @@ public class EmployeeMappingLevel extends Main {
                 LumoUtility.Gap.SMALL
         );
 
+        setHeightFull();
+
         add(new ViewToolbar(VIEW_NAME));
+
+
         createBody();
+
         setListener();
     }
+
 
     private void createBody() {
         this.body = new VerticalLayout();
         body.setPadding(false);
         body.setSpacing(false);
+        body.setSizeFull();
 
         searchField = new com.vaadin.flow.component.textfield.TextField("Search Filter");
         populateButton = new Button("Populate");
@@ -167,9 +174,12 @@ public class EmployeeMappingLevel extends Main {
                 }).setHeader("Base Salary")
                 .setAutoWidth(true)
                 .setFlexGrow(1);
+        grid.setSizeFull();
 
         body.add(row, grid);
+        body.setFlexGrow(1, grid);
         add(body);
+
     }
 
     private void setListener() {
