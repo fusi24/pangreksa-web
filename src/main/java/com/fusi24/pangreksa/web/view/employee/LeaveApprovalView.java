@@ -67,7 +67,7 @@ public class LeaveApprovalView extends Main {
 
         addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
                 LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
-
+        setSizeFull();
         add(new ViewToolbar(VIEW_NAME));
         createBody();
 
@@ -85,8 +85,12 @@ public class LeaveApprovalView extends Main {
         this.body = new VerticalLayout();
         body.setPadding(false);
         body.setSpacing(false);
+        body.setSizeFull();
+        Grid<HrLeaveApplication> grid = gridLeaveApplication();
+        grid.setSizeFull();
 
-        body.add(gridLeaveApplication());
+        body.add(grid);
+        body.setFlexGrow(1, grid);
         populateGrid();
 
         add(body);
@@ -94,6 +98,7 @@ public class LeaveApprovalView extends Main {
 
     private Grid gridLeaveApplication(){
         leaveAppGrid = new Grid<>(HrLeaveApplication.class, false);
+        leaveAppGrid.setSizeFull();
         //add column
         leaveAppGrid.addColumn(HrLeaveApplication::getSubmittedAt).setHeader("Submitted").setSortable(true);
         leaveAppGrid.addColumn(l -> l.getEmployee().getFirstName() + " " +l.getEmployee().getLastName()).setHeader("Requestor").setSortable(true);
