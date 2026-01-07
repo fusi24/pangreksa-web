@@ -8,6 +8,8 @@ import com.fusi24.pangreksa.web.repo.HrPersonPositionRepository;
 import com.fusi24.pangreksa.web.repo.HrWorkScheduleAssignmentRepository;
 import com.fusi24.pangreksa.web.repo.HrWorkScheduleRepository;
 import org.apache.commons.lang3.BooleanUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,9 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class HrWorkScheduleService {
 
+    private static final Logger log =
+            LoggerFactory.getLogger(HrWorkScheduleService.class);
+
     private final HrPersonPositionRepository personPositionRepo;
     private final HrWorkScheduleAssignmentRepository scheduleAssignmentRepo;
     private final HrWorkScheduleRepository workScheduleRepo;
@@ -28,59 +33,99 @@ public class HrWorkScheduleService {
             HrPersonPositionRepository personPositionRepo,
             HrWorkScheduleAssignmentRepository scheduleAssignmentRepo,
             HrWorkScheduleRepository workScheduleRepo) {
+
         this.personPositionRepo = personPositionRepo;
         this.scheduleAssignmentRepo = scheduleAssignmentRepo;
         this.workScheduleRepo = workScheduleRepo;
     }
 
     /**
-     * Gets the active work schedule for a user on a given date.
-     * Flow:
-     * 1. Find user's current position (via HrPerson → HrPersonPosition)
-     * 2. Get org_structure_id from that position
-     * 3. Find the latest work schedule assignment for that org structure (effective <= date)
-     * 4. Fetch the actual HrWorkSchedule
+     * Mengambil jadwal kerja aktif untuk user pada tanggal tertentu.
+     * Prioritas:
+     * 1. Schedule assignment khusus (Selected) berdasarkan org structure
+     * 2. Fallback ke schedule assignment_type = All
+     * Syarat:
+     * - is_active = true
+     * - effective_date <= attendanceDate
      */
-    public HrWorkSchedule getActiveScheduleForUser(FwAppUser user, LocalDate date) {
-        if (user == null || user.getPerson() == null) {
+    public HrWorkSchedule getActiveScheduleForUser(FwAppUser user, LocalDate attendanceDate) {
+
+        if (user == null || user.getPerson() == null || attendanceDate == null) {
+            log.warn("Schedule lookup failed: user/person/date is null");
             return null;
         }
 
         Long personId = user.getPerson().getId();
+        log.info("Looking up schedule for personId={}, date={}", personId, attendanceDate);
 
-        // 1. Get current active position
+        // 1. Ambil posisi aktif karyawan
         HrPersonPosition position = personPositionRepo.findFirstByPersonId(personId);
-
-        if (position == null) {
+        if (position == null || position.getPosition() == null) {
+            log.warn("No active position found for personId={}", personId);
             return null;
         }
 
-        HrPersonPosition currentPos = position;
         Long orgStructureId = position.getPosition().getOrgStructure().getId();
+        log.info("OrgStructureId={}", orgStructureId);
 
-        // 2. Find schedule assignment for this org structure
-        Optional<HrWorkScheduleAssignment> assignmentOpt = scheduleAssignmentRepo.findFirstByOrgStructureId(
-                        orgStructureId
-                );
+        // 2. Cari schedule khusus (Selected)
+        Optional<HrWorkScheduleAssignment> assignmentOpt =
+                scheduleAssignmentRepo.findFirstByOrgStructureId(orgStructureId);
 
-        HrWorkSchedule scheduleAll = workScheduleRepo.findFirstByAssignmentScope("All").orElse(null);
+        if (assignmentOpt.isPresent()) {
+            HrWorkSchedule schedule = assignmentOpt.get().getSchedule();
 
-        if (assignmentOpt.isEmpty() && scheduleAll == null) {
-            return null;
+            log.info("Selected schedule found: id={}, effectiveDate={}, active={}",
+                    schedule.getId(),
+                    schedule.getEffectiveDate(),
+                    schedule.getIsActive());
+
+            if (Boolean.TRUE.equals(schedule.getIsActive())
+                    && !schedule.getEffectiveDate().isAfter(attendanceDate)) {
+
+                log.info("Selected schedule is VALID");
+                return schedule;
+            }
+
+            log.warn("Selected schedule is NOT valid for date {}", attendanceDate);
+        } else {
+            log.info("No selected schedule for orgStructureId={}", orgStructureId);
         }
 
-        Long scheduleId = assignmentOpt.map(p -> p.getSchedule()).map(HrWorkSchedule::getId).orElse(scheduleAll.getId());
+        // 3. Fallback ke schedule All
+        Optional<HrWorkSchedule> allScheduleOpt =
+                workScheduleRepo.findFirstByAssignmentScope("All");
 
-        // 3. Fetch the actual schedule
-        HrWorkSchedule schedule = workScheduleRepo.findById(scheduleId).orElse(null);
-        if(BooleanUtils.isNotTrue(schedule.getIsActive())){
-            return null;
+        if (allScheduleOpt.isPresent()) {
+            HrWorkSchedule allSchedule = allScheduleOpt.get();
+
+            log.info("All schedule found: id={}, effectiveDate={}, active={}",
+                    allSchedule.getId(),
+                    allSchedule.getEffectiveDate(),
+                    allSchedule.getIsActive());
+
+            if (Boolean.TRUE.equals(allSchedule.getIsActive())
+                    && !allSchedule.getEffectiveDate().isAfter(attendanceDate)) {
+
+                log.info("All schedule is VALID");
+                return allSchedule;
+            }
+
+            log.warn("All schedule is NOT valid for date {}", attendanceDate);
+        } else {
+            log.warn("No schedule with assignment_type=All found");
         }
 
-        return schedule;
+        log.error("No valid work schedule resolved for personId={} on date={}",
+                personId, attendanceDate);
+
+        return null;
     }
 
-    public boolean hasActiveScheduleForUser(FwAppUser appUser, LocalDate date) {
-        return getActiveScheduleForUser(appUser, date) != null;
+    /**
+     * Helper untuk cek apakah user punya jadwal kerja aktif di tanggal tertentu
+     */
+    public boolean hasActiveScheduleForUser(FwAppUser user, LocalDate date) {
+        return getActiveScheduleForUser(user, date) != null;
     }
 }
