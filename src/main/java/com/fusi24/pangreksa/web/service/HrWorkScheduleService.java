@@ -59,18 +59,22 @@ public class HrWorkScheduleService {
         log.info("Looking up schedule for personId={}, date={}", personId, attendanceDate);
 
         // 1. Ambil posisi aktif karyawan
-        HrPersonPosition position = personPositionRepo.findFirstByPersonId(personId);
-        if (position == null || position.getPosition() == null) {
-            log.warn("No active position found for personId={}", personId);
-            return null;
-        }
+        HrPersonPosition position =
+                personPositionRepo.findCurrentPositionsByCompanyAndPerson(
+                        user.getCompany(),
+                        user.getPerson(),
+                        attendanceDate
+                );
 
         Long orgStructureId = position.getPosition().getOrgStructure().getId();
         log.info("OrgStructureId={}", orgStructureId);
 
-        // 2. Cari schedule khusus (Selected)
         Optional<HrWorkScheduleAssignment> assignmentOpt =
-                scheduleAssignmentRepo.findFirstByOrgStructureId(orgStructureId);
+                scheduleAssignmentRepo
+                        .findFirstByOrgStructureIdAndSchedule_EffectiveDateLessThanEqualAndSchedule_IsActiveTrue(
+                                orgStructureId,
+                                attendanceDate
+                        );
 
         if (assignmentOpt.isPresent()) {
             HrWorkSchedule schedule = assignmentOpt.get().getSchedule();
