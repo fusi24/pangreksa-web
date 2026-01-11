@@ -10,8 +10,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
+
 public interface HrPayrollRepository extends CrudRepository<HrPayroll, Long>, JpaSpecificationExecutor<HrPayroll> {
 
     @EntityGraph(attributePaths = "person")
     Page<HrPayroll> findAll(Specification<HrPayroll> spec, Pageable pageable);
+
+    boolean existsByPersonIdAndPayrollDate(Long personId, LocalDate payrollDate);
 }

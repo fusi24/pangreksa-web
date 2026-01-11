@@ -6,7 +6,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,4 +30,21 @@ public interface HrAttendanceRepository extends CrudRepository<HrAttendance, Lon
 
     @EntityGraph(attributePaths = {"person", "workSchedule"})
     Page<HrAttendance> findAll(Specification<HrAttendance> spec, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"workSchedule"})
+    @Query("""
+        SELECT a
+        FROM HrAttendance a
+        WHERE a.person.id = :personId
+          AND a.attendanceDate >= :startDate
+          AND a.attendanceDate < :endDate
+          AND a.status = :status
+    """)
+    List<HrAttendance> findOvertimeAttendances(
+            @Param("personId") Long personId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("status") String status
+    );
+
 }
