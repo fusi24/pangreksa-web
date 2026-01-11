@@ -2,6 +2,7 @@ package com.fusi24.pangreksa.web.view.manager;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.util.FormattingUtils;
+import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrPayroll;
@@ -50,12 +51,9 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.format.TextStyle;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.Set;
 
 
 @Route("payroll-list-page-access")
@@ -73,6 +71,7 @@ public class PayrollView extends Main {
 
     private Authorization auth;
 
+    private final Button deleteButton = new Button("Delete");
     private Grid<HrPayroll> grid = new Grid<>(HrPayroll.class, false);
     private TextField searchField = new TextField();
 
@@ -136,6 +135,13 @@ public class PayrollView extends Main {
                 .setWidth("160px")
                 .setFlexGrow(0);
 
+        // 3.1) Gross Salary
+        grid.addColumn(payroll -> {
+            HrPayrollCalculation calc = payroll.getCalculation();
+            BigDecimal val = calc == null ? BigDecimal.ZERO : nvl(calc.getGrossSalary());
+            return FormattingUtils.formatPayrollAmount(val);
+        }).setHeader("Gross Salary").setWidth("160px").setFlexGrow(0);
+
         // 4) Total Allowance (hr_payroll_calculations.total_allowances)
         grid.addColumn(payroll -> {
             HrPayrollCalculation calc = payroll.getCalculation();
@@ -176,30 +182,12 @@ public class PayrollView extends Main {
         grid.addComponentColumn(payroll -> {
             HorizontalLayout actions = new HorizontalLayout();
 
-            Button recalculateBtn = new Button("Recalculate", e -> {
-                try {
-                    payrollService.calculatePayroll(payroll);
-                    Notification.show("Recalculated successfully", 3000, Notification.Position.MIDDLE);
-                    applyFilters();
-                } catch (Exception ex) {
-                    Notification.show("Recalculation failed: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
-                    ex.printStackTrace();
-                }
-            });
+            Button recalculateBtn = new Button("Recalculate", e -> openRecalculateDialog(payroll));
             recalculateBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
-            recalculateBtn.setAriaLabel("Recalculate Payroll");
 
-            Button addKomponenBtn = new Button("Add Komponen", e -> {
-                // TODO: nanti kita bahas implementasi action ini (dialog / navigate)
-                Notification.show("Add Komponen clicked", 2000, Notification.Position.MIDDLE);
-            });
-            addKomponenBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
-            addKomponenBtn.setAriaLabel("Add Komponen");
-
-            actions.add(recalculateBtn, addKomponenBtn);
-            actions.setSpacing(true);
+            actions.add(recalculateBtn);
             return actions;
-        }).setHeader("Actions").setAutoWidth(true).setWidth("220px").setFlexGrow(0);
+        }).setHeader("Actions").setWidth("160px").setFlexGrow(0);
 
         // =========================
         // Search / Filter toolbar
@@ -248,7 +236,11 @@ public class PayrollView extends Main {
         toolbarLeft.setAlignItems(FlexComponent.Alignment.END);
         toolbarLeft.setSpacing(true);
 
-        HorizontalLayout toolbar = new HorizontalLayout(toolbarLeft, addButton);
+        HorizontalLayout toolbarRight = new HorizontalLayout(deleteButton, addButton);
+        toolbarRight.setAlignItems(FlexComponent.Alignment.END);
+        toolbarRight.setSpacing(true);
+
+        HorizontalLayout toolbar = new HorizontalLayout(toolbarLeft, toolbarRight);
         toolbar.setWidthFull();
         toolbar.setAlignItems(FlexComponent.Alignment.END);
         toolbar.expand(toolbarLeft);
@@ -260,6 +252,36 @@ public class PayrollView extends Main {
         layout.setSpacing(false);
         grid.setSizeFull();
 
+        grid.setSelectionMode(Grid.SelectionMode.MULTI);
+
+        deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        deleteButton.setVisible(false);
+
+        grid.addSelectionListener(e -> {
+            deleteButton.setVisible(!grid.getSelectedItems().isEmpty());
+        });
+
+        deleteButton.addClickListener(e -> {
+            List<Long> ids = grid.getSelectedItems().stream()
+                    .map(HrPayroll::getId)
+                    .filter(Objects::nonNull)
+                    .toList();
+
+            if (ids.isEmpty()) {
+                Notification.show("No data selected", 2500, Notification.Position.MIDDLE);
+                return;
+            }
+
+            runWithPreloading("Deleting payroll...", () -> {
+                payrollService.deletePayrolls(ids);
+            }, () -> {
+                grid.deselectAll();
+                applyFilters();
+                deleteButton.setVisible(false);
+                Notification.show("Deleted " + ids.size() + " payroll(s)", 3000, Notification.Position.MIDDLE);
+            });
+        });
+
         add(layout);
 
         // Initial load
@@ -270,6 +292,252 @@ public class PayrollView extends Main {
         yearFilter.clear();
         monthFilter.clear();
         searchField.clear();
+    }
+
+    private Dialog recalculateDialog = new Dialog();
+
+    private void openRecalculateDialog(HrPayroll payroll) {
+        recalculateDialog.removeAll();
+
+        RecalculateForm form = new RecalculateForm(
+                payrollService,
+                currentUser,
+                this::runWithPreloading,     // inject loader
+                payroll,
+                () -> {
+                    recalculateDialog.close();
+                    applyFilters();
+                }
+        );
+
+        recalculateDialog.add(form);
+        recalculateDialog.setWidth("900px");
+        recalculateDialog.open();
+    }
+
+    public static class RecalculateForm extends FormLayout {
+        private final PayrollService payrollService;
+        private final CurrentUser currentUser;
+        private final HrPayroll payroll;
+        private final Runnable onSaveSuccess;
+
+        // reuse fields like AddPayrollForm
+        private final ComboBox<Integer> yearField = new ComboBox<>();
+        private final ComboBox<Integer> monthField = new ComboBox<>();
+        private final IntegerField attendanceDaysField = new IntegerField();
+        private final IntegerField overtimeMinutesField = new IntegerField();
+
+        private final RadioButtonGroup<String> overtimePaymentType = new RadioButtonGroup<>();
+        private final BigDecimalField overtimeStaticNominal = new BigDecimalField();
+        private final IntegerField overtimePercent = new IntegerField();
+
+        private final RadioButtonGroup<String> allowanceMode = new RadioButtonGroup<>();
+        private final MultiSelectComboBox<HrSalaryAllowance> allowanceMultiSelect = new MultiSelectComboBox<>();
+
+        // Add Component fields
+        private final BigDecimalField totalBonusField = new BigDecimalField();
+        private final BigDecimalField totalOtherDedField = new BigDecimalField();
+        private final BigDecimalField totalTaxableField = new BigDecimalField();
+
+        private final Button saveButton = new Button("Recalculate");
+        private final Button cancelButton = new Button("Cancel");
+
+        private final Binder<PayrollService.AddPayrollRequest> binder =
+                new BeanValidationBinder<>(PayrollService.AddPayrollRequest.class);
+
+        private final UiLoader loader;
+
+        public RecalculateForm(PayrollService payrollService, CurrentUser currentUser, UiLoader loader,
+                               HrPayroll payroll, Runnable onSaveSuccess) {
+            this.payrollService = payrollService;
+            this.currentUser = currentUser;
+            this.loader = loader;
+            this.payroll = payroll;
+            this.onSaveSuccess = onSaveSuccess;
+
+            configureFields();
+            configureBinder();
+            configureLayout();
+            configureActions();
+        }
+
+        private void configureFields() {
+            LocalDate d = payroll.getPayrollDate();
+
+            yearField.setItems(d.getYear());
+            yearField.setValue(d.getYear());
+            yearField.setEnabled(false);
+            yearField.setWidthFull();
+
+            monthField.setItems(d.getMonthValue());
+            monthField.setValue(d.getMonthValue());
+            monthField.setEnabled(false);
+            monthField.setWidthFull();
+
+            attendanceDaysField.setMin(0);
+            attendanceDaysField.setMax(31);
+            attendanceDaysField.setWidthFull();
+
+            overtimeMinutesField.setMin(0);
+            overtimeMinutesField.setMax(60);
+            overtimeMinutesField.setWidthFull();
+
+            overtimePaymentType.setItems("STATIC", "PERCENTAGE");
+            overtimePaymentType.setValue("STATIC");
+            overtimePaymentType.setWidthFull();
+
+            overtimeStaticNominal.setWidthFull();
+            overtimePercent.setMin(0);
+            overtimePercent.setMax(100);
+            overtimePercent.setWidthFull();
+
+            overtimeStaticNominal.setVisible(true);
+            overtimePercent.setVisible(false);
+            overtimePaymentType.addValueChangeListener(e -> {
+                boolean isStatic = "STATIC".equals(e.getValue());
+                overtimeStaticNominal.setVisible(isStatic);
+                overtimePercent.setVisible(!isStatic);
+            });
+
+            allowanceMode.setItems("NO ALLOWANCE", "SELECT ALLOWANCE", "BENEFITS PACKAGE");
+            allowanceMode.setValue("NO ALLOWANCE");
+            allowanceMode.setWidthFull();
+
+            allowanceMultiSelect.setVisible(false);
+            allowanceMultiSelect.setWidthFull();
+
+            allowanceMode.addValueChangeListener(e -> {
+                allowanceMultiSelect.setVisible("SELECT ALLOWANCE".equals(e.getValue()));
+            });
+
+            // Add component fields
+            totalBonusField.setPlaceholder("Rp 0");
+            totalOtherDedField.setPlaceholder("Rp 0");
+            totalTaxableField.setPlaceholder("Rp 0");
+
+            saveButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
+            cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        }
+
+        private void configureBinder() {
+            PayrollService.AddPayrollRequest bean = new PayrollService.AddPayrollRequest();
+            bean.setYear(yearField.getValue());
+            bean.setMonth(monthField.getValue());
+            bean.setParamAttendanceDays(payroll.getParamAttendanceDays() == null ? 0 : payroll.getParamAttendanceDays());
+            bean.setOvertimeMinutes(payroll.getOvertimeHours() == null ? 0 : payroll.getOvertimeHours().intValue());
+            bean.setOvertimePaymentType(payroll.getOvertimeType() == null ? "STATIC" : payroll.getOvertimeType());
+            bean.setAllowanceMode(payroll.getAllowancesType() == null ? "NO ALLOWANCE" : payroll.getAllowancesType());
+
+            binder.setBean(bean);
+
+            binder.forField(attendanceDaysField)
+                    .bind(PayrollService.AddPayrollRequest::getParamAttendanceDays, PayrollService.AddPayrollRequest::setParamAttendanceDays);
+
+            binder.forField(overtimeMinutesField)
+                    .bind(PayrollService.AddPayrollRequest::getOvertimeMinutes, PayrollService.AddPayrollRequest::setOvertimeMinutes);
+
+            binder.forField(overtimePaymentType)
+                    .bind(PayrollService.AddPayrollRequest::getOvertimePaymentType, PayrollService.AddPayrollRequest::setOvertimePaymentType);
+
+            binder.forField(overtimeStaticNominal)
+                    .bind(PayrollService.AddPayrollRequest::getOvertimeStaticNominal, PayrollService.AddPayrollRequest::setOvertimeStaticNominal);
+
+            binder.forField(overtimePercent)
+                    .bind(PayrollService.AddPayrollRequest::getOvertimePercent, PayrollService.AddPayrollRequest::setOvertimePercent);
+
+            binder.forField(allowanceMode)
+                    .bind(PayrollService.AddPayrollRequest::getAllowanceMode, PayrollService.AddPayrollRequest::setAllowanceMode);
+        }
+
+        private void configureLayout() {
+            setResponsiveSteps(new ResponsiveStep("0", 1), new ResponsiveStep("700px", 2));
+
+            Span s1 = new Span("Periode Payroll");
+            s1.getStyle().set("font-weight", "600");
+            add(s1);
+            setColspan(s1, 2);
+
+            addFormItem(yearField, "Year");
+            addFormItem(monthField, "Month");
+
+            Span s2 = new Span("Parameter Attendance & Overtime");
+            s2.getStyle().set("font-weight", "600");
+            add(s2);
+            setColspan(s2, 2);
+
+            addFormItem(attendanceDaysField, "Total Hari Kerja (input manual)");
+            addFormItem(overtimeMinutesField, "Overtime dihitung (menit 0-60)");
+
+            addFormItem(overtimePaymentType, "Bayaran Overtime");
+            addFormItem(overtimeStaticNominal, "Nominal Upah (Rp)");
+            addFormItem(overtimePercent, "Persentase (Percentage)");
+
+            Span s3 = new Span("Allowance");
+            s3.getStyle().set("font-weight", "600");
+            add(s3);
+            setColspan(s3, 2);
+
+            addFormItem(allowanceMode, "Allowance Option");
+            FormItem fiAllow = addFormItem(allowanceMultiSelect, "Select Allowance");
+            setColspan(fiAllow, 2);
+
+            Span s4 = new Span("Add Component");
+            s4.getStyle().set("font-weight", "600");
+            add(s4);
+            setColspan(s4, 2);
+
+            addFormItem(totalBonusField, "Total Bonus (annual)");
+            addFormItem(totalOtherDedField, "Total Other Deductions");
+            FormItem fiTax = addFormItem(totalTaxableField, "Total Taxable");
+            setColspan(fiTax, 2);
+
+            HorizontalLayout buttons = new HorizontalLayout(saveButton, cancelButton);
+            buttons.setWidthFull();
+            buttons.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+            add(buttons);
+            setColspan(buttons, 2);
+        }
+
+        private void configureActions() {
+            saveButton.addClickListener(e -> {
+                PayrollService.AddPayrollRequest bean = binder.getBean();
+
+                if ("SELECT ALLOWANCE".equals(bean.getAllowanceMode())) {
+                    bean.setSelectedAllowances(new ArrayList<>(allowanceMultiSelect.getSelectedItems()));
+                } else {
+                    bean.setSelectedAllowances(new ArrayList<>());
+                }
+
+                if (binder.writeBeanIfValid(bean)) {
+                    BigDecimal bonus = totalBonusField.getValue() == null ? BigDecimal.ZERO : totalBonusField.getValue();
+                    BigDecimal otherDed = totalOtherDedField.getValue() == null ? BigDecimal.ZERO : totalOtherDedField.getValue();
+                    BigDecimal taxable = totalTaxableField.getValue() == null ? BigDecimal.ZERO : totalTaxableField.getValue();
+
+                    // gunakan preloading pattern dari view (lihat helper di bawah)
+                    // Karena inner class static, kamu bisa panggil via callback yang diberikan dari view,
+                    // atau implement preloading di view dan pass sebagai lambda.
+                    loader.run("Recalculating payroll...", () -> {
+                        payrollService.recalculateSinglePayroll(
+                                payroll.getId(),
+                                bean,
+                                bonus,
+                                otherDed,
+                                taxable,
+                                currentUser.require()
+                        );
+                    }, () -> {
+                        Notification.show("Recalculated successfully", 3000, Notification.Position.MIDDLE);
+                        onSaveSuccess.run();
+                    });
+
+
+                    Notification.show("Recalculated successfully", 3000, Notification.Position.MIDDLE);
+                    onSaveSuccess.run();
+                }
+            });
+
+            cancelButton.addClickListener(e -> onSaveSuccess.run());
+        }
     }
 
     private void applyFilters() {
@@ -317,10 +585,16 @@ public class PayrollView extends Main {
     private void openAddPayrollDialog() {
         addPayrollDialog.removeAll();
 
-        AddPayrollForm form = new AddPayrollForm(payrollService, currentUser, () -> {
-            addPayrollDialog.close();
-            applyFilters();
-        });
+        AddPayrollForm form = new AddPayrollForm(
+                payrollService,
+                currentUser,
+                this::runWithPreloading,   // <-- inject loader
+                () -> {
+                    addPayrollDialog.close();
+                    applyFilters();
+                }
+        );
+
 
         addPayrollDialog.add(form);
         addPayrollDialog.setWidth("900px");
@@ -331,6 +605,7 @@ public class PayrollView extends Main {
 
         private final PayrollService payrollService;
         private final CurrentUser currentUser;
+        private final PreloadRunner preloadRunner;
         private final Runnable onSaveSuccess;
 
         private final ComboBox<Integer> yearField = new ComboBox<>();
@@ -352,9 +627,15 @@ public class PayrollView extends Main {
         private final Binder<PayrollService.AddPayrollRequest> binder =
                 new BeanValidationBinder<>(PayrollService.AddPayrollRequest.class);
 
-        public AddPayrollForm(PayrollService payrollService, CurrentUser currentUser, Runnable onSaveSuccess) {
+        public AddPayrollForm(
+                PayrollService payrollService,
+                CurrentUser currentUser,
+                PreloadRunner preloadRunner,
+                Runnable onSaveSuccess
+        ) {
             this.payrollService = payrollService;
             this.currentUser = currentUser;
+            this.preloadRunner = preloadRunner;
             this.onSaveSuccess = onSaveSuccess;
 
             configureFields();
@@ -362,7 +643,6 @@ public class PayrollView extends Main {
             configureLayout();
             configureActions();
         }
-
         private Dialog openProcessingDialog() {
             Dialog d = new Dialog();
             d.setCloseOnEsc(false);
@@ -562,42 +842,87 @@ public class PayrollView extends Main {
 
         private void configureActions() {
             saveButton.addClickListener(e -> {
-                Dialog processing = openProcessingDialog();
-                saveButton.setEnabled(false);
-                cancelButton.setEnabled(false);
+                PayrollService.AddPayrollRequest bean = binder.getBean();
 
-                try {
-                    PayrollService.AddPayrollRequest bean = binder.getBean();
-
-                    bean.setYear(yearField.getValue());
-                    bean.setMonth(monthField.getValue());
-
-                    if ("SELECT ALLOWANCE".equals(bean.getAllowanceMode())) {
-                        Set<HrSalaryAllowance> selected = allowanceMultiSelect.getSelectedItems();
-                        bean.setSelectedAllowances(new ArrayList<>(selected));
-                    } else {
-                        bean.setSelectedAllowances(new ArrayList<>());
-                    }
-
-                    if (binder.writeBeanIfValid(bean)) {
-                        payrollService.createPayrollBulk(bean, currentUser.require());
-                        Notification.show("Payroll created successfully", 3000, Notification.Position.MIDDLE);
-                        onSaveSuccess.run();
-                    }
-
-                } catch (Exception ex) {
-                    Notification.show("Error create payroll: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
-                    ex.printStackTrace();
-                } finally {
-                    processing.close();
-                    saveButton.setEnabled(true);
-                    cancelButton.setEnabled(true);
+                if (!binder.writeBeanIfValid(bean)) {
+                    Notification.show("Form belum valid", 3000, Notification.Position.MIDDLE);
+                    return;
                 }
+
+                // ⚠️ Ambil user DI UI THREAD
+                AppUserInfo userInfo = currentUser.require();
+
+                preloadRunner.run(
+                        "Creating payroll...",
+                        () -> payrollService.createPayrollBulk(bean, userInfo),
+                        () -> {
+                            Notification.show("Payroll created successfully", 3000, Notification.Position.MIDDLE);
+                            onSaveSuccess.run();
+                        }
+                );
             });
 
             cancelButton.addClickListener(e -> onSaveSuccess.run());
         }
+
     }
+
+    private final java.util.concurrent.ExecutorService executor =
+            java.util.concurrent.Executors.newFixedThreadPool(4);
+
+    private void runWithPreloading(String message, Runnable task, Runnable onDoneUi) {
+        Dialog loading = new Dialog();
+        loading.setModal(true);
+        loading.setCloseOnEsc(false);
+        loading.setCloseOnOutsideClick(false);
+
+        VerticalLayout box = new VerticalLayout();
+        box.setSpacing(true);
+        box.add(new Span(message));
+        com.vaadin.flow.component.progressbar.ProgressBar bar =
+                new com.vaadin.flow.component.progressbar.ProgressBar();
+        bar.setIndeterminate(true);
+        box.add(bar);
+
+        loading.add(box);
+        loading.open();
+
+        UI ui = UI.getCurrent();
+
+        CompletableFuture
+                .runAsync(() -> {
+                    log.info("PAYROLL TASK START");
+                    task.run();
+                    log.info("PAYROLL TASK END");
+                }, executor)
+                .orTimeout(15, java.util.concurrent.TimeUnit.MINUTES)
+                .whenComplete((ok, ex) -> {
+                    // UI bisa saja sudah detach (user pindah page)
+                    if (ui == null || !ui.isAttached()) return;
+
+                    ui.access(() -> {
+                        loading.close();
+
+                        if (ex != null) {
+                            Throwable root = (ex instanceof java.util.concurrent.CompletionException && ex.getCause() != null)
+                                    ? ex.getCause()
+                                    : ex;
+
+                            Notification.show("Process failed: " + root.getMessage(),
+                                    6000, Notification.Position.MIDDLE);
+                            root.printStackTrace();
+                        } else {
+                            if (onDoneUi != null) onDoneUi.run();
+                        }
+                    });
+                });
+    }
+
+    @FunctionalInterface
+    public interface PreloadRunner {
+        void run(String message, Runnable task, Runnable onDone);
+    }
+
 
     private List<Integer> getRecentYears(int pastYears) {
         int currentYear = LocalDate.now().getYear();
@@ -622,4 +947,10 @@ public class PayrollView extends Main {
     private BigDecimal nvl(BigDecimal v) {
         return v == null ? BigDecimal.ZERO : v;
     }
+
+    @FunctionalInterface
+    public interface UiLoader {
+        void run(String message, Runnable task, Runnable onDoneUi);
+    }
+
 }

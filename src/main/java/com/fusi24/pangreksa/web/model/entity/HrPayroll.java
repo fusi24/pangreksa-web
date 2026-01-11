@@ -81,8 +81,8 @@ public class HrPayroll extends AuditableEntity<HrPayroll> {
     @Column(name = "overtime_type", length = 50)
     private String overtimeType;
 
-    @Column(name = "overtime_value_payment", precision = 15, scale = 2)
-    private BigDecimal overtimeValuePayment = BigDecimal.ZERO;
+    @Column(name = "overtime_value_payment", columnDefinition = "text")
+    private String overtimeValuePayment;
 
     // Others
     @Column(name = "annual_bonus", precision = 15, scale = 2)

@@ -46,4 +46,19 @@ public interface HrAttendanceRepository extends CrudRepository<HrAttendance, Lon
             @Param("endDate") LocalDate endDate,
             @Param("status") String status
     );
+
+    @Query("""
+        SELECT a
+        FROM HrAttendance a
+        WHERE a.person.id = :personId
+          AND a.attendanceDate >= :startDate
+          AND a.attendanceDate < :endDate
+          AND a.status = 'OVERTIME'
+    """)
+    @EntityGraph(attributePaths = {"workSchedule"})
+    List<HrAttendance> findOvertimeByPersonAndPeriod(
+            @Param("personId") Long personId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 }
