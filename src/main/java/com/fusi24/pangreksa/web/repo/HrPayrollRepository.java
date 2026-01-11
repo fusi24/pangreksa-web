@@ -6,15 +6,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 
 public interface HrPayrollRepository extends CrudRepository<HrPayroll, Long>, JpaSpecificationExecutor<HrPayroll> {
 
-    @EntityGraph(attributePaths = "person")
+    @Override
+    @EntityGraph(attributePaths = {"calculation"})
     Page<HrPayroll> findAll(Specification<HrPayroll> spec, Pageable pageable);
 
     boolean existsByPersonIdAndPayrollDate(Long personId, LocalDate payrollDate);

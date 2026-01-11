@@ -26,6 +26,8 @@ import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.RoundingMode;
+
 @Service
 public class PayrollService {
     private static final Logger log = LoggerFactory.getLogger(PayrollService.class);
@@ -39,12 +41,13 @@ public class PayrollService {
     private final HrPayrollCalculationRepository hrPayrollCalculationRepository;
     private final HrTaxBracketRepository hrTaxBracketRepository;
     private final HrSalaryEmployeeLevelRepository hrSalaryEmployeeLevelRepository;
+    private final HrAttendanceRepository hrAttendanceRepository;
+
 
     private final HrPersonPositionRepository hrPersonPositionRepository;
     private final HrPersonRespository hrPersonRepository;
     private final HrPersonPtkpRepository hrPersonPtkpRepository;
     private final HrLeaveApplicationRepository hrLeaveApplicationRepository;
-    private final HrAttendanceRepository hrAttendanceRepository;
 
     private final SystemService systemService;
 
@@ -68,6 +71,7 @@ public class PayrollService {
         this.appUserRepository = appUserRepository;
         this.hrSalaryAllowanceRepository = hrSalaryAllowanceRepository;
         this.hrSalaryPositionAllowanceRepository = hrSalaryAllowancePackageRepository;
+        this.hrAttendanceRepository = hrAttendanceRepository;
 
         this.hrPayrollRepository = hrPayrollRepository;
         this.systemService = systemService;
@@ -79,7 +83,6 @@ public class PayrollService {
         this.hrPersonRepository = hrPersonRepository;
         this.hrPersonPtkpRepository = hrPersonPtkpRepository;
         this.hrLeaveApplicationRepository = hrLeaveApplicationRepository;
-        this.hrAttendanceRepository = hrAttendanceRepository;
 
         log.warn("PayrollService constructed. instance={}, hrPersonRepositoryInjected={}",
                 System.identityHashCode(this),
@@ -814,7 +817,6 @@ public class PayrollService {
     private String nvlString(String s) {
         return s == null ? "" : s;
     }
-
 
     private BigDecimal resolveOvertimeValue(AddPayrollRequest req) {
         if ("PERCENTAGE".equals(req.getOvertimePaymentType())) {

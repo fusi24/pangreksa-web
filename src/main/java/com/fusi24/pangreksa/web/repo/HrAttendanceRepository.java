@@ -46,5 +46,4 @@ public interface HrAttendanceRepository extends CrudRepository<HrAttendance, Lon
             @Param("endDate") LocalDate endDate,
             @Param("status") String status
     );
-
 }
