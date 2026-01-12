@@ -53,6 +53,18 @@ public class AttendanceService {
                 .orElseThrow(() -> new IllegalStateException("User not found: " + userId));
     }
 
+    public boolean hasUnfinishedAttendanceBeforeToday() {
+        LocalDate today = LocalDate.now(JAKARTA_ZONE);
+
+        return attendanceRepo.findByAppUserIdAndAttendanceDateBetween(
+                currentUser.getId(),
+                today.minusDays(30), // safe window
+                today.minusDays(1)
+        ).stream().anyMatch(att ->
+                att.getCheckIn() != null && att.getCheckOut() == null
+        );
+    }
+
     public HrAttendance getOrCreateTodayAttendance(FwAppUser user) {
         LocalDate today = LocalDate.now();
         return attendanceRepo.findByAppUserIdAndAttendanceDate(user.getId(), today)
@@ -74,23 +86,25 @@ public class AttendanceService {
     public boolean shouldShowCheckInPopup() {
         LocalDate today = LocalDate.now(JAKARTA_ZONE);
 
-        if (!isWorkingDay(today)) {
+        if (!isWorkingDay(today)) return false;
+
+        HrPerson employee = currentUser.getPerson();
+
+        if (isOnApprovedLeave(today, employee)) return false;
+
+        // ❗ BLOCK jika masih ada attendance belum checkout sebelumnya
+        if (hasUnfinishedAttendanceBeforeToday()) {
             return false;
         }
 
-        // Get current user's person
-        HrPerson employee = currentUser.getPerson(); // adjust based on your model
+        Optional<HrAttendance> todayAttendance =
+                attendanceRepo.findByAppUserIdAndAttendanceDate(
+                        currentUser.getId(), today
+                );
 
-        // If on approved leave today → skip check-in
-        if (isOnApprovedLeave(today, employee)) {
-            return false;
-        }
-
-        Optional<HrAttendance> todayAttendance = attendanceRepo.findByAppUserIdAndAttendanceDate(
-                currentUser.getId(), today
-        );
         return todayAttendance.isEmpty();
     }
+
 
     public boolean shouldShowCheckOutPopup() {
         LocalDate today = LocalDate.now(JAKARTA_ZONE);

@@ -117,9 +117,19 @@ public class AttendanceView extends Main {
                 .anyMatch("KARYAWAN"::equals);
 
         // Auto-show check-in popup for KARYAWAN on working days
-        if (isEmployee && attendanceService.shouldShowCheckInPopup()) {
-            openSelfServiceCheckInOut();
+        if (isEmployee) {
+            if (attendanceService.hasUnfinishedAttendanceBeforeToday()) {
+                Notification.show(
+                        "Anda masih memiliki absensi yang belum clock-out. " +
+                                "Silakan selesaikan terlebih dahulu.",
+                        5000,
+                        Notification.Position.MIDDLE
+                );
+            } else if (attendanceService.shouldShowCheckInPopup()) {
+                openSelfServiceCheckInOut();
+            }
         }
+
 
         addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
                 LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
