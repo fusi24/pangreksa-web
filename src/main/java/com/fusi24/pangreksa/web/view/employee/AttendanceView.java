@@ -249,42 +249,44 @@ public class AttendanceView extends Main {
     }
 
     private Component createCheckOutButtons(HrAttendance attendance) {
-        // Only show button if check-out hasn't happened yet
-        if (attendance.getCheckOut() == null) {
-            Button clockOutBtn = new Button("Clock-Out Sekarang");
-            clockOutBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
-            clockOutBtn.setTooltipText("Catat waktu pulang sekarang");
-            clockOutBtn.addClickListener(e -> {
-                // Set current Jakarta time (or your system's local time)
-                // If you're using Jakarta time explicitly:
-                 ZoneId jakartaZone = ZoneId.of("Asia/Jakarta");
-                 LocalDateTime now = LocalDateTime.now(jakartaZone);
 
-                // Or just use system default if already configured correctly:
-//                LocalDateTime now = LocalDateTime.now();
-
-                attendance.setCheckOut(now);
-                try {
-                    attendanceService.saveAttendance(attendance, attendanceService.getCurrentUser()); // or update method
-                    Notification.show("Clock-out berhasil", 3000, Notification.Position.MIDDLE);
-                    applyFilters(); // refresh grid
-                } catch (Exception ex) {
-                    log.error(ex.getMessage(), ex);
-                    Notification.show("Gagal clock-out: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
-                    // Optionally revert the change in UI
-                    attendance.setCheckOut(null);
-                }
-            });
-
-            HorizontalLayout actions = new HorizontalLayout(clockOutBtn);
-            actions.setPadding(false);
-            actions.setSpacing(true);
-            return actions;
+        // Jika sudah checkout → tidak tampilkan tombol
+        if (attendance.getCheckOut() != null) {
+            return new Span("-");
         }
 
-        // If already clocked out, show nothing (or you could show a disabled button or timestamp)
-        return new Span("-"); // or return new HorizontalLayout() if you prefer empty cell
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Jakarta"));
+
+        // ❌ Jika attendance bukan hari ini → TOLAK checkout
+        if (!attendance.getAttendanceDate().isEqual(today)) {
+            Span blocked = new Span("Checkout ditutup");
+            blocked.getStyle().set("color", "red");
+            blocked.getStyle().set("font-size", "12px");
+            return blocked;
+        }
+
+        Button clockOutBtn = new Button("Clock-Out Sekarang");
+        clockOutBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
+        clockOutBtn.setTooltipText("Catat waktu pulang hari ini");
+
+        clockOutBtn.addClickListener(e -> {
+            ZoneId jakartaZone = ZoneId.of("Asia/Jakarta");
+            LocalDateTime now = LocalDateTime.now(jakartaZone);
+
+            attendance.setCheckOut(now);
+            try {
+                attendanceService.saveAttendance(attendance, attendanceService.getCurrentUser());
+                Notification.show("Clock-out berhasil", 3000, Notification.Position.MIDDLE);
+                applyFilters();
+            } catch (Exception ex) {
+                attendance.setCheckOut(null);
+                Notification.show("Gagal clock-out: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
+            }
+        });
+
+        return new HorizontalLayout(clockOutBtn);
     }
+
 
     private void applyFilters() {
         String searchTerm = searchField.getValue();
