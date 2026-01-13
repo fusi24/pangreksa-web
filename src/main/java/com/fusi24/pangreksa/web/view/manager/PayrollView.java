@@ -363,72 +363,166 @@ public class PayrollView extends Main {
 
         private void configureFields() {
             LocalDate d = payroll.getPayrollDate();
+            LocalDate payrollDate = d == null ? LocalDate.now().withDayOfMonth(1) : d.withDayOfMonth(1);
 
-            yearField.setItems(d.getYear());
-            yearField.setValue(d.getYear());
+            // =========================
+            // Periode (disable)
+            // =========================
+            yearField.setPlaceholder("Year");
+            yearField.setItems(payrollDate.getYear());
+            yearField.setValue(payrollDate.getYear());
             yearField.setEnabled(false);
             yearField.setWidthFull();
 
-            monthField.setItems(d.getMonthValue());
-            monthField.setValue(d.getMonthValue());
+            monthField.setPlaceholder("Month");
+            monthField.setItems(payrollDate.getMonthValue());
+            monthField.setValue(payrollDate.getMonthValue());
             monthField.setEnabled(false);
             monthField.setWidthFull();
 
+            // =========================
+            // Attendance + Overtime minutes
+            // =========================
+            attendanceDaysField.setPlaceholder("0 - 31");
             attendanceDaysField.setMin(0);
             attendanceDaysField.setMax(31);
             attendanceDaysField.setWidthFull();
+            attendanceDaysField.setValue(payroll.getParamAttendanceDays() == null ? 0 : payroll.getParamAttendanceDays());
 
+            overtimeMinutesField.setPlaceholder("0 - 60");
             overtimeMinutesField.setMin(0);
             overtimeMinutesField.setMax(60);
             overtimeMinutesField.setWidthFull();
+            overtimeMinutesField.setValue(payroll.getOvertimeHours() == null ? 0 : payroll.getOvertimeHours().intValue());
 
+            // =========================
+            // Overtime type + value preload
+            // overtime_value_payment format: "pct | nominal"
+            // =========================
+            overtimePaymentType.setLabel(null);
             overtimePaymentType.setItems("STATIC", "PERCENTAGE");
-            overtimePaymentType.setValue("STATIC");
+            String overtimeTypeDb = payroll.getOvertimeType() == null ? "STATIC" : payroll.getOvertimeType();
+            overtimePaymentType.setValue(overtimeTypeDb);
             overtimePaymentType.setWidthFull();
 
+            overtimeStaticNominal.setPlaceholder("Rp 0");
             overtimeStaticNominal.setWidthFull();
+
+            overtimePercent.setPlaceholder("0 - 100 (%)");
             overtimePercent.setMin(0);
             overtimePercent.setMax(100);
             overtimePercent.setWidthFull();
 
-            overtimeStaticNominal.setVisible(true);
-            overtimePercent.setVisible(false);
+            // Parse string "pct | nominal"
+            OvertimePaymentParsed parsed = parseOvertimeValuePayment(payroll.getOvertimeValuePayment());
+
+            // Set values from parsed
+            overtimeStaticNominal.setValue(parsed.nominal);
+            overtimePercent.setValue(parsed.percent);
+
+            // Visibility according to overtime type
+            boolean isStatic = !"PERCENTAGE".equalsIgnoreCase(overtimeTypeDb);
+            overtimeStaticNominal.setVisible(isStatic);
+            overtimePercent.setVisible(!isStatic);
+
             overtimePaymentType.addValueChangeListener(e -> {
-                boolean isStatic = "STATIC".equals(e.getValue());
-                overtimeStaticNominal.setVisible(isStatic);
-                overtimePercent.setVisible(!isStatic);
+                boolean staticNow = "STATIC".equals(e.getValue());
+                overtimeStaticNominal.setVisible(staticNow);
+                overtimePercent.setVisible(!staticNow);
             });
 
+            // =========================
+            // Allowance mode + options
+            // =========================
+            allowanceMode.setLabel(null);
             allowanceMode.setItems("NO ALLOWANCE", "SELECT ALLOWANCE", "BENEFITS PACKAGE");
-            allowanceMode.setValue("NO ALLOWANCE");
+
+            // payroll.getAllowancesType() di DB bisa "SELECT ALLOWANCE" / "BENEFITS PACKAGE" / "NO ALLOWANCE"
+            String allowanceModeDb = payroll.getAllowancesType() == null ? "NO ALLOWANCE" : payroll.getAllowancesType();
+            allowanceMode.setValue(allowanceModeDb);
             allowanceMode.setWidthFull();
 
-            allowanceMultiSelect.setVisible(false);
+            allowanceMultiSelect.setPlaceholder("Select one or more allowances");
             allowanceMultiSelect.setWidthFull();
 
+            // Isi options allowance sama seperti Add Payroll (penting!)
+            List<HrSalaryAllowance> selectable =
+                    payrollService.getSelectableAllowancesForPayrollDate(payrollDate);
+
+            allowanceMultiSelect.setItems(selectable);
+            allowanceMultiSelect.setItemLabelGenerator(a ->
+                    a.getName() + " (Rp " + FormattingUtils.formatPayrollAmount(a.getAmount()) + ")"
+            );
+
+            // Visible hanya saat SELECT ALLOWANCE
+            allowanceMultiSelect.setVisible("SELECT ALLOWANCE".equalsIgnoreCase(allowanceModeDb));
+
             allowanceMode.addValueChangeListener(e -> {
-                allowanceMultiSelect.setVisible("SELECT ALLOWANCE".equals(e.getValue()));
+                boolean show = "SELECT ALLOWANCE".equalsIgnoreCase(e.getValue());
+                allowanceMultiSelect.setVisible(show);
+                if (!show) {
+                    allowanceMultiSelect.deselectAll();
+                }
             });
 
-            // Add component fields
-            totalBonusField.setPlaceholder("Rp 0");
-            totalOtherDedField.setPlaceholder("Rp 0");
-            totalTaxableField.setPlaceholder("Rp 0");
+            // =========================
+            // Add Component fields (preload dari calculation jika ada)
+            // =========================
+            HrPayrollCalculation calc = payroll.getCalculation();
 
+            totalBonusField.setPlaceholder("Rp 0");
+            totalBonusField.setWidthFull();
+            totalBonusField.setValue(calc == null || calc.getTotalBonus() == null ? BigDecimal.ZERO : calc.getTotalBonus());
+
+            totalOtherDedField.setPlaceholder("Rp 0");
+            totalOtherDedField.setWidthFull();
+            totalOtherDedField.setValue(calc == null || calc.getTotalOtherDeductions() == null ? BigDecimal.ZERO : calc.getTotalOtherDeductions());
+
+            totalTaxableField.setPlaceholder("Rp 0");
+            totalTaxableField.setWidthFull();
+            totalTaxableField.setValue(calc == null || calc.getTotalTaxable() == null ? BigDecimal.ZERO : calc.getTotalTaxable());
+
+            // Button themes
             saveButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
             cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         }
 
         private void configureBinder() {
+            // Buat bean request dari data payroll existing
             PayrollService.AddPayrollRequest bean = new PayrollService.AddPayrollRequest();
-            bean.setYear(yearField.getValue());
-            bean.setMonth(monthField.getValue());
+
+            LocalDate payrollDate = payroll.getPayrollDate() == null
+                    ? LocalDate.now().withDayOfMonth(1)
+                    : payroll.getPayrollDate().withDayOfMonth(1);
+
+            bean.setYear(payrollDate.getYear());
+            bean.setMonth(payrollDate.getMonthValue());
+
             bean.setParamAttendanceDays(payroll.getParamAttendanceDays() == null ? 0 : payroll.getParamAttendanceDays());
             bean.setOvertimeMinutes(payroll.getOvertimeHours() == null ? 0 : payroll.getOvertimeHours().intValue());
-            bean.setOvertimePaymentType(payroll.getOvertimeType() == null ? "STATIC" : payroll.getOvertimeType());
-            bean.setAllowanceMode(payroll.getAllowancesType() == null ? "NO ALLOWANCE" : payroll.getAllowancesType());
+
+            String overtimeTypeDb = payroll.getOvertimeType() == null ? "STATIC" : payroll.getOvertimeType();
+            bean.setOvertimePaymentType(overtimeTypeDb);
+
+            // parse overtime_value_payment string "pct | nominal"
+            OvertimePaymentParsed parsed = parseOvertimeValuePayment(payroll.getOvertimeValuePayment());
+            bean.setOvertimePercent(parsed.percent);
+            bean.setOvertimeStaticNominal(parsed.nominal);
+
+            String allowanceModeDb = payroll.getAllowancesType() == null ? "NO ALLOWANCE" : payroll.getAllowancesType();
+            bean.setAllowanceMode(allowanceModeDb);
+
+            // selectedAllowances tidak dibind otomatis (ambil dari allowanceMultiSelect saat submit)
+            bean.setSelectedAllowances(new ArrayList<>());
 
             binder.setBean(bean);
+
+            // Bind fields
+            binder.forField(yearField)
+                    .bind(PayrollService.AddPayrollRequest::getYear, PayrollService.AddPayrollRequest::setYear);
+
+            binder.forField(monthField)
+                    .bind(PayrollService.AddPayrollRequest::getMonth, PayrollService.AddPayrollRequest::setMonth);
 
             binder.forField(attendanceDaysField)
                     .bind(PayrollService.AddPayrollRequest::getParamAttendanceDays, PayrollService.AddPayrollRequest::setParamAttendanceDays);
@@ -502,38 +596,38 @@ public class PayrollView extends Main {
             saveButton.addClickListener(e -> {
                 PayrollService.AddPayrollRequest bean = binder.getBean();
 
-                if ("SELECT ALLOWANCE".equals(bean.getAllowanceMode())) {
+                if (!binder.writeBeanIfValid(bean)) {
+                    Notification.show("Form belum valid", 3000, Notification.Position.MIDDLE);
+                    return;
+                }
+
+                // Ambil user DI UI THREAD
+                AppUserInfo userInfo = currentUser.require();
+
+                String mode = bean.getAllowanceMode() == null ? "" : bean.getAllowanceMode().trim();
+                if ("SELECT ALLOWANCE".equalsIgnoreCase(mode)) {
                     bean.setSelectedAllowances(new ArrayList<>(allowanceMultiSelect.getSelectedItems()));
                 } else {
                     bean.setSelectedAllowances(new ArrayList<>());
                 }
 
-                if (binder.writeBeanIfValid(bean)) {
-                    BigDecimal bonus = totalBonusField.getValue() == null ? BigDecimal.ZERO : totalBonusField.getValue();
-                    BigDecimal otherDed = totalOtherDedField.getValue() == null ? BigDecimal.ZERO : totalOtherDedField.getValue();
-                    BigDecimal taxable = totalTaxableField.getValue() == null ? BigDecimal.ZERO : totalTaxableField.getValue();
+                BigDecimal bonus = totalBonusField.getValue() == null ? BigDecimal.ZERO : totalBonusField.getValue();
+                BigDecimal otherDed = totalOtherDedField.getValue() == null ? BigDecimal.ZERO : totalOtherDedField.getValue();
+                BigDecimal taxable = totalTaxableField.getValue() == null ? BigDecimal.ZERO : totalTaxableField.getValue();
 
-                    // gunakan preloading pattern dari view (lihat helper di bawah)
-                    // Karena inner class static, kamu bisa panggil via callback yang diberikan dari view,
-                    // atau implement preloading di view dan pass sebagai lambda.
-                    loader.run("Recalculating payroll...", () -> {
-                        payrollService.recalculateSinglePayroll(
-                                payroll.getId(),
-                                bean,
-                                bonus,
-                                otherDed,
-                                taxable,
-                                currentUser.require()
-                        );
-                    }, () -> {
-                        Notification.show("Recalculated successfully", 3000, Notification.Position.MIDDLE);
-                        onSaveSuccess.run();
-                    });
-
-
+                loader.run("Recalculating payroll...", () -> {
+                    payrollService.recalculateSinglePayroll(
+                            payroll.getId(),
+                            bean,
+                            bonus,
+                            otherDed,
+                            taxable,
+                            userInfo   // <-- pakai userInfo yang sudah diambil di UI thread
+                    );
+                }, () -> {
                     Notification.show("Recalculated successfully", 3000, Notification.Position.MIDDLE);
                     onSaveSuccess.run();
-                }
+                });
             });
 
             cancelButton.addClickListener(e -> onSaveSuccess.run());
@@ -740,6 +834,7 @@ public class PayrollView extends Main {
         private void refreshAllowanceOptions() {
             LocalDate payrollDate = LocalDate.of(yearField.getValue(), monthField.getValue(), 1);
             allowanceMultiSelect.setItems(payrollService.getSelectableAllowancesForPayrollDate(payrollDate));
+            System.out.println("Selected allowances: " + allowanceMultiSelect.getSelectedItems().size());
         }
 
         private void configureBinder() {
@@ -841,17 +936,33 @@ public class PayrollView extends Main {
         }
 
         private void configureActions() {
-            saveButton.addClickListener(e -> {
+                saveButton.addClickListener(e -> {
                 PayrollService.AddPayrollRequest bean = binder.getBean();
 
+                // 1) Validasi binder dulu (ini akan copy year/month/attendance/overtime/allowanceMode ke bean)
                 if (!binder.writeBeanIfValid(bean)) {
                     Notification.show("Form belum valid", 3000, Notification.Position.MIDDLE);
                     return;
                 }
 
-                // ⚠️ Ambil user DI UI THREAD
+                // 2) WAJIB: inject selected allowances secara manual (karena tidak dibinding)
+                String mode = bean.getAllowanceMode() == null ? "" : bean.getAllowanceMode().trim();
+                if ("SELECT ALLOWANCE".equalsIgnoreCase(mode)) {
+                    bean.setSelectedAllowances(new ArrayList<>(allowanceMultiSelect.getSelectedItems()));
+                } else {
+                    bean.setSelectedAllowances(new ArrayList<>());
+                }
+
+                // 3) Optional: guard supaya user tidak merasa “sudah pilih” tapi kosong
+                if ("SELECT ALLOWANCE".equalsIgnoreCase(mode) && bean.getSelectedAllowances().isEmpty()) {
+                    Notification.show("Silakan pilih allowance minimal 1 item", 3500, Notification.Position.MIDDLE);
+                    return;
+                }
+
+                // 4) Ambil user di UI thread
                 AppUserInfo userInfo = currentUser.require();
 
+                // 5) Jalankan async + loading
                 preloadRunner.run(
                         "Creating payroll...",
                         () -> payrollService.createPayrollBulk(bean, userInfo),
@@ -914,6 +1025,7 @@ public class PayrollView extends Main {
                         } else {
                             if (onDoneUi != null) onDoneUi.run();
                         }
+                        ui.push();
                     });
                 });
     }
@@ -951,6 +1063,32 @@ public class PayrollView extends Main {
     @FunctionalInterface
     public interface UiLoader {
         void run(String message, Runnable task, Runnable onDoneUi);
+    }
+
+    private static class OvertimePaymentParsed {
+        final int percent;
+        final BigDecimal nominal;
+        OvertimePaymentParsed(int percent, BigDecimal nominal) {
+            this.percent = percent;
+            this.nominal = nominal;
+        }
+    }
+
+    private static OvertimePaymentParsed parseOvertimeValuePayment(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return new OvertimePaymentParsed(0, BigDecimal.ZERO);
+
+        // format: "NilaiPersen | NilaiUang"
+        String[] parts = raw.split("\\|");
+        String p = parts.length > 0 ? parts[0].trim() : "0";
+        String n = parts.length > 1 ? parts[1].trim() : "0";
+
+        int pct = 0;
+        try { pct = Integer.parseInt(p.replace(",", "")); } catch (Exception ignored) {}
+
+        BigDecimal nominal = BigDecimal.ZERO;
+        try { nominal = new BigDecimal(n.replace(",", "")); } catch (Exception ignored) {}
+
+        return new OvertimePaymentParsed(pct, nominal);
     }
 
 }

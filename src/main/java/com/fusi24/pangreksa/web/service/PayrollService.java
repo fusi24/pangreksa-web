@@ -22,8 +22,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -377,7 +376,8 @@ public class PayrollService {
             );
 
             // Allowance value text (delimiter |)
-            String allowancesValueText = buildAllowanceValueText(req);
+            String allowancesValueText = buildAllowanceValueTextForPerson(req, person, payrollDate, personPosition);
+
 
             // Overtime value payment text: "pct | amount"
             String overtimeValuePaymentText = buildOvertimeValuePaymentText(req, person);
@@ -453,7 +453,11 @@ public class PayrollService {
         payroll.setParamAttendanceDays(req.getParamAttendanceDays());
 
         payroll.setAllowancesType(req.getAllowanceMode());
-        payroll.setAllowancesValue(buildAllowanceValueText(req));
+
+        HrPersonPosition personPosition = hrPersonPositionRepository.findFirstByPersonId(payroll.getPerson().getId());
+        String allowancesValueText = buildAllowanceValueTextForPerson(req, payroll.getPerson(), payroll.getPayrollDate(), personPosition);
+
+        payroll.setAllowancesValue(allowancesValueText);
 
         payroll.setOvertimeHours(BigDecimal.valueOf(req.getOvertimeMinutes() == null ? 0L : req.getOvertimeMinutes().longValue()));
         payroll.setOvertimeType(req.getOvertimePaymentType());
@@ -596,21 +600,7 @@ public class PayrollService {
         String raw = payroll.getAllowancesValue();
 
         if (mode == null || "NO ALLOWANCE".equalsIgnoreCase(mode)) return BigDecimal.ZERO;
-        if (raw == null || raw.trim().isEmpty() || "0".equals(raw.trim())) return BigDecimal.ZERO;
-
-        // raw: "NAME:AMOUNT|NAME:AMOUNT"
-        BigDecimal total = BigDecimal.ZERO;
-        String[] parts = raw.split("\\|");
-        for (String p : parts) {
-            String s = p == null ? "" : p.trim();
-            if (s.isEmpty()) continue;
-
-            // try parse after ":" else parse whole
-            int idx = s.lastIndexOf(':');
-            String amtStr = idx >= 0 ? s.substring(idx + 1).trim() : s;
-            total = total.add(parseBigDecimalSafe(amtStr));
-        }
-        return total;
+        return sumAllowanceValueText(raw);
     }
 
     private String buildOvertimeValuePaymentText(AddPayrollRequest req, HrPerson person) {
@@ -750,7 +740,7 @@ public class PayrollService {
 
                 if (!name.isBlank()) {
                     if (!sb.isEmpty()) sb.append("|");
-                    sb.append(name).append("=").append(amount.toPlainString());
+                    sb.append(name).append(":").append(amount.toPlainString());
                 }
 
                 total = total.add(amount);
@@ -786,7 +776,7 @@ public class PayrollService {
 
                 if (!name.isBlank()) {
                     if (!sb.isEmpty()) sb.append("|");
-                    sb.append(name).append("=").append(amount.toPlainString());
+                    sb.append(name).append(":").append(amount.toPlainString());
                 }
 
                 total = total.add(amount);
@@ -1006,6 +996,100 @@ public class PayrollService {
             log.warn("Benefits package resolve failed for personId {}: {}", person.getId(), ex.getMessage());
             return BigDecimal.ZERO;
         }
+    }
+
+    private String buildAllowanceValueTextForPerson(AddPayrollRequest req,
+                                                    HrPerson person,
+                                                    LocalDate payrollDate,
+                                                    HrPersonPosition personPosition) {
+
+        if (req == null || req.getAllowanceMode() == null) return "0";
+
+        String mode = req.getAllowanceMode().trim();
+
+        // 1) NO ALLOWANCE
+        if ("NO ALLOWANCE".equalsIgnoreCase(mode) || mode.isBlank()) {
+            return "0";
+        }
+
+        // helper sanitize agar delimiter tidak rusak
+        java.util.function.Function<String, String> sanitizeName =
+                (nm) -> nm == null ? "" : nm.replace("|", " ").replace(":", " ").trim();
+
+        // 2) SELECT ALLOWANCE -> dari req.selectedAllowances
+        if ("SELECT ALLOWANCE".equalsIgnoreCase(mode)) {
+            if (req.getSelectedAllowances() == null || req.getSelectedAllowances().isEmpty()) return "0";
+
+            StringBuilder sb = new StringBuilder();
+            for (HrSalaryAllowance a : req.getSelectedAllowances()) {
+                if (a == null) continue;
+                String name = sanitizeName.apply(a.getName());
+                if (name.isBlank()) continue;
+
+                BigDecimal amount = a.getAmount() == null ? BigDecimal.ZERO : a.getAmount();
+
+                if (!sb.isEmpty()) sb.append("|");
+                sb.append(name).append(":").append(amount.toPlainString());
+            }
+            return sb.isEmpty() ? "0" : sb.toString();
+        }
+
+        // 3) BENEFITS PACKAGE -> dari hr_salary_position_allowance by position + active by date
+        if ("BENEFITS PACKAGE".equalsIgnoreCase(mode)) {
+            if (personPosition == null || personPosition.getPosition() == null) return "0";
+
+            List<HrSalaryPositionAllowance> packages =
+                    hrSalaryPositionAllowanceRepository.findByPositionAndCompanyOrderByUpdatedAtAsc(
+                            personPosition.getPosition(), personPosition.getCompany()
+                    );
+
+            if (packages == null || packages.isEmpty()) return "0";
+
+            StringBuilder sb = new StringBuilder();
+
+            for (HrSalaryPositionAllowance p : packages) {
+                if (p == null) continue;
+
+                // filter active by start/end date
+                if (p.getStartDate() != null && payrollDate.isBefore(p.getStartDate())) continue;
+                if (p.getEndDate() != null && payrollDate.isAfter(p.getEndDate())) continue;
+
+                HrSalaryAllowance a = p.getAllowance();
+                if (a == null) continue;
+
+                String name = sanitizeName.apply(a.getName());
+                if (name.isBlank()) continue;
+
+                BigDecimal amount = a.getAmount() == null ? BigDecimal.ZERO : a.getAmount();
+
+                if (!sb.isEmpty()) sb.append("|");
+                sb.append(name).append(":").append(amount.toPlainString());
+            }
+
+            return sb.isEmpty() ? "0" : sb.toString();
+        }
+
+        return "0";
+    }
+
+    private BigDecimal sumAllowanceValueText(String allowancesValue) {
+        if (allowancesValue == null) return BigDecimal.ZERO;
+        String raw = allowancesValue.trim();
+        if (raw.isEmpty() || "0".equals(raw)) return BigDecimal.ZERO;
+
+        BigDecimal total = BigDecimal.ZERO;
+        String[] items = raw.split("\\|");
+        for (String it : items) {
+            if (it == null) continue;
+            String s = it.trim();
+            if (s.isEmpty()) continue;
+
+            int idx = s.lastIndexOf(':');
+            String amtStr = (idx >= 0) ? s.substring(idx + 1).trim() : s;
+
+            total = total.add(parseBigDecimalSafe(amtStr));
+        }
+        return total;
     }
 
 }
