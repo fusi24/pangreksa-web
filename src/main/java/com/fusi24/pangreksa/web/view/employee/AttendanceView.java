@@ -118,16 +118,7 @@ public class AttendanceView extends Main {
 
         // Auto-show check-in popup for KARYAWAN on working days
         if (isEmployee) {
-            if (attendanceService.hasUnfinishedAttendanceBeforeToday()) {
-                Notification.show(
-                        "Anda masih memiliki absensi yang belum clock-out. " +
-                                "Silakan selesaikan terlebih dahulu.",
-                        5000,
-                        Notification.Position.MIDDLE
-                );
-            } else if (attendanceService.shouldShowCheckInPopup()) {
                 openSelfServiceCheckInOut();
-            }
         }
 
 
@@ -151,7 +142,17 @@ public class AttendanceView extends Main {
                 .setHeader("Clock-In").setWidth("100px");
         grid.addColumn(att -> att.getCheckOut() != null ? att.getCheckOut().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) : "-")
                 .setHeader("Clock-Out").setWidth("100px");
-        grid.addColumn(HrAttendance::getStatus).setHeader("Status").setWidth("130px");
+        grid.addColumn(att -> {
+                    // Jika belum checkout → status disembunyikan
+                    if (att.getCheckOut() == null) {
+                        return "-";
+                    }
+                    // Jika sudah checkout → tampilkan status
+                    return att.getStatus() != null ? att.getStatus() : "-";
+                })
+                .setHeader("Status")
+                .setWidth("130px");
+
         grid.addColumn(HrAttendance::getNotes).setHeader("Catatan").setAutoWidth(true);
 
         // HR-only actions
@@ -260,24 +261,12 @@ public class AttendanceView extends Main {
 
     private Component createCheckOutButtons(HrAttendance attendance) {
 
-        // Jika sudah checkout → tidak tampilkan tombol
         if (attendance.getCheckOut() != null) {
             return new Span("-");
         }
 
-        LocalDate today = LocalDate.now(ZoneId.of("Asia/Jakarta"));
-
-        // ❌ Jika attendance bukan hari ini → TOLAK checkout
-        if (!attendance.getAttendanceDate().isEqual(today)) {
-            Span blocked = new Span("Checkout ditutup");
-            blocked.getStyle().set("color", "red");
-            blocked.getStyle().set("font-size", "12px");
-            return blocked;
-        }
-
-        Button clockOutBtn = new Button("Clock-Out Sekarang");
+        Button clockOutBtn = new Button("Clock-Out");
         clockOutBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
-        clockOutBtn.setTooltipText("Catat waktu pulang hari ini");
 
         clockOutBtn.addClickListener(e -> {
             ZoneId jakartaZone = ZoneId.of("Asia/Jakarta");
@@ -296,6 +285,7 @@ public class AttendanceView extends Main {
 
         return new HorizontalLayout(clockOutBtn);
     }
+
 
 
     private void applyFilters() {

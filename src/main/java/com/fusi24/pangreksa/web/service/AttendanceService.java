@@ -92,11 +92,6 @@ public class AttendanceService {
 
         if (isOnApprovedLeave(today, employee)) return false;
 
-        // ❗ BLOCK jika masih ada attendance belum checkout sebelumnya
-        if (hasUnfinishedAttendanceBeforeToday()) {
-            return false;
-        }
-
         Optional<HrAttendance> todayAttendance =
                 attendanceRepo.findByAppUserIdAndAttendanceDate(
                         currentUser.getId(), today
@@ -261,59 +256,76 @@ public class AttendanceService {
     }
 
     private void setStatusBasedOnSchedule(HrAttendance att) {
+
         if (att.getCheckIn() == null) {
             att.setStatus("ALPHA");
             return;
         }
 
+        HrWorkSchedule schedule = att.getWorkSchedule();
+        boolean overtimeAuto = Boolean.TRUE.equals(schedule.getIsOvertimeAuto());
+
+        // ===============================
+        // 1️⃣ BELUM CHECKOUT
+        // ===============================
         if (att.getCheckOut() == null) {
-            // Still working – don't set final status
+
+            LocalDateTime scheduledOut = LocalDateTime.of(
+                    att.getAttendanceDate(),
+                    schedule.getCheckOut()
+            );
+
+            LocalDateTime batasLupa = scheduledOut.plusHours(1);
+            LocalDateTime now = LocalDateTime.now(JAKARTA_ZONE);
+
+            if (now.isAfter(batasLupa)) {
+                att.setStatus("LUPA_CLOCK_OUT");
+            }
             return;
         }
 
-        // Convert to Jakarta time
-        ZonedDateTime actualInJakarta = att.getCheckIn().atZone(JAKARTA_ZONE);
-        ZonedDateTime actualOutJakarta = att.getCheckOut().atZone(JAKARTA_ZONE);
-
-        LocalDate checkInDate = actualInJakarta.toLocalDate();
-
-        // Assume work schedule is defined for a standard day (e.g., 08:00–17:00)
-        LocalTime scheduledInTime = att.getWorkSchedule().getCheckIn();   // e.g., 08:00
-        LocalTime scheduledOutTime = att.getWorkSchedule().getCheckOut(); // e.g., 17:00
-
-        // Build scheduled window on the check-in day
-        LocalDateTime scheduledIn = LocalDateTime.of(checkInDate, scheduledInTime);
-        LocalDateTime scheduledOut = LocalDateTime.of(checkInDate, scheduledOutTime);
-
-        // Allow checkout up to (e.g.) 12 hours into the next day for night shifts
-        // You can adjust this logic based on your policy
-        if (actualOutJakarta.toLocalDate().isAfter(checkInDate)) {
-            // If checked out next day, shift scheduledOut to next day too
-            // But only if actualOut is after scheduledOut (i.e., didn't finish early)
-            // Alternative: define max allowed checkout (e.g., +1 day)
-            scheduledOut = scheduledOut.plusDays(1);
+        // ===============================
+        // 2️⃣ CHECKOUT SUDAH LEWAT HARI
+        // ===============================
+        if (att.getCheckOut().toLocalDate().isAfter(att.getAttendanceDate())) {
+            att.setStatus("LUPA_CLOCK_OUT");
+            return;
         }
 
-        // Now compare full LocalDateTime (via ZonedDateTime for safety)
-        ZonedDateTime scheduledInZoned = scheduledIn.atZone(JAKARTA_ZONE);
-        ZonedDateTime scheduledOutZoned = scheduledOut.atZone(JAKARTA_ZONE);
+        // ===============================
+        // 3️⃣ NORMAL CHECKOUT (HARI YANG SAMA)
+        // ===============================
+        ZonedDateTime actualIn = att.getCheckIn().atZone(JAKARTA_ZONE);
+        ZonedDateTime actualOut = att.getCheckOut().atZone(JAKARTA_ZONE);
+
+        LocalDateTime scheduledIn = LocalDateTime.of(
+                att.getAttendanceDate(),
+                schedule.getCheckIn()
+        );
+
+        LocalDateTime scheduledOut = LocalDateTime.of(
+                att.getAttendanceDate(),
+                schedule.getCheckOut()
+        );
+
+        ZonedDateTime scheduledInZ = scheduledIn.atZone(JAKARTA_ZONE);
+        ZonedDateTime scheduledOutZ = scheduledOut.atZone(JAKARTA_ZONE);
 
         String status = "HADIR";
 
-        // Late arrival: after scheduledIn + 15 mins
-        if (actualInJakarta.isAfter(scheduledInZoned.plusMinutes(15))) {
+        if (actualIn.isAfter(scheduledInZ.plusMinutes(15))) {
             status = "TERLAMBAT";
         }
 
-        // Early departure: before scheduledOut - 30 mins
-        if (actualOutJakarta.isBefore(scheduledOutZoned.minusMinutes(30))) {
+        if (actualOut.isBefore(scheduledOutZ.minusMinutes(30))) {
             status = "PULANG_CEPAT";
         }
-        // Overtime: after scheduledOut + 1 hour (and not early)
-        else if (actualOutJakarta.isAfter(scheduledOutZoned.plusHours(1))) {
+        else if (overtimeAuto && actualOut.isAfter(scheduledOutZ.plusHours(1))) {
             status = "OVERTIME";
         }
 
         att.setStatus(status);
     }
+
+
 }
