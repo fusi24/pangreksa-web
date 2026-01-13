@@ -77,6 +77,7 @@ public class MasterWorkScheduleView extends Main {
     public MasterWorkScheduleView(HrWorkScheduleRepository scheduleRepo, HrOrgStructureRepository orgStructureRepo) {
         this.scheduleRepo = scheduleRepo;
         this.orgStructureRepo = orgStructureRepo;
+        setHeightFull();
 
         addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
                 LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
@@ -92,7 +93,8 @@ public class MasterWorkScheduleView extends Main {
 
     private void configureGrid() {
         grid.removeAllColumns();
-
+        grid.setSizeFull();
+        grid.getStyle().set("flex", "1");
         grid.addColumn(HrWorkSchedule::getName).setHeader("Name").setAutoWidth(true);
         grid.addColumn(ws -> ws.getType() != null ? ws.getType().name() : "")
                 .setHeader("Type");
