@@ -111,9 +111,9 @@ public class RoleManagementView extends Main {
         searchField.setPlaceholder("Ketik nama karyawan...");
         searchField.setClearButtonVisible(true);
 
-        populateButton = new Button("Populate");
-        addButton = new Button("Add");
-        saveButton = new Button("Save");
+        populateButton = new Button("Muat Data");
+        addButton = new Button("Tambah");
+        saveButton = new Button("Simpan");
 
         // Toolbar kiri
         HorizontalLayout left = new HorizontalLayout(searchField, populateButton);
