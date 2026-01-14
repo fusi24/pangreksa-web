@@ -140,13 +140,13 @@ public class ProfilDataKaryawanView extends Main {
 
         body.setHeightFull();
 
-        addPersonButton = new Button("Add Person");
+        addPersonButton = new Button("Tambah Karyawan");
 
         searchField = new TextField();
         searchField.setClearButtonVisible(true);
         searchField.setPrefixComponent(VaadinIcon.SEARCH.create());
         searchField.setWidth("270px");
-        populateButton = new Button("Populate");
+        populateButton = new Button("Muat Data");
 
         // Create left and right layouts
         HorizontalLayout leftLayout = new HorizontalLayout();
@@ -179,21 +179,21 @@ public class ProfilDataKaryawanView extends Main {
 
         VerticalLayout tabA = new VerticalLayout();
         tabA.setHeightFull();
-        tabsheet.add("Employees", tabA);
+        tabsheet.add("Karyawan", tabA);
         VerticalLayout tabB = new VerticalLayout();
         tabB.setHeightFull();
-        tabsheet.add("Unassigned Persons", tabB);
+        tabsheet.add("Belum Ditetapkan", tabB);
 //        tabsheet.getStyle().setFlexGrow("1").setWidth("100%");
         tabsheet.setHeightFull();
         tabsheet.setWidthFull();
 
         gridUnassignedPersons = new Grid<>(HrPerson.class, false);
         gridUnassignedPersons.setSelectionMode(Grid.SelectionMode.SINGLE);
-        gridUnassignedPersons.addColumn(HrPerson::getFirstName).setHeader("First Name").setSortable(true);
-        gridUnassignedPersons.addColumn(HrPerson::getLastName).setHeader("Last Name").setSortable(true);
+        gridUnassignedPersons.addColumn(HrPerson::getFirstName).setHeader("Nama Awal").setSortable(true);
+        gridUnassignedPersons.addColumn(HrPerson::getLastName).setHeader("Nama Akhir").setSortable(true);
         gridUnassignedPersons.addColumn(person ->
                 person.getCreatedAt() != null ? prettyTime.format(person.getCreatedAt()) : ""
-        ).setHeader("Created Date").setSortable(false);
+        ).setHeader("Tanggal Dibuat").setSortable(false);
         // Action column with delete button (icon only, no title)
         // Action column with edit & assign button
         // Action column with edit & assign button
@@ -204,7 +204,7 @@ public class ProfilDataKaryawanView extends Main {
             // Edit button
             Button editButton = new Button();
             editButton.setIcon(VaadinIcon.EDIT.create());
-            editButton.getElement().setAttribute("title", "Edit Person");
+            editButton.getElement().setAttribute("title", "Edit Karyawan");
             editButton.addClickListener(e -> {
                 UI.getCurrent().navigate(ROUTE_EDIT + person.getId());
             });
@@ -212,28 +212,28 @@ public class ProfilDataKaryawanView extends Main {
                 editButton.setEnabled(false);
             }
 
-            // Assign to Company button
+            // Tetapkan ke Perusahaan button
             Button assignButton = new Button();
             assignButton.setIcon(VaadinIcon.WORKPLACE.create());
-            assignButton.getElement().setAttribute("title", "Assign to Company");
+            assignButton.getElement().setAttribute("title", "Assign to perusahaan");
 
             assignButton.addClickListener(e -> {
                 Dialog dialog = new Dialog();
-                dialog.setHeaderTitle("Assign to Company");
+                dialog.setHeaderTitle("Assign to perusahaan");
 
                 VerticalLayout dialogLayout = new VerticalLayout();
                 dialogLayout.setPadding(false);
                 dialogLayout.setSpacing(true);
 
-                ComboBox<HrCompany> companyDropdown = new ComboBox<>("Company");
-                ComboBox<HrCompanyBranch> branchDropdown = new ComboBox<>("Branch");
-                ComboBox<HrOrgStructure> orgStructureDropdown = new ComboBox<>("Org. Structure");
-                ComboBox<HrPosition> positionDropdown = new ComboBox<>("Position");
-                DatePicker startDatePicker = new DatePicker("Start Date");
-                DatePicker endDatePicker = new DatePicker("End Date");
-                Checkbox isPrimaryCheckbox = new Checkbox("Is Primary");
-                Checkbox isActingCheckbox = new Checkbox("Is Acting");
-                ComboBox<HrPerson> requestedByDropdown = new ComboBox<>("Requested By");
+                ComboBox<HrCompany> companyDropdown = new ComboBox<>("Perusahaan");
+                ComboBox<HrCompanyBranch> branchDropdown = new ComboBox<>("Cabang");
+                ComboBox<HrOrgStructure> orgStructureDropdown = new ComboBox<>("Org. Struktur");
+                ComboBox<HrPosition> positionDropdown = new ComboBox<>("Posisi");
+                DatePicker startDatePicker = new DatePicker("Tanggal Mulai");
+                DatePicker endDatePicker = new DatePicker("Tanggal Selesai");
+                Checkbox isPrimaryCheckbox = new Checkbox("Posisi Utama");
+                Checkbox isActingCheckbox = new Checkbox("Pelaksana Tugas");
+                ComboBox<HrPerson> requestedByDropdown = new ComboBox<>("Diminta Oleh");
 
                 // === Branch (cabang perusahaan) ===
                 branchDropdown.setItemLabelGenerator(HrCompanyBranch::getBranchName);
@@ -242,11 +242,11 @@ public class ProfilDataKaryawanView extends Main {
                 branchDropdown.setEnabled(false);
 
 
-                // === Requested By (lazy search, mirip view lain) ===
+                // === Diminta Oleh (lazy search, mirip view lain) ===
                 requestedByDropdown.setItemLabelGenerator(p ->
                         p.getFirstName() + " " + (p.getLastName() != null ? p.getLastName() : "")
                 );
-                requestedByDropdown.setPlaceholder("Type to search requester");
+                requestedByDropdown.setPlaceholder("Ketik untuk mencari pemohon");
                 requestedByDropdown.setClearButtonVisible(true);
                 requestedByDropdown.setWidth("400px");
                 requestedByDropdown.setPageSize(20);
@@ -370,7 +370,7 @@ public class ProfilDataKaryawanView extends Main {
                 // === Tombol Save / Cancel ===
                 HorizontalLayout buttonLayout = new HorizontalLayout();
                 Button cancelButton = new Button("Cancel", ev -> dialog.close());
-                Button saveButton = new Button("Save");
+                Button saveButton = new Button("Simpan");
 
                 if (!this.auth.canEdit) {
                     saveButton.setEnabled(false);
@@ -378,15 +378,15 @@ public class ProfilDataKaryawanView extends Main {
 
                 saveButton.addClickListener(ev -> {
                     if (companyDropdown.isEmpty()) {
-                        Notification.show("Company is required.");
+                        Notification.show("Perusahaan wajib diisi.");
                         return;
                     }
                     if (branchDropdown.isEmpty()) {
-                        Notification.show("Branch is required.");
+                        Notification.show("Cabang wajib diisi.");
                         return;
                     }
                     if (orgStructureDropdown.isEmpty() || positionDropdown.isEmpty()) {
-                        Notification.show("Company, Branch, Org Structure and Position are required.");
+                        Notification.show("Perusahaan, Cabang, Struktur organisasi dan posisi wajib diisi.");
                         return;
                     }
 
@@ -478,9 +478,9 @@ public class ProfilDataKaryawanView extends Main {
         orgStructureGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
 
         // Perubahan: Menambahkan kolom Code dan Type yang ada di MasterOrgStructureView
-        orgStructureGrid.addColumn(HrOrgStructure::getName).setHeader("Organization Name"); // Tetap ada
-//        orgStructureGrid.addColumn(HrOrgStructure::getCode).setHeader("Code");             // Tambahan
-//        orgStructureGrid.addColumn(org -> org.getType() != null ? org.getType().name() : "").setHeader("Type"); // Tambahan
+        orgStructureGrid.addColumn(HrOrgStructure::getName).setHeader("Struktur Organisasi"); // Tetap ada
+//        orgStructureGrid.addColumn(HrOrgStructure::getCode).setHeader("Kode");             // Tambahan
+//        orgStructureGrid.addColumn(org -> org.getType() != null ? org.getType().name() : "").setHeader("Tipe"); // Tambahan
 
 
         positionGrid = new Grid<>(HrPosition.class, false);
@@ -489,7 +489,7 @@ public class ProfilDataKaryawanView extends Main {
         positionGrid.setHeightFull();
         positionGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
         // add columns
-        positionGrid.addColumn(HrPosition::getName).setHeader("Position");
+        positionGrid.addColumn(HrPosition::getName).setHeader("Posisi");
 
         gridEmployees = new Grid<>(HrPersonPosition.class, false);
         gridEmployees.setWidthFull();
@@ -499,16 +499,16 @@ public class ProfilDataKaryawanView extends Main {
         gridEmployees.addColumn(pos -> {
             HrPerson person = pos.getPerson();
             return person != null ? person.getFirstName() : "";
-        }).setHeader("First Name").setSortable(true);
+        }).setHeader("Nama Awal").setSortable(true);
         gridEmployees.addColumn(pos -> {
             HrPerson person = pos.getPerson();
             return person != null ? person.getLastName() : "";
-        }).setHeader("Last Name").setSortable(true);
+        }).setHeader("Nama Akhir").setSortable(true);
         // Position
         gridEmployees.addColumn(pos -> {
             HrPosition position = pos.getPosition();
             return position != null ? position.getName() : "";
-        }).setHeader("Position").setSortable(true);
+        }).setHeader("Posisi").setSortable(true);
         gridEmployees.addColumn(pos -> {
             HrPosition position = pos.getPosition();
             return position != null ? position.getOrgStructure().getName() : "";
@@ -516,9 +516,9 @@ public class ProfilDataKaryawanView extends Main {
         gridEmployees.addColumn(pos -> {
             HrDepartment dept = pos.getDepartment();
             return Optional.ofNullable(dept).map(HrDepartment::getName).orElse("");
-        }).setHeader("Department").setSortable(true);
-        // Start Date
-        gridEmployees.addColumn(HrPersonPosition::getStartDate).setHeader("Start Date").setSortable(true);
+        }).setHeader("Departemen").setSortable(true);
+        // Tanggal Mulai
+        gridEmployees.addColumn(HrPersonPosition::getStartDate).setHeader("Tanggal Mulai").setSortable(true);
         // Action column with delete button (icon only, no title)
         gridEmployees.addColumn(new ComponentRenderer<>(personPosition -> {
             HorizontalLayout actionLayout = new HorizontalLayout();
@@ -526,7 +526,7 @@ public class ProfilDataKaryawanView extends Main {
             // Edit button
             Button editButton = new Button();
             editButton.setIcon(VaadinIcon.EDIT.create());
-            editButton.getElement().setAttribute("title", "Edit Person");
+            editButton.getElement().setAttribute("title", "Edit Karyawan");
             editButton.addClickListener(e -> {
                 UI.getCurrent().navigate(ROUTE_EDIT + personPosition.getPerson().getId());
             });
@@ -574,7 +574,7 @@ public class ProfilDataKaryawanView extends Main {
 
         if (!searchField.getValue().isEmpty()) {
             if (searchField.getValue().length() < this.MIN_SEARCH_LENGTH) {
-                String msg = "Please enter at least " + this.MIN_SEARCH_LENGTH + " characters to search.";
+                String msg = "Please enter at least " + this.MIN_SEARCH_LENGTH + " characters untuk dicari.";
                 Notification.show(msg);
                 searchField.setErrorMessage(msg);
                 return;
