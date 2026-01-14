@@ -38,7 +38,11 @@ import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
-
+import com.vaadin.flow.data.provider.SortDirection;
+import com.vaadin.flow.component.grid.GridSortOrder;
+import java.util.Collections;
+import org.springframework.data.domain.Sort;
+import com.vaadin.flow.data.provider.QuerySortOrder;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -50,8 +54,9 @@ import java.util.List;
 @PageTitle("Kehadiran Karyawan")
 @Menu(order = 25, icon = "vaadin:user-check", title = "Kehadiran Karyawan")
 @RolesAllowed({"HR", "KARYAWAN"})
-public class AttendanceView extends Main {
 
+public class AttendanceView extends Main {
+    private DataProvider<HrAttendance, Void> attendanceProvider;
     public static final String VIEW_NAME = "Kehadiran Karyawan";
     private static final long serialVersionUID = 862476621L;
     private static final Logger log = LoggerFactory.getLogger(AttendanceView.class);
@@ -136,10 +141,19 @@ public class AttendanceView extends Main {
         // === Grid Configuration ===
         grid.addColumn(att -> att.getPerson().getFirstName() + " " + att.getPerson().getLastName())
                 .setHeader("Karyawan").setAutoWidth(true);
-        grid.addColumn(att -> att.getAttendanceDate().format(dateFormatter))
-                .setHeader("Tanggal").setWidth("120px");
-        grid.addColumn(att -> att.getCheckIn() != null ? att.getCheckIn().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) : "-")
-                .setHeader("Clock-In").setWidth("100px");
+
+        Grid.Column<HrAttendance> checkInColumn =
+                grid.addColumn(att ->
+                                att.getCheckIn() != null
+                                        ? att.getCheckIn().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"))
+                                        : "-"
+                        )
+                        .setHeader("Clock-In")
+                        .setKey("checkIn")              // 🔑 PENTING
+                        .setSortable(true)
+                        .setComparator(HrAttendance::getCheckIn)
+                        .setWidth("140px");
+
         grid.addColumn(att -> att.getCheckOut() != null ? att.getCheckOut().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) : "-")
                 .setHeader("Clock-Out").setWidth("100px");
         grid.addColumn(att -> {
@@ -228,9 +242,74 @@ public class AttendanceView extends Main {
         layout.setSpacing(false);
         grid.setSizeFull();
 
+        grid.sort(
+                Collections.singletonList(
+                        new GridSortOrder<>(checkInColumn, SortDirection.DESCENDING)
+                )
+        );
+
+
         add(layout);
-        applyFilters();
+        initDataProvider();
     }
+
+    private void initDataProvider() {
+
+        attendanceProvider = DataProvider.fromCallbacks(
+                query -> {
+                    int offset = query.getOffset();
+                    int limit = query.getLimit();
+                    int page = offset / limit;
+
+                    // 🔑 DEFAULT SORT: checkIn DESC
+                    Sort sort = Sort.by(Sort.Direction.DESC, "checkIn");
+
+                    if (!query.getSortOrders().isEmpty()) {
+                        QuerySortOrder order = query.getSortOrders().get(0);
+
+                        Sort.Direction dir =
+                                order.getDirection() == SortDirection.ASCENDING
+                                        ? Sort.Direction.ASC
+                                        : Sort.Direction.DESC;
+
+                        if ("checkIn".equals(order.getSorted())) {
+                            sort = Sort.by(dir, "checkIn");
+                        }
+                    }
+
+
+                    PageRequest pageReq = PageRequest.of(page, limit, sort);
+
+                    return attendanceService
+                            .getAttendancePage(
+                                    pageReq,
+                                    startDateFilter.getValue(),
+                                    endDateFilter.getValue(),
+                                    searchField.getValue(),
+                                    companyFilter.getValue(),
+                                    orgStructureFilter.getValue(),
+                                    "Karyawan".equals(this.responsibility)
+                                            ? attendanceService.getCurrentUser().getPerson()
+                                            : null
+                            )
+                            .getContent()
+                            .stream();
+                },
+                query -> (int) attendanceService.countAttendance(
+                        startDateFilter.getValue(),
+                        endDateFilter.getValue(),
+                        searchField.getValue(),
+                        companyFilter.getValue(),
+                        orgStructureFilter.getValue(),
+                        "Karyawan".equals(this.responsibility)
+                                ? attendanceService.getCurrentUser().getPerson()
+                                : null
+                )
+        );
+
+        grid.setDataProvider(attendanceProvider);
+    }
+
 
     private Component createActionButtons(HrAttendance attendance) {
         HorizontalLayout actions = new HorizontalLayout();
@@ -287,28 +366,66 @@ public class AttendanceView extends Main {
     }
 
 
-
     private void applyFilters() {
+
         String searchTerm = searchField.getValue();
         LocalDate start = startDateFilter.getValue();
         LocalDate end = endDateFilter.getValue();
         HrCompany company = companyFilter.getValue();
         HrOrgStructure orgStructure = orgStructureFilter.getValue();
-        HrPerson emp = "Karyawan".equals(this.responsibility) ? attendanceService.getCurrentUser().getPerson() : null;
+        HrPerson emp = "Karyawan".equals(this.responsibility)
+                ? attendanceService.getCurrentUser().getPerson()
+                : null;
 
         DataProvider<HrAttendance, Void> provider = DataProvider.fromCallbacks(
                 query -> {
                     int offset = query.getOffset();
                     int limit = query.getLimit();
                     int page = offset / limit;
-                    PageRequest pageReq = PageRequest.of(page, limit);
-                    return attendanceService.getAttendancePage(pageReq, start, end, searchTerm, company, orgStructure, emp)
-                            .getContent().stream();
+
+                    // ✅ default sort: tanggal DESC
+                    Sort sort = Sort.by(Sort.Direction.DESC, "attendanceDate");
+
+                    // ✅ baca sorting dari Grid
+                    if (!query.getSortOrders().isEmpty()) {
+                        QuerySortOrder order = query.getSortOrders().get(0);
+                        Sort.Direction dir =
+                                order.getDirection() == SortDirection.ASCENDING
+                                        ? Sort.Direction.ASC
+                                        : Sort.Direction.DESC;
+
+                        sort = Sort.by(dir, "attendanceDate");
+                    }
+
+                    PageRequest pageReq = PageRequest.of(page, limit, sort);
+
+                    return attendanceService
+                            .getAttendancePage(
+                                    pageReq,
+                                    start,
+                                    end,
+                                    searchTerm,
+                                    company,
+                                    orgStructure,
+                                    emp
+                            )
+                            .getContent()
+                            .stream();
                 },
-                query -> (int) attendanceService.countAttendance(start, end, searchTerm, company, orgStructure, emp)
+                query -> (int) attendanceService.countAttendance(
+                        start,
+                        end,
+                        searchTerm,
+                        company,
+                        orgStructure,
+                        emp
+                )
         );
+
         grid.setDataProvider(provider);
     }
+
+
 
     // === KARYAWAN: Self-service check-in/out ===
     private void openSelfServiceCheckInOut() {

@@ -14,6 +14,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import com.fusi24.pangreksa.web.model.enumerate.WorkScheduleType;
+
 
 import java.time.*;
 import java.util.ArrayList;
@@ -152,10 +154,33 @@ public class AttendanceService {
     }
 
     private boolean isWorkingDay(LocalDate date) {
-        if (calendarService.isHoliday(date)) return false;
-        if (date.getDayOfWeek().getValue() > 5) return false; // Sat=6, Sun=7
-        return workScheduleService.hasActiveScheduleForUser(currentUser, date);
+
+        // Libur nasional tetap libur (untuk semua)
+        if (calendarService.isHoliday(date)) {
+            return false;
+        }
+
+        // Ambil schedule user pada tanggal tsb
+        HrWorkSchedule schedule =
+                workScheduleService.getActiveScheduleForUser(currentUser, date);
+
+        if (schedule == null) {
+            return false;
+        }
+
+        // NORMAL → Sabtu Minggu libur
+        if (schedule.getType() == WorkScheduleType.Normal) {
+            return date.getDayOfWeek().getValue() <= 5;
+        }
+
+        // SHIFT → boleh semua hari
+        if (schedule.getType() == WorkScheduleType.Shift) {
+            return true;
+        }
+
+        return false;
     }
+
 
     private boolean isOnApprovedLeave(LocalDate date, HrPerson employee) {
         List<LeaveStatusEnum> approvedStatuses = List.of(LeaveStatusEnum.APPROVED);
