@@ -114,7 +114,7 @@ public class EmployeeMappingLevel extends Main {
 
         // 1) Kolom User (Nickname / displayName)
         grid.addColumn(UserLevelProjection::getDisplayName)
-                .setHeader("User (Nickname)")
+                .setHeader("Pengguna")
                 .setAutoWidth(true)
                 .setFlexGrow(1)
                 .setSortable(true);
