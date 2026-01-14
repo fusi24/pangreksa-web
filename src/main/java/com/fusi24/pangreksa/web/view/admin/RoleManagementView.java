@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 /**
- * Manajemen Role User (Grid only):
+ * Manajemen Hak Akses (Grid only):
  * - Kiri: Input Nama Karyawan (live) + Populate
  * - Kanan: Add, Save
  * - Grid: ID Pengguna, Nama, Role (ComboBox), Status (Checkbox)
@@ -37,13 +37,13 @@ import java.util.*;
  * - Save: commit perubahan grid -> auto populate
  */
 @Route("mapping-role-user")
-@PageTitle("Manajemen Role User")
-@Menu(order = 33, icon = "vaadin:user", title = "Manajemen Role User")
+@PageTitle("Manajemen Hak Akses")
+@Menu(order = 33, icon = "vaadin:user", title = "Manajemen Hak Akses")
 @RolesAllowed("USERS_MGT")
 public class RoleManagementView extends Main {
     private static final long serialVersionUID = 33L;
     private static final Logger log = LoggerFactory.getLogger(RoleManagementView.class);
-    public static final String VIEW_NAME = "Manajemen Role User";
+    public static final String VIEW_NAME = "Manajemen Hak Akses";
     private final CurrentUser currentUser;
     private final RoleManagementService roleService;
     private VerticalLayout body;
