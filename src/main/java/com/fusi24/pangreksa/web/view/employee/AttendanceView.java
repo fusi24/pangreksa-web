@@ -271,7 +271,6 @@ public class AttendanceView extends Main {
                                 order.getDirection() == SortDirection.ASCENDING
                                         ? Sort.Direction.ASC
                                         : Sort.Direction.DESC;
-
                         if ("checkIn".equals(order.getSorted())) {
                             sort = Sort.by(dir, "checkIn");
                         }
