@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,5 +18,8 @@ public interface FwSystemRepository extends JpaRepository<FwSystem, UUID> {
     List<FwSystem> findByIdInOrderBySortOrderAsc(List<UUID> ids);
 
     List<FwSystem> findByKey(String key);
+
+    List<FwSystem> findBySortOrderIn(Collection<Integer> sortOrders);
+
 }
 

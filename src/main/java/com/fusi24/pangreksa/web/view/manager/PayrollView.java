@@ -178,16 +178,20 @@ public class PayrollView extends Main {
             return FormattingUtils.formatPayrollAmount(val);
         }).setHeader("Net THP").setWidth("140px").setFlexGrow(0);
 
-        // 9) Actions (ONLY: Recalculate + Add Komponen)
+        // 9) Actions (ONLY: Detail + Recalculate)
         grid.addComponentColumn(payroll -> {
             HorizontalLayout actions = new HorizontalLayout();
+            actions.setSpacing(true);
+
+            Button detailBtn = new Button("Detail", e -> openDetailDialog(payroll));
+            detailBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
 
             Button recalculateBtn = new Button("Recalculate", e -> openRecalculateDialog(payroll));
             recalculateBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
 
-            actions.add(recalculateBtn);
+            actions.add(detailBtn, recalculateBtn);
             return actions;
-        }).setHeader("Actions").setWidth("160px").setFlexGrow(0);
+        }).setHeader("Actions").setWidth("220px").setFlexGrow(0);
 
         // =========================
         // Search / Filter toolbar
@@ -206,7 +210,7 @@ public class PayrollView extends Main {
         // Year Filter
         yearFilter.setPlaceholder("Year");
         yearFilter.setItems(getRecentYears(5));
-        yearFilter.setValue(LocalDate.now().getYear());
+        yearFilter.setValue(LocalDate.now().getYear());   // sudah benar
         yearFilter.setClearButtonVisible(true);
         yearFilter.setWidth("120px");
 
@@ -216,6 +220,9 @@ public class PayrollView extends Main {
         monthFilter.setItemLabelGenerator(this::getMonthName);
         monthFilter.setClearButtonVisible(true);
         monthFilter.setWidth("150px");
+
+        // ✅ ini yang biasanya belum kamu set
+        monthFilter.setValue(LocalDate.now().getMonthValue());
 
         HorizontalLayout filterBar = new HorizontalLayout(yearFilter, monthFilter);
         filterBar.setSpacing(true);
@@ -294,7 +301,8 @@ public class PayrollView extends Main {
         searchField.clear();
     }
 
-    private Dialog recalculateDialog = new Dialog();
+    private final Dialog recalculateDialog = new Dialog();
+    private final Dialog detailDialog = new Dialog();
 
     private void openRecalculateDialog(HrPayroll payroll) {
         recalculateDialog.removeAll();
@@ -313,6 +321,100 @@ public class PayrollView extends Main {
         recalculateDialog.add(form);
         recalculateDialog.setWidth("900px");
         recalculateDialog.open();
+    }
+
+    private void openDetailDialog(HrPayroll payroll) {
+        detailDialog.removeAll();
+        detailDialog.setWidth("900px");
+        detailDialog.setCloseOnEsc(true);
+        detailDialog.setCloseOnOutsideClick(true);
+
+        HrPayrollCalculation calc = payroll.getCalculation();
+
+        FormLayout form = new FormLayout();
+        form.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 1),
+                new FormLayout.ResponsiveStep("700px", 2)
+        );
+
+        // Helper label/value
+        java.util.function.BiConsumer<String, String> addRow = (label, value) -> {
+            TextField tf = new TextField();
+            tf.setValue(value == null ? "-" : value);
+            tf.setReadOnly(true);
+            tf.setWidthFull();
+            form.addFormItem(tf, label);
+        };
+
+        // Header
+        Span title = new Span("Payroll Detail");
+        title.getStyle().set("font-weight", "600");
+
+        String employeeName = ((payroll.getFirstName() == null ? "" : payroll.getFirstName()) + " " +
+                (payroll.getLastName() == null ? "" : payroll.getLastName())).trim();
+
+        addRow.accept("Employee", employeeName.isBlank() ? "-" : employeeName);
+        addRow.accept("Payroll Month", formatPayrollMonth(payroll.getPayrollDate()));
+        addRow.accept("Position", payroll.getPosition() == null ? "-" : payroll.getPosition());
+        addRow.accept("Department", payroll.getDepartment() == null ? "-" : payroll.getDepartment());
+
+        // Attendance info
+        addRow.accept("Param Attendance Days", String.valueOf(payroll.getParamAttendanceDays() == null ? 0 : payroll.getParamAttendanceDays()));
+        addRow.accept("Sum Attendance", String.valueOf(payroll.getSumAttendance() == null ? 0 : payroll.getSumAttendance()));
+
+        // Allowance / overtime raw
+        addRow.accept("Allowance Type", payroll.getAllowancesType() == null ? "-" : payroll.getAllowancesType());
+        addRow.accept("Allowance Value", payroll.getAllowancesValue() == null ? "-" : payroll.getAllowancesValue());
+        addRow.accept("Overtime Type", payroll.getOvertimeType() == null ? "-" : payroll.getOvertimeType());
+        addRow.accept("Overtime Minutes Param", payroll.getOvertimeHours() == null ? "0" : payroll.getOvertimeHours().toPlainString());
+        addRow.accept("Overtime Value Payment", payroll.getOvertimeValuePayment() == null ? "-" : payroll.getOvertimeValuePayment());
+
+        // PTKP
+        addRow.accept("PTKP Code", payroll.getPtkpCode() == null ? "-" : payroll.getPtkpCode());
+        addRow.accept("PTKP Amount (Monthly)", FormattingUtils.formatPayrollAmount(payroll.getPtkpAmount() == null ? BigDecimal.ZERO : payroll.getPtkpAmount()));
+
+        // Calculation summary
+        if (calc != null) {
+            addRow.accept("Gross Salary", FormattingUtils.formatPayrollAmount(nvl(calc.getGrossSalary())));
+            addRow.accept("Total Allowances", FormattingUtils.formatPayrollAmount(nvl(calc.getTotalAllowances())));
+            addRow.accept("Total Overtimes", FormattingUtils.formatPayrollAmount(nvl(calc.getTotalOvertimes())));
+            addRow.accept("Total Bonus (Annual)", FormattingUtils.formatPayrollAmount(nvl(calc.getTotalBonus())));
+            addRow.accept("Other Deductions", FormattingUtils.formatPayrollAmount(nvl(calc.getTotalOtherDeductions())));
+            addRow.accept("Total Taxable", FormattingUtils.formatPayrollAmount(nvl(calc.getTotalTaxable())));
+
+            // kalau sudah ada kolom ini di entity calc
+            try {
+                java.lang.reflect.Method m = calc.getClass().getMethod("getHealthDeduction");
+                Object v = m.invoke(calc);
+                BigDecimal health = v instanceof BigDecimal ? (BigDecimal) v : BigDecimal.ZERO;
+                addRow.accept("Health Deduction", FormattingUtils.formatPayrollAmount(nvl(health)));
+            } catch (Exception ignored) {
+                // kalau field belum ada, diamkan
+            }
+
+            // real gross salary (attendance deduction), kalau ada
+            try {
+                java.lang.reflect.Method m = calc.getClass().getMethod("getRealGrossSalary");
+                Object v = m.invoke(calc);
+                BigDecimal realGross = v instanceof BigDecimal ? (BigDecimal) v : BigDecimal.ZERO;
+                addRow.accept("Deduction Attendance", FormattingUtils.formatPayrollAmount(nvl(realGross)));
+            } catch (Exception ignored) {
+            }
+
+            addRow.accept("Net Take Home Pay", FormattingUtils.formatPayrollAmount(nvl(calc.getNetTakeHomePay())));
+        } else {
+            addRow.accept("Calculation", "(not created yet)");
+        }
+
+        Button close = new Button("Close", e -> detailDialog.close());
+        close.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        VerticalLayout layout = new VerticalLayout(title, form, close);
+        layout.setPadding(false);
+        layout.setSpacing(true);
+
+        detailDialog.add(layout);
+        detailDialog.open();
     }
 
     public static class RecalculateForm extends FormLayout {
@@ -478,9 +580,10 @@ public class PayrollView extends Main {
             totalOtherDedField.setWidthFull();
             totalOtherDedField.setValue(calc == null || calc.getTotalOtherDeductions() == null ? BigDecimal.ZERO : calc.getTotalOtherDeductions());
 
-            totalTaxableField.setPlaceholder("Rp 0");
-            totalTaxableField.setWidthFull();
+            totalTaxableField.setPlaceholder("AUTO (gross - PTKP)");
+            totalTaxableField.setReadOnly(true);
             totalTaxableField.setValue(calc == null || calc.getTotalTaxable() == null ? BigDecimal.ZERO : calc.getTotalTaxable());
+            totalTaxableField.setHelperText("Nilai ini dihitung otomatis: Gross Salary - PTKP (bulanan).");
 
             // Button themes
             saveButton.addThemeVariants(ButtonVariant.LUMO_ERROR);

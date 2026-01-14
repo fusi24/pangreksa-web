@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fusi24.pangreksa.web.model.entity.HrSalaryAllowance;
 import com.fusi24.pangreksa.web.repo.HrSalaryAllowanceRepository;
 import com.fusi24.pangreksa.web.repo.HrAttendanceRepository;
+import com.fusi24.pangreksa.web.repo.FwSystemRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -43,7 +44,7 @@ public class PayrollService {
     private final HrTaxBracketRepository hrTaxBracketRepository;
     private final HrSalaryEmployeeLevelRepository hrSalaryEmployeeLevelRepository;
     private final HrAttendanceRepository hrAttendanceRepository;
-
+    private final FwSystemRepository fwSystemRepository;
 
     private final HrPersonPositionRepository hrPersonPositionRepository;
     private final HrPersonRespository hrPersonRepository;
@@ -66,13 +67,15 @@ public class PayrollService {
                           HrPersonRespository hrPersonRepository,
                           HrPersonPtkpRepository hrPersonPtkpRepository,
                           HrLeaveApplicationRepository hrLeaveApplicationRepository,
-                          HrAttendanceRepository hrAttendanceRepository) {
+                          HrAttendanceRepository hrAttendanceRepository,
+                          FwSystemRepository fwSystemRepository) {
 
         this.hrSalaryBaseLevelRepository = hrSalaryBaseLevelRepository;
         this.appUserRepository = appUserRepository;
         this.hrSalaryAllowanceRepository = hrSalaryAllowanceRepository;
         this.hrSalaryPositionAllowanceRepository = hrSalaryAllowancePackageRepository;
         this.hrAttendanceRepository = hrAttendanceRepository;
+        this.fwSystemRepository = fwSystemRepository;
 
         this.hrPayrollRepository = hrPayrollRepository;
         this.systemService = systemService;
@@ -361,9 +364,12 @@ public class PayrollService {
                     .findActiveByPersonId(person.getId(), payrollDate)
                     .orElse(null);
 
-            String ptkpCode = activePtkp == null ? "K/0" : activePtkp.getPtkpCode();
+            String ptkpCode = activePtkp == null ? "NOT_SET" : activePtkp.getPtkpCode();
+
             BigDecimal ptkpYear = activePtkp == null ? BigDecimal.ZERO : nvl(activePtkp.getPtkpAmount());
-            BigDecimal ptkpMonth = ptkpYear.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
+            BigDecimal ptkpMonth = (activePtkp == null)
+                    ? BigDecimal.ZERO
+                    : ptkpYear.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
 
             // Total cuti tahun berjalan (APPROVED)
             BigDecimal totalLeaveYear = BigDecimal.valueOf(
@@ -422,6 +428,9 @@ public class PayrollService {
             payroll.setCreatedBy(appUser);
             payroll.setUpdatedBy(appUser);
 
+            int sumAttendance = resolveSumAttendance(payroll.getPerson().getId(), startOfMonth, startOfNextMonth);
+            payroll.setSumAttendance(sumAttendance);
+
             HrPayroll saved = hrPayrollRepository.save(payroll);
 
             // Sekarang langsung create calculations agar grid muncul datanya
@@ -451,6 +460,9 @@ public class PayrollService {
 
         // Update request-driven fields
         payroll.setParamAttendanceDays(req.getParamAttendanceDays());
+
+        int sumAttendance = resolveSumAttendance(payroll.getPerson().getId(), startOfMonth, startOfNextMonth);
+        payroll.setSumAttendance(sumAttendance);
 
         payroll.setAllowancesType(req.getAllowanceMode());
 
@@ -504,22 +516,43 @@ public class PayrollService {
             throw new IllegalArgumentException("Payroll input/person must not be null");
         }
 
-        BigDecimal grossSalary = resolveGrossSalary(payrollInput.getPerson().getId()); // poin 4
+        BigDecimal grossSalary = resolveGrossSalary(payrollInput.getPerson().getId());
+        BigDecimal ptkpMonth   = nvl(payrollInput.getPtkpAmount());
+
+        Integer sumAttendance = payrollInput.getSumAttendance(); // sudah diisi saat create/recalc
+        Integer paramAttendanceDays = payrollInput.getParamAttendanceDays();
+        BigDecimal realGrossSalary = computeRealGrossDeduction(grossSalary, sumAttendance, paramAttendanceDays);
+
+        BigDecimal computedTaxable;
+        if (ptkpMonth.compareTo(BigDecimal.ZERO) <= 0) {
+            // PTKP expired / tidak ada → anggap tidak kena pajak
+            computedTaxable = BigDecimal.ZERO;
+        } else {
+            computedTaxable = grossSalary.subtract(ptkpMonth);
+            if (computedTaxable.compareTo(BigDecimal.ZERO) < 0) {
+                computedTaxable = BigDecimal.ZERO;
+            }
+        }
+
         BigDecimal totalAllowances = parseAllowanceTotal(payrollInput);                // poin 2A
         BigDecimal totalOvertimes = calculateOvertimeTotal(payrollInput, startOfMonth, startOfNextMonth); // poin 2B
 
         BigDecimal bonus = nvl(totalBonus);
         BigDecimal otherDed = nvl(totalOtherDeductions);
-        BigDecimal taxable = nvl(totalTaxable);
 
-        // Net THP sesuai formula kamu:
-        // net = gross + allowances + overtimes + bonus - other_deduct - taxable
+        // potongan jaminan kesehatan (rupiah)
+        BigDecimal healthDeduction = resolveHealthInsuranceDeduction(grossSalary);
+
+        // THP final (sesuai struktur perhitungan kamu)
         BigDecimal netTakeHomePay = grossSalary
                 .add(totalAllowances)
                 .add(totalOvertimes)
                 .add(bonus)
                 .subtract(otherDed)
-                .subtract(taxable);
+                .subtract(computedTaxable)
+                .subtract(healthDeduction);
+
+        BigDecimal enhancedNetTakeHomePay = netTakeHomePay.subtract(realGrossSalary);
 
         HrPayrollCalculation current = hrPayrollCalculationRepository.findFirstByPayrollInputId(payrollInput.getId());
 
@@ -531,10 +564,18 @@ public class PayrollService {
                 .totalOvertimes(totalOvertimes)
                 .totalBonus(bonus)
                 .totalOtherDeductions(otherDed)
-                .totalTaxable(taxable)
-                .netTakeHomePay(netTakeHomePay)
+
+                // simpan hasil gross-ptkp ke DB
+                .totalTaxable(computedTaxable)
+
+                // simpan health deduction ke DB
+                .healthDeduction(healthDeduction)
+
+                .realGrossSalary(realGrossSalary) // <-- NEW
+                .netTakeHomePay(enhancedNetTakeHomePay) // <-- NEW
+
                 .calculatedAt(LocalDateTime.now())
-                .notes("Calculated")
+                .notes("Calculated")                    
                 .build();
 
         return hrPayrollCalculationRepository.save(calculation);
@@ -1090,6 +1131,79 @@ public class PayrollService {
             total = total.add(parseBigDecimalSafe(amtStr));
         }
         return total;
+    }
+
+    private BigDecimal resolveHealthInsurancePercentSum() {
+        // sum int_val dari sort_order 100,101,102
+        List<Integer> orders = List.of(100, 101, 102);
+
+        // Asumsi repo punya method ini. Kalau belum, bikin di repo:
+        // List<FwSystem> findBySortOrderIn(Collection<Integer> sortOrders);
+        List<FwSystem> rows = fwSystemRepository.findBySortOrderIn(orders);
+
+        if (rows == null || rows.isEmpty()) return BigDecimal.ZERO;
+
+        BigDecimal sum = BigDecimal.ZERO;
+        for (FwSystem s : rows) {
+            if (s == null || s.getIntVal() == null) continue;
+            sum = sum.add(BigDecimal.valueOf(s.getIntVal()));
+        }
+        return sum; // contoh: 2 + 1 + 1 = 4 (%)
+    }
+
+    private BigDecimal resolveHealthInsuranceDeduction(BigDecimal grossSalary) {
+        BigDecimal gross = nvl(grossSalary);
+        if (gross.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
+
+        BigDecimal percentSum = resolveHealthInsurancePercentSum(); // misal 4
+        if (percentSum.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
+
+        // gross * percent/100
+        return gross.multiply(percentSum)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+    }
+
+    private int resolveSumAttendance(Long personId, LocalDate startOfMonth, LocalDate startOfNextMonth) {
+        if (personId == null) return 0;
+        try {
+            long c = hrAttendanceRepository.countAttendanceByPersonAndPeriod(personId, startOfMonth, startOfNextMonth);
+            return (int) Math.max(0, c);
+        } catch (Exception ex) {
+            log.warn("resolveSumAttendance failed personId {}: {}", personId, ex.getMessage());
+            return 0;
+        }
+    }
+
+    private BigDecimal computeRealGrossDeduction(BigDecimal grossSalary, Integer sumAttendance, Integer paramAttendanceDays) {
+        BigDecimal gross = nvl(grossSalary);
+
+        int sum = sumAttendance == null ? 0 : sumAttendance;
+        int param = paramAttendanceDays == null ? 0 : paramAttendanceDays;
+
+        if (param <= 0) {
+            // tidak ada basis 100%, supaya tidak crash kita anggap tidak ada potongan
+            return BigDecimal.ZERO;
+        }
+
+        int diff = sum - param;
+        if (diff >= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        int missing = Math.abs(diff); // jumlah hari kurang
+        // missingPct = missing / param * 100
+        BigDecimal missingPct = BigDecimal.valueOf(missing)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(param), 6, RoundingMode.HALF_UP);
+
+        // potongan rupiah = gross * missingPct / 100
+        BigDecimal deduction = gross
+                .multiply(missingPct)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+        if (deduction.compareTo(BigDecimal.ZERO) < 0) return BigDecimal.ZERO;
+        if (deduction.compareTo(gross) > 0) return gross; // safety clamp
+        return deduction;
     }
 
 }

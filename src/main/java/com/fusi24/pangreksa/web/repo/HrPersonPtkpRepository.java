@@ -14,13 +14,13 @@ public interface HrPersonPtkpRepository extends JpaRepository<HrPersonPtkp, Long
     Optional<HrPersonPtkp> findFirstByPersonAndValidToIsNull(HrPerson person);
 
     @Query("""
-           select p
-           from HrPersonPtkp p
-           where p.person.id = :personId
-             and p.validFrom <= :payrollDate
-             and (p.validTo is null or p.validTo >= :payrollDate)
-           order by p.validFrom desc
-           """)
+        select p
+        from HrPersonPtkp p
+        where p.person.id = :personId
+          and (p.validFrom is null or p.validFrom <= :payrollDate)
+          and (p.validTo   is null or p.validTo   >= :payrollDate)
+        order by p.validFrom desc nulls last
+    """)
     Optional<HrPersonPtkp> findActiveByPersonId(@Param("personId") Long personId,
                                                 @Param("payrollDate") LocalDate payrollDate);
 }

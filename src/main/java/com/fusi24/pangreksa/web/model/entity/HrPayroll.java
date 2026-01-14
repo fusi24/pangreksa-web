@@ -67,6 +67,9 @@ public class HrPayroll extends AuditableEntity<HrPayroll> {
     @Column(name = "param_attendance_days")
     private Integer paramAttendanceDays;
 
+    @Column(name = "sum_attendance")
+    private Integer sumAttendance;
+
     // Allowances (DDL: allowances_type varchar(50) default 'STATIC', allowances_value text)
     @Column(name = "allowances_type", length = 50)
     private String allowancesType;
