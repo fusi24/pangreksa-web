@@ -92,47 +92,47 @@ public class MyProfileView extends Main {
 
 
     // Person Fields
-    private TextField firstName = new TextField("First Name");
-    private TextField middleName = new TextField("Middle Name");
-    private TextField lastName = new TextField("Last Name");
-    private TextField pob = new TextField("Place of Birth");
-    private DatePicker dob = new DatePicker("Date of Birth");
-    private ComboBox<GenderEnum> gender = new ComboBox<>("Gender");
-    private ComboBox<NationalityEnum> nationality = new ComboBox<>("Nationality");
-    private ComboBox<ReligionEnum> religion = new ComboBox<>("Religion");
-    private ComboBox<MarriageEnum> marriage = new ComboBox<>("Marriage Status");
-    private TextField ktpNumber = new TextField("KTP Number");
+    private TextField firstName = new TextField("Nama Awal");
+    private TextField middleName = new TextField("Nama Tengah");
+    private TextField lastName = new TextField("Nama Akhir");
+    private TextField pob = new TextField("Tempat Kelahiran");
+    private DatePicker dob = new DatePicker("Tanggal Kelahiran");
+    private ComboBox<GenderEnum> gender = new ComboBox<>("Jenis kelamin");
+    private ComboBox<NationalityEnum> nationality = new ComboBox<>("Kebangsaan");
+    private ComboBox<ReligionEnum> religion = new ComboBox<>("Agama");
+    private ComboBox<MarriageEnum> marriage = new ComboBox<>("Status Pernikahan");
+    private TextField ktpNumber = new TextField("Nomor KTP");
     // Address Fields
-    private TextArea fullAddress = new TextArea("Full Address");
-    private Checkbox isDefaultAddress = new Checkbox("Default Address");
+    private TextArea fullAddress = new TextArea("Alamat lengkap");
+    private Checkbox isDefaultAddress = new Checkbox("Default Alamat");
 
     // Contacts Fields
-    private TextField designation = new TextField("Designation");
-    private TextField relationship = new TextField("Relationship");
+    private TextField designation = new TextField("Penamaan");
+    private TextField relationship = new TextField("Hubungan");
     private TextField stringValue = new TextField("Value");
-    private ComboBox<ContactTypeEnum> typeContact = new ComboBox<>("Contact Type");
-    private TextField description = new TextField("Description");
-    private Checkbox isDefaultContact = new Checkbox("Default Contact");
+    private ComboBox<ContactTypeEnum> typeContact = new ComboBox<>("Tipe Kontak");
+    private TextField description = new TextField("Deskripsi");
+    private Checkbox isDefaultContact = new Checkbox("Default Kontak");
 
     // Education Fields
-    private TextField institution = new TextField("Institution");
+    private TextField institution = new TextField("Institusi");
     private TextField program = new TextField("Program");
     private NumberField score = new NumberField("Score");
-    private DatePicker startDate = new DatePicker("Start Date");
-    private DatePicker finishDate = new DatePicker("Finish Date");
-    private TextField certificateTitle = new TextField("Certificate Title");
-    private DatePicker certificateExpiration = new DatePicker("Certificate Expiration");
-    private ComboBox<EducationTypeEnum> typeEducation = new ComboBox<>("Education Type");
+    private DatePicker startDate = new DatePicker("Tanggal Mulai");
+    private DatePicker finishDate = new DatePicker("Tanggal Selesai");
+    private TextField certificateTitle = new TextField("Judul Serfikat");
+    private DatePicker certificateExpiration = new DatePicker("Masa Berlaku Sertifikat");
+    private ComboBox<EducationTypeEnum> typeEducation = new ComboBox<>("Jenis Pendidikan");
 
     // Document Fields
-    private TextField nameDocoument = new TextField("Document Name");
-    private TextField descDocument = new TextField("Description");
-    private TextField notes = new TextField("Notes");
+    private TextField nameDocoument = new TextField("Nama Dokumen");
+    private TextField descDocument = new TextField("Deskripsi");
+    private TextField notes = new TextField("Catatan");
     private NumberField year = new NumberField("Year");
-    private ComboBox<DocumentTypeEnum> typeDocument = new ComboBox<>("Document Type");
+    private ComboBox<DocumentTypeEnum> typeDocument = new ComboBox<>("Dokumen Tipe");
     private ComboBox<ContentTypeEnum> contentType = new ComboBox<>("Content Type");
     private NumberField size = new NumberField("Size (bytes)");
-    private TextField filename = new TextField("Filename");
+    private TextField filename = new TextField("File Nama");
     private TextField path = new TextField("Path");
 
     // Grids
@@ -283,7 +283,7 @@ public class MyProfileView extends Main {
         toolbarLayoutDetail.setAlignItems(FlexComponent.Alignment.END);
 
         clearButtonOnTab = new Button("Clear");
-        saveButtonOnTab = new Button("Add");
+        saveButtonOnTab = new Button("Tambah");
 
         toolbarLayoutDetail.add(clearButtonOnTab, saveButtonOnTab);
         toolbarLayoutDetail.setJustifyContentMode(JustifyContentMode.END);
@@ -304,9 +304,9 @@ public class MyProfileView extends Main {
 
         this.tabSheet = new TabSheet();
 
-        tabSheet.add("Addresses", addressesLayout);
-        tabSheet.add("Contacts", contactsLayout);
-        tabSheet.add("Educations", educationLayout);
+        tabSheet.add("Alamat", addressesLayout);
+        tabSheet.add("Kontak", contactsLayout);
+        tabSheet.add("Pendidikan", educationLayout);
         tabSheet.add("Documents", documentsLayout);
         VerticalLayout tanggunganLayout = createTanggunganTab();
         tabSheet.add("Tanggungan", tanggunganLayout);
@@ -361,7 +361,7 @@ public class MyProfileView extends Main {
         );
 
 
-        // Validasi UI untuk NIK (KTP Number)
+        // Validasi UI untuk NIK (Nomor KTP)
         ktpNumber.setClearButtonVisible(true);
         ktpNumber.setValueChangeMode(ValueChangeMode.EAGER);
         ktpNumber.setMaxLength(16);
@@ -435,7 +435,7 @@ public class MyProfileView extends Main {
             lastName.setInvalid(v.isEmpty() ? false : !ok);
         });
 
-        // Place of Birth: letters & spaces, min 2 chars
+        // Tempat Kelahiran: letters & spaces, min 2 chars
         pob.setAllowedCharPattern("[\\p{L}\\s]");
         pob.setMaxLength(100);
         pob.setHelperText("Hanya huruf & spasi");
@@ -445,7 +445,7 @@ public class MyProfileView extends Main {
             pob.setInvalid(!ok);
         });
 
-        // Date of Birth: set max to today
+        // Tanggal Kelahiran: set max to today
         dob.setMax(java.time.LocalDate.now());
 
         // Add all fields to the form layout
@@ -589,7 +589,7 @@ public class MyProfileView extends Main {
             layout.add(new Span(address.getFullAddress()));
 
             return layout;
-        }).setHeader("Address").setAutoWidth(true);
+        }).setHeader("Alamat").setAutoWidth(true);
         // Column 2: Default (Yes/No)
         gridAddress.addColumn(address -> address.getIsDefault() ? "Yes" : "No")
                 .setHeader("Default")
@@ -683,7 +683,7 @@ public class MyProfileView extends Main {
         this.gridContacts = new Grid<>(HrPersonContact.class, false);
         // Column 1: Type
         gridContacts.addColumn(contact -> contact.getType().toString())
-                .setHeader("Type")
+                .setHeader("Tipe")
                 .setAutoWidth(true);
         // Column 2: multi-line
         gridContacts.addComponentColumn(contact -> {
@@ -698,7 +698,7 @@ public class MyProfileView extends Main {
             layout.add(new Span(contact.getRelationship()));
 
             return layout;
-        }).setHeader("Contact").setAutoWidth(true);
+        }).setHeader("Kontak").setAutoWidth(true);
         // Add action column
         gridContacts.addComponentColumn(contact -> {
             HorizontalLayout actions = new HorizontalLayout();
@@ -723,7 +723,7 @@ public class MyProfileView extends Main {
 
             actions.add(deleteBtn, editBtn);
             return actions;
-        }).setHeader("Actions").setAutoWidth(true);
+        }).setHeader("Aksi").setAutoWidth(true);
 
         gridContacts.setItems(contactList);
         gridContacts.getStyle().setMaxWidth(MAX_WIDTH_GRID);
@@ -781,7 +781,7 @@ public class MyProfileView extends Main {
         this.gridEducation = new Grid<>(HrPersonEducation.class, false);
         // Column 1: Type
         gridEducation.addColumn(education -> education.getType().toString())
-                .setHeader("Type")
+                .setHeader("Tipe")
                 .setAutoWidth(true);
         // Column 2: multi-line
         gridEducation.addComponentColumn(education -> {
@@ -800,7 +800,7 @@ public class MyProfileView extends Main {
 
 
             return layout;
-        }).setHeader("Education").setAutoWidth(true);
+        }).setHeader("Pendidikan").setAutoWidth(true);
         // Column 3: multi-line
         gridEducation.addComponentColumn(education -> {
             VerticalLayout layout = new VerticalLayout();
@@ -813,7 +813,7 @@ public class MyProfileView extends Main {
             layout.add(new Span(education.getCertificateExpiration() != null ? education.getCertificateExpiration().toString() : "No Expiration"));
 
             return layout;
-        }).setHeader("Certificate").setAutoWidth(true);
+        }).setHeader("Sertifikat").setAutoWidth(true);
         // Add action column
         gridEducation.addComponentColumn(education -> {
             HorizontalLayout actions = new HorizontalLayout();
@@ -837,7 +837,7 @@ public class MyProfileView extends Main {
 
             actions.add(deleteBtn, editBtn);
             return actions;
-        }).setHeader("Actions").setAutoWidth(true);
+        }).setHeader("Aksi").setAutoWidth(true);
 
         gridEducation.setItems(educationList);
         gridEducation.getStyle().setMaxWidth(MAX_WIDTH_GRID);
@@ -895,15 +895,15 @@ public class MyProfileView extends Main {
         this.gridDocument = new Grid<>(HrPersonDocument.class, false);
         // Column 1: Type
         gridDocument.addColumn(doc -> doc.getType().toString())
-                .setHeader("Type")
+                .setHeader("Tipe")
                 .setAutoWidth(true);
         // Column 2: name
         gridDocument.addColumn(HrPersonDocument::getName)
-                .setHeader("Name")
+                .setHeader("Nama")
                 .setAutoWidth(true);
         // Column 3: Type
         gridDocument.addColumn(HrPersonDocument::getFilename)
-                .setHeader("Filename")
+                .setHeader("File Nama")
                 .setAutoWidth(true);
 
         // Add action column
@@ -929,7 +929,7 @@ public class MyProfileView extends Main {
 
             actions.add(deleteBtn, editBtn);
             return actions;
-        }).setHeader("Actions").setAutoWidth(true);
+        }).setHeader("Aksi").setAutoWidth(true);
 
         gridDocument.setItems(documentList);
         gridDocument.getStyle().setMaxWidth(MAX_WIDTH_GRID);
@@ -1008,7 +1008,7 @@ public class MyProfileView extends Main {
         gridTanggungan.addColumn(HrPersonTanggungan::getName).setHeader("Nama");
         gridTanggungan.addColumn(HrPersonTanggungan::getRelation).setHeader("Hubungan");
         gridTanggungan.addColumn(HrPersonTanggungan::getDob).setHeader("Tgl Lahir");
-        gridTanggungan.addColumn(HrPersonTanggungan::getGender).setHeader("Gender");
+        gridTanggungan.addColumn(HrPersonTanggungan::getGender).setHeader("Jenis kelamin");
         gridTanggungan.addColumn(t -> t.getStillDependent() ? "Ya" : "Tidak").setHeader("Masih Tanggungan");
 
         gridTanggungan.addComponentColumn(t -> {
