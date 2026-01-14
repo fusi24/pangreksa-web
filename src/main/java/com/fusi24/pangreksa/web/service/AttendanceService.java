@@ -168,12 +168,10 @@ public class AttendanceService {
             return false;
         }
 
-        // NORMAL → Sabtu Minggu libur
         if (schedule.getType() == WorkScheduleType.Normal) {
             return date.getDayOfWeek().getValue() <= 5;
         }
 
-        // SHIFT → boleh semua hari
         if (schedule.getType() == WorkScheduleType.Shift) {
             return true;
         }
