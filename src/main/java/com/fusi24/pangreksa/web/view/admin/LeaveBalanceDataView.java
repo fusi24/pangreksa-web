@@ -30,8 +30,8 @@ import java.time.LocalDate;
 import java.util.Collections;
 
 @Route("leave-balance-page-access")
-@PageTitle("Leave Balance Data")
-@Menu(order = 36, icon = "vaadin:calendar-user", title = "Leave Balance Data")
+@PageTitle("Data Saldo Cuti.")
+@Menu(order = 36, icon = "vaadin:calendar-user", title = "Data Saldo Cuti.")
 @RolesAllowed("LEAVE_BAL")
 //@PermitAll // When security is enabled, allow all authenticated users
 public class LeaveBalanceDataView extends Main {
@@ -43,7 +43,7 @@ public class LeaveBalanceDataView extends Main {
     private final LeaveService leaveService;
     private Authorization auth;
 
-    public static final String VIEW_NAME = "Leave Balance Data";
+    public static final String VIEW_NAME = "Data Saldo Cuti.";
 
     private VerticalLayout body;
 
@@ -89,12 +89,12 @@ public class LeaveBalanceDataView extends Main {
         body.setPadding(false);
         body.setSpacing(false);
         body.setSizeFull();
-        companyDropdown = new ComboBox<>("Company");
+        companyDropdown = new ComboBox<>("Perusahaan");
         companyDropdown.setItems(companyService.getallCompanies());
         companyDropdown.setItemLabelGenerator(HrCompany::getName);
         companyDropdown.getStyle().setWidth("350px");
 
-        yearDropdown = new ComboBox<>("Year");
+        yearDropdown = new ComboBox<>("Tahun");
         // put 5 years back and next 5 years
         int currentYear = LocalDate.now().getYear();
         yearDropdown.setItems(currentYear - 5, currentYear - 4, currentYear - 3, currentYear - 2, currentYear - 1,
@@ -102,7 +102,7 @@ public class LeaveBalanceDataView extends Main {
         yearDropdown.setItemLabelGenerator(String::valueOf);
         yearDropdown.setValue(currentYear);
 
-        checkButton = new Button("Check Balance");
+        checkButton = new Button("Cek Saldo Cuti");
 
         HorizontalLayout headerFunction = new HorizontalLayout(companyDropdown, yearDropdown, checkButton);
         headerFunction.setWidthFull();
@@ -121,11 +121,11 @@ public class LeaveBalanceDataView extends Main {
     private Grid<HrLeaveGenerationLog> createLeaveGenerationLogGrid() {
         leaveGenerationLogGrid = new Grid<>(HrLeaveGenerationLog.class, false);
 
-        leaveGenerationLogGrid.addColumn(log -> log.getCompany().getName()).setHeader("Company");
-        leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getYear).setHeader("Year");
+        leaveGenerationLogGrid.addColumn(log -> log.getCompany().getName()).setHeader("Perusahaan");
+        leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getYear).setHeader("Tahun");
         leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getDataGenerated).setHeader("Total Data");
-        leaveGenerationLogGrid.addColumn(log -> log.getCreatedBy().getUsername()).setHeader("Created By");
-        leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getCreatedAt).setHeader("Created At");
+        leaveGenerationLogGrid.addColumn(log -> log.getCreatedBy().getUsername()).setHeader("Dibuat Oleh");
+        leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getCreatedAt).setHeader("Dibuat Pada");
 
         leaveGenerationLogGrid.setSizeFull(); // ⬅️ penting
         leaveGenerationLogGrid.setItems(Collections.emptyList());
@@ -143,7 +143,7 @@ public class LeaveBalanceDataView extends Main {
                 Long personCount = leaveService.countPersonPerCompany(company, year);
                 int leaveTypeCount = leaveService.getLeaveAbsenceTypesList().size();
 
-                log.debug("Leave Balance Data for Company: {}, Year: {}, Leave Count: {}, Person Count: {}",
+                log.debug("Data Saldo Cuti. for Company: {}, Year: {}, Leave Count: {}, Person Count: {}",
                         company.getName(), year, leaveServerCount, personCount);
 
                 Dialog dialog = new Dialog();
@@ -166,7 +166,7 @@ public class LeaveBalanceDataView extends Main {
                 HorizontalLayout leaveTypeCountNF = new HorizontalLayout();
                 leaveTypeCountNF.setWidthFull();
                 leaveTypeCountNF.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-                Span leaveTypeLabel = new Span("Type of Leave");
+                Span leaveTypeLabel = new Span("Tipe of Leave");
                 leaveTypeCountNF.add(leaveTypeLabel, new Span(String.valueOf(leaveTypeCount)));
 
                 int totalRowGenerated = Math.toIntExact((int) (personCount * leaveTypeCount) - leaveServerCount);
@@ -180,7 +180,7 @@ public class LeaveBalanceDataView extends Main {
 
                 HorizontalLayout buttonLayout = new HorizontalLayout();
                 Button cancelButton = new Button("Cancel", event -> dialog.close());
-                Button saveButton = new Button("Save");
+                Button saveButton = new Button("Simpan");
 
                 if(!this.auth.canEdit){
                     saveButton.setEnabled(false);
