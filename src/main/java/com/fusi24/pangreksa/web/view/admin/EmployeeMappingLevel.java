@@ -33,7 +33,7 @@ import java.util.*;
 
 @Route("employee-mapping-level")
 @PageTitle("Mapping Employee Level")
-@Menu(order = 33, icon = "vaadin:user", title = "Employee Level Mapping")
+@Menu(order = 33, icon = "vaadin:user", title = "Pemetaan Tingkat Karyawan")
 @RolesAllowed("USERS_MGT")
 public class EmployeeMappingLevel extends Main {
     private static final long serialVersionUID = 33L;
@@ -44,7 +44,7 @@ public class EmployeeMappingLevel extends Main {
     private final PersonService personService;
     private final SalaryLevelService salaryLevelService;
 
-    public static final String VIEW_NAME = "Employee Level Mapping";
+    public static final String VIEW_NAME = "Pemetaan Tingkat Karyawan";
 
     private List<UserLevelProjection> rows = new ArrayList<>();
     private Grid<UserLevelProjection> grid;
@@ -95,7 +95,7 @@ public class EmployeeMappingLevel extends Main {
         body.setSizeFull();
 
         searchField = new com.vaadin.flow.component.textfield.TextField("Search Filter");
-        populateButton = new Button("Populate");
+        populateButton = new Button("Muat Data");
         saveButton = new Button("Save");
 
         HorizontalLayout leftLayout = new HorizontalLayout(searchField, populateButton);
@@ -141,7 +141,7 @@ public class EmployeeMappingLevel extends Main {
                                 .findFirst()
                                 .ifPresent(sel -> {
                                     cb.setValue(sel);
-                                    // pastikan base salary tampak sesuai pilihan pending
+                                    // pastikan Gaji Pokok tampak sesuai pilihan pending
                                     pendingSalaryByUserId.put(rowItem.getUserId(), sel.getBaseSalary());
                                 });
                     }
@@ -164,12 +164,12 @@ public class EmployeeMappingLevel extends Main {
                 .setAutoWidth(true)
                 .setFlexGrow(1);
 
-        // 3) Kolom Base Salary (read-only, perlihatkan pilihan terbaru kalau ada)
+        // 3) Kolom Gaji Pokok (read-only, perlihatkan pilihan terbaru kalau ada)
         grid.addColumn(rowItem -> {
                     BigDecimal val = pendingSalaryByUserId.getOrDefault(
                             rowItem.getUserId(), rowItem.getSelectedBaseSalary());
                     return formatCurrency(val);
-                }).setHeader("Base Salary")
+                }).setHeader("Gaji Pokok")
                 .setAutoWidth(true)
                 .setFlexGrow(1);
         grid.setSizeFull();
