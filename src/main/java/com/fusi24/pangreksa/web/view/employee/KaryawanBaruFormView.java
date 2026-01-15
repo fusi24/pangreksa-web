@@ -770,7 +770,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
             return layout;
         }).setHeader("Alamat").setAutoWidth(true);
         // Column 2: Default (Yes/No)
-        gridAddress.addColumn(address -> address.getIsDefault() ? "Yes" : "No")
+        gridAddress.addColumn(address -> address.getIsDefault() ? "Ya" : "Tidak")
                 .setHeader("Default")
                 .setAutoWidth(true);
 

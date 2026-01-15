@@ -87,7 +87,7 @@ public class MasterOrgStructureView extends Main {
         grid.addColumn(HrOrgStructure::getName).setHeader("Nama");
         grid.addColumn(HrOrgStructure::getCode).setHeader("Kode");
         grid.addColumn(org -> org.getType() != null ? org.getType().name() : "").setHeader("Tipe");
-        grid.addColumn(org -> BooleanUtils.toString(org.getIsActive(), "Active", "Inactive")).setHeader("Active");
+        grid.addColumn(org -> BooleanUtils.toString(org.getIsActive(), "Active", "Inactive")).setHeader("Aktif");
 
         grid.addComponentColumn(this::buildActionButtons)
                 .setHeader("Aksi")

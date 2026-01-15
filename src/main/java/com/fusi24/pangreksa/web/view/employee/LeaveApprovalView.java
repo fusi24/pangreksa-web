@@ -35,8 +35,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 
 @Route("leave-approval-page-access")
-@PageTitle("Leave Approval")
-@Menu(order = 38, icon = "vaadin:calendar-user", title = "Leave Approval")
+@PageTitle("Pengajuan Cuti")
+@Menu(order = 38, icon = "vaadin:calendar-user", title = "Pengajuan Cuti")
 @RolesAllowed("LEAVE_APPR")
 //@PermitAll // When security is enabled, allow all authenticated users
 public class LeaveApprovalView extends Main {
@@ -47,7 +47,7 @@ public class LeaveApprovalView extends Main {
     private final LeaveService leaveService;
     private Authorization auth;
 
-    public static final String VIEW_NAME = "Leave Approval";
+    public static final String VIEW_NAME = "Pengajuan Cuti";
 
     private VerticalLayout body;
 
@@ -100,11 +100,11 @@ public class LeaveApprovalView extends Main {
         leaveAppGrid = new Grid<>(HrLeaveApplication.class, false);
         leaveAppGrid.setSizeFull();
         //add column
-        leaveAppGrid.addColumn(HrLeaveApplication::getSubmittedAt).setHeader("Submitted").setSortable(true);
-        leaveAppGrid.addColumn(l -> l.getEmployee().getFirstName() + " " +l.getEmployee().getLastName()).setHeader("Requestor").setSortable(true);
-        leaveAppGrid.addColumn(l -> l.getLeaveAbsenceType().getLabel()).setHeader("Type").setSortable(true);
-        leaveAppGrid.addColumn(HrLeaveApplication::getStartDate).setHeader("Start Date").setSortable(true);
-        leaveAppGrid.addColumn(HrLeaveApplication::getTotalDays).setHeader("Total Days").setSortable(true);
+        leaveAppGrid.addColumn(HrLeaveApplication::getSubmittedAt).setHeader("Tanggal Pengajuan").setSortable(true);
+        leaveAppGrid.addColumn(l -> l.getEmployee().getFirstName() + " " +l.getEmployee().getLastName()).setHeader("Mengajukan").setSortable(true);
+        leaveAppGrid.addColumn(l -> l.getLeaveAbsenceType().getLabel()).setHeader("Tipe").setSortable(true);
+        leaveAppGrid.addColumn(HrLeaveApplication::getStartDate).setHeader("Tanggal Mulai").setSortable(true);
+        leaveAppGrid.addColumn(HrLeaveApplication::getTotalDays).setHeader("Jumlah Hari").setSortable(true);
         leaveAppGrid.addColumn(HrLeaveApplication::getStatus).setHeader("Status").setSortable(true);
 
         // Action column with delete button (icon only, no title)
@@ -148,16 +148,16 @@ public class LeaveApprovalView extends Main {
                 new FormLayout.ResponsiveStep("600px", 2)
         );
 
-        ComboBox<HrLeaveAbsenceTypes> leaveType = new ComboBox<>("Leave Type");
+        ComboBox<HrLeaveAbsenceTypes> leaveType = new ComboBox<>("Tipe Cuti");
         leaveType.setItemLabelGenerator(HrLeaveAbsenceTypes::getLabel);
 
-        DatePicker startDate = new DatePicker("Start Date");
-        DatePicker endDate = new DatePicker("End Date");
+        DatePicker startDate = new DatePicker("Tanggal Mulai");
+        DatePicker endDate = new DatePicker("Tanggal Selesai");
 
         startDate.setI18n(DatePickerUtil.getIndonesianI18n());
         endDate.setI18n(DatePickerUtil.getIndonesianI18n());
 
-        TextArea reason = new TextArea("Reason");
+        TextArea reason = new TextArea("Keterangan");
         reason.setWidthFull();
         reason.setHeight("15em");
 
@@ -218,7 +218,7 @@ public class LeaveApprovalView extends Main {
     }
 
     private void saveLeaveApplication(HrLeaveApplication request){
-        log.debug("Submitting leave request: {} {} {}", currentUser.require().getUserId(), request.getLeaveAbsenceType().getLabel(), request.getStatus().toString());
+        log.debug("Submitting Pengajuan Cuti: {} {} {}", currentUser.require().getUserId(), request.getLeaveAbsenceType().getLabel(), request.getStatus().toString());
 
         request = leaveService.saveApplication(request, currentUser.require());
         leaveService.updateLeaveBalance(request, currentUser.require());

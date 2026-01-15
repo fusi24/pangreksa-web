@@ -41,7 +41,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Route("master-position") // [Opsional] Route mungkin perlu disesuaikan
-@PageTitle("Master Position")
+@PageTitle("Master Posisi")
 @Menu(order = 33, icon = "vaadin:briefcase", title = "Positions")
 @RolesAllowed("POSITION_MGT")
 public class PositionLevelView extends Main {
@@ -104,7 +104,7 @@ public class PositionLevelView extends Main {
                 LumoUtility.Gap.SMALL
         );
 
-        add(new ViewToolbar("Master Position"));
+        add(new ViewToolbar("Master Posisi"));
         createBody();
         setListener();
         setAuthorization();
@@ -128,12 +128,12 @@ public class PositionLevelView extends Main {
         body.setSpacing(false);
         body.setSizeFull();
 
-        searchField = new TextField("Search");
+        searchField = new TextField("Cari");
         searchField.setPlaceholder("Cari nama / kode...");
-        populateButton = new Button("Populate");
-        saveButton = new Button("Save");
-        addButton = new Button("Add Position");
-        deleteButton = new Button("Delete");
+        populateButton = new Button("Muat Data");
+        saveButton = new Button("Simpan");
+        addButton = new Button("Tambah Posisi");
+        deleteButton = new Button("Hapus");
         deleteButton.setEnabled(false);
 
         HorizontalLayout left = new HorizontalLayout(searchField, populateButton);
@@ -158,7 +158,7 @@ public class PositionLevelView extends Main {
         grid.addColumn(new ComponentRenderer<>(row -> {
             ComboBox<HrOrgStructure> cb = new ComboBox<>();
             cb.setWidthFull();
-            cb.setPlaceholder("Select Org");
+            cb.setPlaceholder("Pilih Org");
             cb.setItems(orgStructureList);
             cb.setItemLabelGenerator(HrOrgStructure::getName);
             cb.setValue(row.getOrgStructure());
@@ -170,11 +170,11 @@ public class PositionLevelView extends Main {
         grid.addColumn(new ComponentRenderer<>(row -> {
             TextField tf = new TextField();
             tf.setWidthFull();
-            tf.setPlaceholder("Code");
+            tf.setPlaceholder("Kode");
             tf.setValue(row.getCode() != null ? row.getCode() : "");
             tf.addValueChangeListener(e -> row.setCode(e.getValue()));
             return tf;
-        })).setHeader("Code").setWidth("120px").setFlexGrow(0);
+        })).setHeader("Kode").setWidth("120px").setFlexGrow(0);
 
         // --- KOLOM 3: Name (Position Name) ---
         grid.addColumn(new ComponentRenderer<>(row -> {
@@ -184,7 +184,7 @@ public class PositionLevelView extends Main {
             tf.setValue(row.getName() != null ? row.getName() : "");
             tf.addValueChangeListener(e -> row.setName(e.getValue()));
             return tf;
-        })).setHeader("Name").setAutoWidth(true).setFlexGrow(2);
+        })).setHeader("Nama").setAutoWidth(true).setFlexGrow(2);
 
         // --- KOLOM 4: Level ---
         grid.addColumn(new ComponentRenderer<>(row -> {
@@ -208,7 +208,7 @@ public class PositionLevelView extends Main {
         grid.addColumn(new ComponentRenderer<>(row -> {
             ComboBox<HrPosition> cb = new ComboBox<>();
             cb.setWidthFull();
-            cb.setPlaceholder("Reports To");
+            cb.setPlaceholder("Laporan ke");
             // Filter agar tidak memilih diri sendiri (loop sederhana untuk UX)
             List<HrPosition> parents = new ArrayList<>(allPositionsList);
             if(row.getId() != null) {
@@ -219,17 +219,17 @@ public class PositionLevelView extends Main {
             cb.setValue(row.getReportsTo());
             cb.addValueChangeListener(e -> row.setReportsTo(e.getValue()));
             return cb;
-        })).setHeader("Reports To").setAutoWidth(true).setFlexGrow(2);
+        })).setHeader("Laporan ke").setAutoWidth(true).setFlexGrow(2);
 
         // --- KOLOM 7: Notes (Description) ---
         grid.addColumn(new ComponentRenderer<>(row -> {
             TextField tf = new TextField();
             tf.setWidthFull();
-            tf.setPlaceholder("Notes");
+            tf.setPlaceholder("Catatan");
             tf.setValue(row.getNotes() != null ? row.getNotes() : "");
             tf.addValueChangeListener(e -> row.setNotes(e.getValue()));
             return tf;
-        })).setHeader("Notes").setAutoWidth(true).setFlexGrow(2);
+        })).setHeader("Catatan").setAutoWidth(true).setFlexGrow(2);
 
         // --- KOLOM ACTION ---
         grid.addComponentColumn(row -> {
@@ -300,7 +300,7 @@ public class PositionLevelView extends Main {
                 notifySuccess("Perubahan berhasil disimpan.");
                 populateButton.click(); // refresh dari DB
             } catch (Exception ex) {
-                log.error("Gagal menyimpan Position", ex);
+                log.error("Gagal menyimpan Posisi", ex);
                 notifyError("Gagal menyimpan. Cek kembali kelengkapan data.");
             }
         });
@@ -322,7 +322,7 @@ public class PositionLevelView extends Main {
                 grid.scrollToEnd();
                 notifySuccess("Baris baru ditambahkan.");
             } catch (Exception ex) {
-                log.error("Gagal menambah baris Position", ex);
+                log.error("Gagal menambah baris Posisi", ex);
                 notifyError("Gagal menambah baris.");
             }
         });
@@ -359,7 +359,7 @@ public class PositionLevelView extends Main {
                     notifySuccess(persistedIds.size() + " data terhapus.");
                     populateButton.click();
                 } catch (Exception ex) {
-                    log.error("Gagal menghapus Position", ex);
+                    log.error("Gagal menghapus Posisi", ex);
                     notifyError("Gagal menghapus. Coba lagi.");
                 }
             });
