@@ -253,7 +253,7 @@ public class UserManagementView extends Main {
 
 
                 HorizontalLayout buttonLayout = new HorizontalLayout();
-                Button cancelButton = new Button("Cancel", event -> dialog.close());
+                Button cancelButton = new Button("Batal", event -> dialog.close());
                 Button saveButton = new Button("Simpan");
 
                 if(!this.auth.canEdit){

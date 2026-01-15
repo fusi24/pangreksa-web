@@ -377,7 +377,7 @@ public class KomponenGajiView extends Main {
                         (item.getName() != null ? item.getName() : "(no name)") + "\"?");
                 confirm.add(new VerticalLayout(msg));
 
-                Button cancel = new Button("Cancel", ev -> confirm.close());
+                Button cancel = new Button("Batal", ev -> confirm.close());
                 Button yes = new Button("Hapus", ev -> {
                     if (item.getId() != null) {
                         payrollService.deleteSalaryAllowance(item);
@@ -797,7 +797,7 @@ public class KomponenGajiView extends Main {
                     return row;
                 }));
 
-                Button cancelButton = new Button("Cancel", event -> dialog.close());
+                Button cancelButton = new Button("Batal", event -> dialog.close());
                 Button addButton = new Button("Tambah");
 
                 if(!this.auth.canEdit){

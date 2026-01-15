@@ -147,7 +147,7 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
         toolbarLayoutMaster = new HorizontalLayout();
         toolbarLayoutMaster.setAlignItems(FlexComponent.Alignment.END);
 
-        saveButton = new Button("Save");
+        saveButton = new Button("Simpan");
         clearButton = new Button("Reset");
 
         toolbarLayoutMaster.add(clearButton, saveButton);
@@ -161,7 +161,7 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
         toolbarLayoutDetail.setAlignItems(FlexComponent.Alignment.END);
 
         clearButtonOnTab = new Button("Clear");
-        saveButtonOnTab = new Button("Add");
+        saveButtonOnTab = new Button("Tambah");
 
         toolbarLayoutDetail.add(clearButtonOnTab, saveButtonOnTab);
         toolbarLayoutDetail.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
@@ -170,7 +170,7 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
         this.tabSheet = new TabSheet();
         tabSheet.getStyle().setWidth("100%");
 
-        tabSheet.add("Responsibilities", responsibilityLayout);
+        tabSheet.add("Hak Akses", responsibilityLayout);
 
         HorizontalLayout masterLayout = new HorizontalLayout(apUserFormLayout,toolbarLayoutMaster);
         masterLayout.setWidthFull();
@@ -207,7 +207,7 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
         this.personCombo = new ComboBox<>("Person");
         personCombo.addClassName("no-dropdown-icon");
         personCombo.setItemLabelGenerator(p -> p.getFirstName() + " " + (p.getLastName() != null ? p.getLastName() : ""));
-        personCombo.setPlaceholder("Type to search");
+        personCombo.setPlaceholder("Tipe untuk dicari");
         personCombo.setClearButtonVisible(true);
 
         personCombo.setItems(query -> {
@@ -218,10 +218,10 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
             return personService.findPersonByKeyword(filter).stream();
         } );
         // Company ComboBox
-        this.companyCombo = new ComboBox<>("Company");
+        this.companyCombo = new ComboBox<>("Perusahaan");
         companyCombo.addClassName("no-dropdown-icon");
         companyCombo.setItemLabelGenerator(HrCompany::getName);
-        companyCombo.setPlaceholder("Type to search");
+        companyCombo.setPlaceholder("Tipe untuk dicari");
         companyCombo.setClearButtonVisible(true);
 
         companyCombo.setItems(query -> {
@@ -276,7 +276,7 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
         this.gridAppUserResp = new Grid<>(FwAppuserResp.class, false);
         // add column responsibility label
         gridAppUserResp.addColumn(appUserResp -> appUserResp.getResponsibility().getLabel())
-                .setHeader("Responsibility")
+                .setHeader("Hak Akses")
                 .setSortable(true)
                 .setKey("responsibility");
         // Add action column
@@ -299,7 +299,7 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
 
             actions.add(deleteBtn);
             return actions;
-        }).setHeader("Actions").setAutoWidth(true);
+        }).setHeader("Aksi").setAutoWidth(true);
 
 
         gridAppUserResp.setItems(appUserRespList);

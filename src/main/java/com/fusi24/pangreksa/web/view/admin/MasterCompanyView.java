@@ -368,7 +368,7 @@ public class MasterCompanyView extends Main {
         companyDialog.add(new H3("Perusahaan Details"), companyForm);
 
         Button saveButton = new Button("Simpan", e -> saveCompany());
-        Button cancelButton = new Button("Cancel", e -> companyDialog.close());
+        Button cancelButton = new Button("Batal", e -> companyDialog.close());
         companyDialog.getFooter().removeAll();
         companyDialog.getFooter().add(cancelButton, saveButton);
     }
@@ -597,7 +597,7 @@ public class MasterCompanyView extends Main {
         branchDialog.add(new H3("Branch Details"), branchForm);
 
         Button saveButton = new Button("Simpan", e -> saveBranch());
-        Button cancelButton = new Button("Cancel", e -> branchDialog.close());
+        Button cancelButton = new Button("Batal", e -> branchDialog.close());
         branchDialog.getFooter().removeAll();
         branchDialog.getFooter().add(cancelButton, saveButton);
     }
@@ -687,7 +687,7 @@ public class MasterCompanyView extends Main {
             branchService.save(currentBranch);
             branchDialog.close();
             refreshBranchGrid();
-            Notification.show("Branch saved successfully!");
+            Notification.show("Branch berhasil tersimpan!");
         } catch (Exception e) {
             Notification.show("Error saving branch: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }

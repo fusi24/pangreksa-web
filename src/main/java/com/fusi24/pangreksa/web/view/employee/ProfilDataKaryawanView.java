@@ -369,7 +369,7 @@ public class ProfilDataKaryawanView extends Main {
 
                 // === Tombol Save / Cancel ===
                 HorizontalLayout buttonLayout = new HorizontalLayout();
-                Button cancelButton = new Button("Cancel", ev -> dialog.close());
+                Button cancelButton = new Button("Batal", ev -> dialog.close());
                 Button saveButton = new Button("Simpan");
 
                 if (!this.auth.canEdit) {

@@ -119,7 +119,7 @@ public class PagesView extends Main {
                 .setAutoWidth(true);
                 
         grid.addColumn(FwPages::getDescription)
-                .setHeader("Description")
+                .setHeader("Deskripsi")
                 .setSortable(true)
                 .setAutoWidth(true);
 
@@ -140,7 +140,7 @@ public class PagesView extends Main {
         grid.addComponentColumn(page -> {
             Button editButton = new Button(new Icon(VaadinIcon.EDIT));
             editButton.addThemeVariants(ButtonVariant.LUMO_ICON);
-            editButton.getElement().setAttribute("aria-label", "Edit");
+            editButton.getElement().setAttribute("aria-label", "Ubah");
             editButton.setTooltipText("Edit page");
             editButton.addClickListener(e -> {
                 getUI().ifPresent(ui -> {
@@ -151,7 +151,7 @@ public class PagesView extends Main {
                 editButton.setEnabled(false);
             }
             return editButton;
-        }).setHeader("Actions").setAutoWidth(true);
+        }).setHeader("Aksi").setAutoWidth(true);
 
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         grid.getStyle().set("flex-grow", "1");
@@ -200,7 +200,7 @@ public class PagesView extends Main {
             filterButton.addClickListener(e -> showFilterDialog());
 
             filterButton.getStyle().setWidth("150px");
-            Button populate = new Button("Populate");
+            Button populate = new Button("Muat Data");
             populate.setEnabled(false);
             filterLayout.add(populate, filterButton);
             
@@ -225,7 +225,7 @@ public class PagesView extends Main {
             urlFilter.setClearButtonVisible(true);
             urlFilter.setWidthFull();
             
-            descriptionFilter.setLabel("Description");
+            descriptionFilter.setLabel("Deskripsi");
             descriptionFilter.setPlaceholder("Contains...");
             descriptionFilter.setClearButtonVisible(true);
             descriptionFilter.setWidthFull();
@@ -244,7 +244,7 @@ public class PagesView extends Main {
             });
             applyButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
             
-            Button cancelButton = new Button("Cancel", e -> dialog.close());
+            Button cancelButton = new Button("Batal", e -> dialog.close());
             
             buttonsLayout.add(cancelButton, applyButton);
             dialog.getFooter().add(buttonsLayout);

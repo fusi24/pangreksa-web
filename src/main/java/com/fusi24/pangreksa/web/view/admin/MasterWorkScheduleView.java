@@ -247,7 +247,7 @@ public class MasterWorkScheduleView extends Main {
         dialog.add(new H3("Jadwal Kerja Details"), form);
 
         Button saveButton = new Button("Simpan", e -> saveSchedule());
-        Button cancelButton = new Button("Cancel", e -> dialog.close());
+        Button cancelButton = new Button("Batal", e -> dialog.close());
         dialog.getFooter().add(cancelButton, saveButton);
     }
 

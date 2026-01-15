@@ -137,8 +137,8 @@ public class BpjsPajakView extends Main {
                 .setHeader("Nominal (Rp)");
 
         ptkpGrid.addColumn(new ComponentRenderer<>(ptkp -> {
-            Button edit = new Button("Edit", ev -> openPtkpDialog(ptkp));
-            Button del = new Button("Delete");
+            Button edit = new Button("Ubah", ev -> openPtkpDialog(ptkp));
+            Button del = new Button("Hapus");
 
             edit.setEnabled(true);
             del.setEnabled(true);
@@ -149,7 +149,7 @@ public class BpjsPajakView extends Main {
             });
 
             return new HorizontalLayout(edit, del);
-        })).setHeader("Action");
+        })).setHeader("Aksi");
 
         refreshPtkpGrid();
         ptkpGrid.setWidthFull();
@@ -182,7 +182,7 @@ public class BpjsPajakView extends Main {
             nominal.setValue(existing.getNominal().doubleValue());
         }
 
-        Button save = new Button("Save", evt -> {
+        Button save = new Button("Simpan", evt -> {
 
             MasterPtkp m = (existing == null ? new MasterPtkp() : existing);
 
@@ -197,7 +197,7 @@ public class BpjsPajakView extends Main {
             dialog.close();
         });
 
-        Button cancel = new Button("Cancel", evt -> dialog.close());
+        Button cancel = new Button("Batal", evt -> dialog.close());
 
         dialog.add(kode, gol, tanggungan, nominal);
         dialog.getFooter().add(cancel, save);
@@ -221,8 +221,8 @@ public class BpjsPajakView extends Main {
         toolbarLayoutMaster.setWidthFull();
         toolbarLayoutMaster.setSpacing(true);
 
-        saveButton = new Button("Save");
-        Button btnAddPtkp = new Button("Add Master PTKP");
+        saveButton = new Button("Simpan");
+        Button btnAddPtkp = new Button("Tambah Master PTKP");
 
         btnAddPtkp.addClickListener(e -> openPtkpDialog(null));
 
@@ -275,7 +275,7 @@ public class BpjsPajakView extends Main {
                 systemService.saveSystem(system);
             }
 
-            Notification.show("Settings saved successfully!");
+            Notification.show("Settings berhasil tersimpan!");
         });
     }
 

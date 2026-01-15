@@ -31,9 +31,9 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 
-@Route("company-calendar-mgt-page-access")
-@PageTitle("Company Calendar Management")
-@Menu(order = 20, icon = "vaadin:clipboard-check", title = "Company Calendar Management")
+@Route("Perusahaan-calendar-mgt-page-access")
+@PageTitle("Perusahaan Calendar Management")
+@Menu(order = 20, icon = "vaadin:clipboard-check", title = "Perusahaan Calendar Management")
 @RolesAllowed("KAL_FORM")
 //@PermitAll // When security is enabled, allow all authenticated users
 public class CompanyCalendarManagementView extends Main {
@@ -44,7 +44,7 @@ public class CompanyCalendarManagementView extends Main {
     private final CalendarService calendarService;
     private Authorization auth;
 
-    public static final String VIEW_NAME = "Company Calendar Management";
+    public static final String VIEW_NAME = "Perusahaan Calendar Management";
 
     private VerticalLayout body;
 
@@ -106,9 +106,9 @@ public class CompanyCalendarManagementView extends Main {
         yearDropdown.setItemLabelGenerator(String::valueOf);
         yearDropdown.setValue(currentYear);
 
-        populateButton = new Button("Populate");
-        saveButton = new Button("Save");
-        addButton = new Button("Add");
+        populateButton = new Button("Muat Data");
+        saveButton = new Button("Simpan");
+        addButton = new Button("Tambah");
 
         HorizontalLayout leftLayout = new HorizontalLayout(yearDropdown, populateButton);
         leftLayout.setSpacing(true);
@@ -131,7 +131,7 @@ public class CompanyCalendarManagementView extends Main {
         companyCalendarGrid = new Grid<>(HrCompanyCalendar.class, false);
         companyCalendarGrid.setSizeFull(); // responsive full width
 
-        // Editable Start Date
+        // Editable Tanggal Mulai
         companyCalendarGrid.addColumn(new ComponentRenderer<>(item -> {
             HorizontalLayout layout = new HorizontalLayout();
             layout.setSpacing(false);
@@ -148,9 +148,9 @@ public class CompanyCalendarManagementView extends Main {
 
             layout.add(startDate);
             return layout;
-        })).setHeader("Start Date").setWidth("75px");
+        })).setHeader("Tanggal Mulai").setWidth("75px");
 
-        // Editable End Date
+        // Editable Tanggal Selesai
         companyCalendarGrid.addColumn(new ComponentRenderer<>(item -> {
             HorizontalLayout layout = new HorizontalLayout();
             layout.setSpacing(false);
@@ -167,7 +167,7 @@ public class CompanyCalendarManagementView extends Main {
 
             layout.add(endDate);
             return layout;
-        })).setHeader("End Date").setWidth("75px");
+        })).setHeader("Tanggal Selesai").setWidth("75px");
 
         // Editable Calendar Type
         companyCalendarGrid.addColumn(new ComponentRenderer<>(item -> {
@@ -249,7 +249,7 @@ public class CompanyCalendarManagementView extends Main {
             });
             deleteButton.setEnabled(this.auth.canDelete);
             return deleteButton;
-        })).setHeader("Actions").setFlexGrow(0).setAutoWidth(true);
+        })).setHeader("Aksi").setFlexGrow(0).setAutoWidth(true);
 
         return companyCalendarGrid;
     }
@@ -277,7 +277,7 @@ public class CompanyCalendarManagementView extends Main {
                           .endDate(LocalDate.now().withYear(yearValue))
                             .isActive(true)
                           .calendarType(CalendarTypeEnum.COMPANY_HOLIDAY)
-                          .label("New Label")
+                          .label("Label Baru")
                           .year(yearValue)
                           .basedOn("n/a")
                           .documentFile("")

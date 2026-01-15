@@ -44,9 +44,9 @@ public class PageFormView extends Main implements HasUrlParameter<String> {
     private final FwPagesRepository pagesRepository;
     private final VerticalLayout content = new VerticalLayout();
     private final TextField urlField = new TextField("Page URL");
-    private final TextArea descriptionField = new TextArea("Description");
+    private final TextArea descriptionField = new TextArea("Deskripsi");
     private final ComboBox<String> iconComboBox = new ComboBox<>("Icon");
-    private final Button saveButton = new Button("Save");
+    private final Button saveButton = new Button("Simpan");
     private final Binder<FwPages> binder = new BeanValidationBinder<>(FwPages.class);
     private FwPages currentPage;
     private boolean hasError = false;
@@ -74,7 +74,7 @@ public class PageFormView extends Main implements HasUrlParameter<String> {
         );
         
         // Button layout
-        Button cancelButton = new Button("Cancel", e -> UI.getCurrent().navigate(PagesView.class));
+        Button cancelButton = new Button("Batal", e -> UI.getCurrent().navigate(PagesView.class));
         
         HorizontalLayout buttonLayout = new HorizontalLayout(cancelButton, saveButton);
         buttonLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
@@ -136,7 +136,7 @@ public class PageFormView extends Main implements HasUrlParameter<String> {
     public void setParameter(BeforeEvent event, String parameter) {
         try {
             if (StringUtils.isEmpty(parameter)) {
-                throw new IllegalArgumentException("Page ID is required");
+                throw new IllegalArgumentException("Page ID wajib diisi");
             }
             
             // Edit existing page
@@ -159,14 +159,14 @@ public class PageFormView extends Main implements HasUrlParameter<String> {
     private void configureBinder() {
         // Configure binder with validation
         binder.forField(urlField)
-                .asRequired("URL is required")
+                .asRequired("URL wajib diisi")
                 .bind(FwPages::getPageUrl, FwPages::setPageUrl);
                 
         binder.forField(descriptionField)
                 .bind(FwPages::getDescription, FwPages::setDescription);
                 
         binder.forField(iconComboBox)
-                .asRequired("Icon is required")
+                .asRequired("Icon wajib diisi")
                 .bind(FwPages::getPageIcon, FwPages::setPageIcon);
     }
     

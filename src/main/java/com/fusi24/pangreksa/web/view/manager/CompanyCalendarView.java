@@ -15,9 +15,9 @@ import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Route("company-calendar-page-access")
-@PageTitle("Company Calendar")
-@Menu(order = 19, icon = "vaadin:clipboard-check", title = "Company Calendar")
+@Route("Perusahaan-calendar-page-access")
+@PageTitle("Perusahaan Calendar")
+@Menu(order = 19, icon = "vaadin:clipboard-check", title = "Perusahaan Calendar")
 @RolesAllowed("KAL_KERJA")
 //@PermitAll // When security is enabled, allow all authenticated users
 public class CompanyCalendarView extends Main {

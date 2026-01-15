@@ -107,7 +107,7 @@ public class MasterDepartmentView extends Main {
         dialog.add(new H3("Department Details"), form);
 
         Button saveButton = new Button("Simpan", e -> saveDepartment());
-        Button cancelButton = new Button("Cancel", e -> dialog.close());
+        Button cancelButton = new Button("Batal", e -> dialog.close());
         dialog.getFooter().add(cancelButton, saveButton);
     }
 

@@ -161,7 +161,7 @@ public class LeaveApprovalView extends Main {
         reason.setWidthFull();
         reason.setHeight("15em");
 
-        Button cancelButton = new Button("Cancel");
+        Button cancelButton = new Button("Batal");
         Button approveButton = new Button("Approve");
         Button rejectButton = new Button("Reject");
 
