@@ -250,7 +250,7 @@ public class GlobalLeaveAbsenceManagementView extends Main {
             deleteButton.addClickListener(e -> {
                 ConfirmDialog confirmDialog = new ConfirmDialog();
                 confirmDialog.setHeader("Confirm Deletion");
-                confirmDialog.setText("Are you sure you want to delete '" + lat.getLabel() + "'?");
+                confirmDialog.setText("Apakah Anda yakin ingin menghapus '" + lat.getLabel() + "'?");
                 confirmDialog.setCancelable(true);
                 confirmDialog.addCancelListener(ev -> {});
                 confirmDialog.setConfirmText("Hapus");

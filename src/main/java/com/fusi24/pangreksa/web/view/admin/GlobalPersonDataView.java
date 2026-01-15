@@ -99,7 +99,7 @@ public class GlobalPersonDataView extends Main {
         companyDropdown.setItemLabelGenerator(HrCompany::getName);
         companyDropdown.getStyle().setWidth("350px");
 
-        populateButton = new Button("Populate");
+        populateButton = new Button("Muat Data");
         addPersonButton = new Button("Add Person");
 
         // Create left and right layouts
@@ -163,7 +163,7 @@ public class GlobalPersonDataView extends Main {
         }).setHeader("Position");
 
         gridEmployees.addColumn(HrPersonPosition::getStartDate)
-                .setHeader("Start Date");
+                .setHeader("Tanggal Mulai");
 
 
         gridUnassignedPersons = new Grid<>(HrPerson.class, false);
@@ -179,7 +179,7 @@ public class GlobalPersonDataView extends Main {
                 person.getCreatedAt() != null
                         ? new PrettyTime().format(person.getCreatedAt())
                         : ""
-        ).setHeader("Created Date");
+        ).setHeader("Tanggal Dibuat");
 
         tabA.add(gridEmployees);
         tabA.setFlexGrow(1, gridEmployees);
