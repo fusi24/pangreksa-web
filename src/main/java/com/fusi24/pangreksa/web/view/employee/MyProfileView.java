@@ -307,7 +307,7 @@ public class MyProfileView extends Main {
         tabSheet.add("Alamat", addressesLayout);
         tabSheet.add("Kontak", contactsLayout);
         tabSheet.add("Pendidikan", educationLayout);
-        tabSheet.add("Documents", documentsLayout);
+        tabSheet.add("Dokumen", documentsLayout);
         VerticalLayout tanggunganLayout = createTanggunganTab();
         tabSheet.add("Tanggungan", tanggunganLayout);
 
