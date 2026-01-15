@@ -346,7 +346,7 @@ public class MasterWorkScheduleView extends Main {
             scheduleRepo.save(currentSchedule);
             dialog.close();
             refreshGrid();
-            Notification.show("Jadwal Kerja saved successfully!");
+            Notification.show("Jadwal Kerja berhasil tersimpan!");
         } catch (Exception e) {
             Notification.show("Error: " + e.getMessage());
             e.printStackTrace();
