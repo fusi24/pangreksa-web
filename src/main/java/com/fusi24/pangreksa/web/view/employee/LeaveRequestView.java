@@ -43,8 +43,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Route("leave-request-page-access")
-@PageTitle("Leave Request")
-@Menu(order = 37, icon = "vaadin:calendar-user", title = "Leave Request")
+@PageTitle("Pengajuan Cuti")
+@Menu(order = 37, icon = "vaadin:calendar-user", title = "Pengajuan Cuti")
 @RolesAllowed("LEAVE_REQ")
 //@PermitAll // When security is enabled, allow all authenticated users
 public class LeaveRequestView extends Main {
@@ -56,7 +56,7 @@ public class LeaveRequestView extends Main {
     private final LeaveService leaveService;
     private Authorization auth;
 
-    public static final String VIEW_NAME = "Leave Request";
+    public static final String VIEW_NAME = "Pengajuan Cuti";
 
     private HorizontalLayout toolbarLayoutMaster;
 
@@ -84,6 +84,7 @@ public class LeaveRequestView extends Main {
                 LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
 
         add(new ViewToolbar(VIEW_NAME));
+        setSizeFull();
         createBody();
 
         this.leaveAbsenceTypesList = leaveService.getLeaveAbsenceTypesList();
@@ -99,62 +100,72 @@ public class LeaveRequestView extends Main {
     }
 
     private void createBody() {
-        this.body = new VerticalLayout();
+        body = new VerticalLayout();
+        body.setPadding(false);
+        body.setSpacing(false);
+        body.setSizeFull(); // ⬅️ penting
 
+        // ===== Dashboard saldo cuti =====
         HorizontalLayout horizontalLayoutDashboard = new HorizontalLayout();
-        horizontalLayoutDashboard.setWidth("150px");
         horizontalLayoutDashboard.setWidthFull();
 
-        List<HrLeaveBalance> leaveBalances = leaveService.getAllLeaveBalance(currentUser.require(), LocalDate.now().getYear());
+        List<HrLeaveBalance> leaveBalances =
+                leaveService.getAllLeaveBalance(currentUser.require(), LocalDate.now().getYear());
 
         for (HrLeaveBalance leaveBalance : leaveBalances) {
-            if (leaveBalance.getUsedDays() > 0)
-                horizontalLayoutDashboard.add(createDashboardCard(leaveBalance.getLeaveAbsenceType().getLabel(), String.valueOf(leaveBalance.getUsedDays())));
+            if (leaveBalance.getUsedDays() > 0) {
+                horizontalLayoutDashboard.add(
+                        createDashboardCard(
+                                leaveBalance.getLeaveAbsenceType().getLabel(),
+                                String.valueOf(leaveBalance.getUsedDays())
+                        )
+                );
+            }
         }
 
-        // Inisiasi toolbar Master
+        // ===== Toolbar =====
         toolbarLayoutMaster = new HorizontalLayout();
         toolbarLayoutMaster.setWidthFull();
-        toolbarLayoutMaster.setAlignItems(FlexComponent.Alignment.END);
-
-        requestButton = new Button("Request");
-        requestButton.addClickListener( e-> {
-            openRequestDialog();
-        });
-
-        toolbarLayoutMaster.add(requestButton);
-//        toolbarLayoutMaster.add(createContent());
         toolbarLayoutMaster.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
-        body.add(horizontalLayoutDashboard, toolbarLayoutMaster, gridLeaveApplication());
 
+        requestButton = new Button("Ajukan Cuti", e -> openRequestDialog());
+        toolbarLayoutMaster.add(requestButton);
 
-        populateGrid();
+        // ===== Grid =====
+        leaveAppGrid = gridLeaveApplication();
+        leaveAppGrid.setSizeFull(); // ⬅️ penting
+
+        body.add(horizontalLayoutDashboard, toolbarLayoutMaster, leaveAppGrid);
+        body.setFlexGrow(1, leaveAppGrid); // ⬅️ KUNCI FULL HEIGHT
 
         add(body);
+
+        populateGrid();
     }
+
 
     private Grid gridLeaveApplication() {
         leaveAppGrid = new Grid<>(HrLeaveApplication.class, false);
 
         leaveAppGrid.addColumn(HrLeaveApplication::getSubmittedAt)
-                .setHeader("Submitted")
+                .setHeader("Tanggal Pengajuan")
                 .setSortable(true);
 
         leaveAppGrid.addColumn(l -> l.getLeaveAbsenceType().getLabel())
-                .setHeader("Type");
+                .setHeader("Jenis Cuti");
 
         leaveAppGrid.addColumn(l ->
                 l.getStartDate() + " - " + l.getEndDate()
-        ).setHeader("Period");
+        ).setHeader("Periode");
 
         leaveAppGrid.addColumn(HrLeaveApplication::getTotalDays)
-                .setHeader("Days");
+                .setHeader("Jumlah Hari");
 
         leaveAppGrid.addColumn(HrLeaveApplication::getStatus)
                 .setHeader("Status");
 
         leaveAppGrid.addComponentColumn(this::createLeaveActions)
-                .setHeader("Actions");
+                .setHeader("Aksi");
 
         return leaveAppGrid;
     }
@@ -166,20 +177,20 @@ public class LeaveRequestView extends Main {
 
     private void openLeaveDetailDialog(HrLeaveApplication l) {
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Leave Request Detail");
+        dialog.setHeaderTitle("Pengajuan Cuti Detail");
         dialog.setWidth("500px");
 
         FormLayout layout = new FormLayout();
         layout.add(
-                ro("Type", l.getLeaveAbsenceType().getLabel()),
-                ro("Period", l.getStartDate() + " - " + l.getEndDate()),
-                ro("Total Days", String.valueOf(l.getTotalDays())),
+                ro("Tipe", l.getLeaveAbsenceType().getLabel()),
+                ro("Periode", l.getStartDate() + " - " + l.getEndDate()),
+                ro("Jumlah Hari", String.valueOf(l.getTotalDays())),
                 ro("Status", l.getStatus().name()),
-                ro("Approver",
+                ro("Penyetuju",
                         l.getSubmittedTo() != null
                                 ? l.getSubmittedTo().getFirstName() + " " + l.getSubmittedTo().getLastName()
                                 : "-"),
-                ro("Reason", l.getReason())
+                ro("Keterangan", l.getReason())
         );
 
         Button close = new Button("Close", e -> dialog.close());
@@ -209,7 +220,7 @@ public class LeaveRequestView extends Main {
     private void openRequestDialog() {
         requestButton.setEnabled(false);
 
-        Dialog dialog = new Dialog("Leave Form");
+        Dialog dialog = new Dialog("Form Pengajuan Cuti");
         dialog.setModal(false);
         dialog.setDraggable(true);
         dialog.setWidth("600px");
@@ -220,26 +231,26 @@ public class LeaveRequestView extends Main {
                 new FormLayout.ResponsiveStep("600px", 2)
         );
 
-        ComboBox<HrLeaveAbsenceTypes> leaveAbsenceTypeDropdown = new ComboBox<>("Leave Type");
+        ComboBox<HrLeaveAbsenceTypes> leaveAbsenceTypeDropdown = new ComboBox<>("Tipe Cuti");
         leaveAbsenceTypeDropdown.setItems(leaveAbsenceTypesList);
         leaveAbsenceTypeDropdown.setItemLabelGenerator(HrLeaveAbsenceTypes::getLabel);
 
-        DatePicker startDate = new DatePicker("Start Date");
-        DatePicker endDate = new DatePicker("End Date");
+        DatePicker startDate = new DatePicker("Tanggal Mulai");
+        DatePicker endDate = new DatePicker("Tanggal Selesai");
 
         startDate.setI18n(DatePickerUtil.getIndonesianI18n());
         endDate.setI18n(DatePickerUtil.getIndonesianI18n());
 
-        TextArea reason = new TextArea("Reason");
+        TextArea reason = new TextArea("Keterangan");
         reason.setWidthFull();
         reason.setHeight("15em");
 
-        ComboBox<HrPerson> submittedToCombo = new ComboBox<>("Person");
+        ComboBox<HrPerson> submittedToCombo = new ComboBox<>("Penyetuju / Atasan");
         submittedToCombo.addClassName("no-dropdown-icon");
         submittedToCombo.setItemLabelGenerator(p ->
                 p.getFirstName() + " " + (p.getLastName() != null ? p.getLastName() : "")
         );
-        submittedToCombo.setPlaceholder("Type to search");
+        submittedToCombo.setPlaceholder("Ketik untuk mencari penyetuju");
         submittedToCombo.setClearButtonVisible(true);
 
         submittedToCombo.setItems(query -> {
@@ -265,7 +276,7 @@ public class LeaveRequestView extends Main {
             submittedToCombo.setValue(manager);
         } else {
             submittedToCombo.setHelperText(
-                    "Manager not found. Please contact HR."
+                    "Manager tidak ditemukan. silahkan hubungi HR."
             );
         }
 
@@ -274,8 +285,8 @@ public class LeaveRequestView extends Main {
         // optional, tapi bagus untuk ditentukan
         submittedToCombo.setPageSize(20);
 
-        Button generateReasonButton = new Button("Help with reason..");
-        Button cancelButton = new Button("Cancel");
+        Button generateReasonButton = new Button("Bantu Isi Alasan");
+        Button cancelButton = new Button("Batal");
         Button submitButton = new Button("Submit");
 
         //create horizontal layout for buttons, align and justify right
@@ -315,7 +326,7 @@ public class LeaveRequestView extends Main {
             HrPerson approver = submittedToCombo.getValue();
             if (approver == null) {
                 Notification.show(
-                        "Please select an approver before submitting.",
+                        "Pilih penyetuju sebelum mengirim pengajuan.",
                         3000,
                         Notification.Position.MIDDLE
                 );
@@ -335,7 +346,7 @@ public class LeaveRequestView extends Main {
                 request = leaveService.saveApplication(request, currentUser.require());
 
                 if (request.getId() != null) {
-                    Notification.show("Leave request submitted successfully!");
+                    Notification.show("Pengajuan cuti berhasil dikirim.");
                     populateGrid();
                 }
 
@@ -346,7 +357,7 @@ public class LeaveRequestView extends Main {
 
 
         // Validasi leave balance hanya untuk Cuti Tahunan (misal id = 1).
-        // Untuk leave type lain (menikah, ibadah, dll), submitButton tetap enabled.
+        // Untuk Tipe Cuti lain (menikah, ibadah, dll), submitButton tetap enabled.
         leaveAbsenceTypeDropdown.addValueChangeListener(e -> {
             HrLeaveAbsenceTypes selectedType = e.getValue();
 
@@ -369,7 +380,7 @@ public class LeaveRequestView extends Main {
                 // <<< TAMBAHAN: handle kalau leaveBalance null >>>
                 if (leaveBalance == null) {
                     leaveAbsenceTypeDropdown.setHelperText(
-                            "Leave balance data not found. Please contact HR."
+                            "Data Saldo Cuti. tidak ditemukan. silahkan hubungi HR."
                     );
                     submitButton.setEnabled(false);
                     return;
@@ -378,7 +389,7 @@ public class LeaveRequestView extends Main {
                 int remainingDays = leaveBalance.getRemainingDays();
 
                 leaveAbsenceTypeDropdown.setHelperText(
-                        "You have " + remainingDays + " days left for " + selectedType.getLabel()
+                        "Sisa saldo cuti: " + remainingDays + " hari (" + selectedType.getLabel() + ")"
                 );
 
                 // submit hanya boleh kalau masih ada saldo cuti tahunan
@@ -402,12 +413,12 @@ public class LeaveRequestView extends Main {
     }
 
     public void submitLeaveRequest() {
-        // Logic to submit the leave request
+        // Logic to submit the Pengajuan Cuti
         // This could involve validating the input, saving to the database, etc.
 
 
 
-        Notification.show("Leave request submitted successfully!");
+        Notification.show("Pengajuan cuti berhasil dikirim.");
     }
 
     private Card createDashboardCard(String stringTitle, String stringValue) {
