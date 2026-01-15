@@ -63,7 +63,7 @@ public class MasterWorkScheduleView extends Main {
     private final TimePicker checkInField = new TimePicker("Check-In");
     private final TimePicker checkOutField = new TimePicker("Check-Out");
     private final TimePicker breakStartField = new TimePicker("Istirahat Mulai");
-    private final TimePicker breakEndField = new TimePicker("Istirahat SelesaiEnd");
+    private final TimePicker breakEndField = new TimePicker("Istirahat Selesai");
     private final ComboBox<WorkScheduleLabel> labelField = new ComboBox<>("Label");
     private final Checkbox isOvertimeAutoField = new Checkbox("Auto Overtime");
     private final Checkbox isActiveField = new Checkbox("Active");
@@ -139,10 +139,10 @@ public class MasterWorkScheduleView extends Main {
                 createReadOnlyField("Check-In", formatTime(ws.getCheckIn())),
                 createReadOnlyField("Check-Out", formatTime(ws.getCheckOut())),
                 createReadOnlyField("Istirahat Mulai", formatTime(ws.getBreakStart())),
-                createReadOnlyField("Istirahat SelesaiEnd", formatTime(ws.getBreakEnd())),
+                createReadOnlyField("Istirahat Selesai", formatTime(ws.getBreakEnd())),
                 createReadOnlyField("Label", ws.getLabel() != null ? ws.getLabel().name() : "-"),
-                createReadOnlyField("Overtime Auto", BooleanUtils.toString(ws.getIsOvertimeAuto(), "Yes", "No")),
-                createReadOnlyField("Assignment", resolveAssignment(ws)),
+                createReadOnlyField("Lembur Otomatis", BooleanUtils.toString(ws.getIsOvertimeAuto(), "Yes", "No")),
+                createReadOnlyField("Penugasan", resolveAssignment(ws)),
                 createReadOnlyField("Status", BooleanUtils.toString(ws.getIsActive(), "Active", "Inactive"))
         );
 
@@ -188,7 +188,7 @@ public class MasterWorkScheduleView extends Main {
         labelField.setItemLabelGenerator(WorkScheduleLabel::name);
         labelField.setRequired(true);
 
-        assignmentScopeField.setLabel("Assignment");
+        assignmentScopeField.setLabel("Penugasan");
         assignmentScopeField.setItems("All", "Selected");
         assignmentScopeField.setRequiredIndicatorVisible(true);
         assignmentScopeField.addValueChangeListener(e -> {
@@ -252,7 +252,7 @@ public class MasterWorkScheduleView extends Main {
     }
 
     private void addToolbar() {
-        searchField.setPlaceholder("Cari berdasarkan name, type, or label...");
+        searchField.setPlaceholder("Cari berdasarkan nama, tipe atau label...");
         searchField.setClearButtonVisible(true);
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
         searchField.addValueChangeListener(e -> refreshGrid());
