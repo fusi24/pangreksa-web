@@ -189,11 +189,11 @@ public class ProfilDataKaryawanView extends Main {
 
         gridUnassignedPersons = new Grid<>(HrPerson.class, false);
         gridUnassignedPersons.setSelectionMode(Grid.SelectionMode.SINGLE);
-        gridUnassignedPersons.addColumn(HrPerson::getFirstName).setHeader("Nama Awal").setSortable(true);
-        gridUnassignedPersons.addColumn(HrPerson::getLastName).setHeader("Nama Akhir").setSortable(true);
+        gridUnassignedPersons.addColumn(HrPerson::getFirstName).setHeader("Nama Awal").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        gridUnassignedPersons.addColumn(HrPerson::getLastName).setHeader("Nama Akhir").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         gridUnassignedPersons.addColumn(person ->
                 person.getCreatedAt() != null ? prettyTime.format(person.getCreatedAt()) : ""
-        ).setHeader("Tanggal Dibuat").setSortable(false);
+        ).setHeader("Tanggal Dibuat").setSortable(false).setAutoWidth(true).setFlexGrow(0);
         // Action column with delete button (icon only, no title)
         // Action column with edit & assign button
         // Action column with edit & assign button

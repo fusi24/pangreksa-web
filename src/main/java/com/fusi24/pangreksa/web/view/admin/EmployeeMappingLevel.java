@@ -96,7 +96,7 @@ public class EmployeeMappingLevel extends Main {
 
         searchField = new com.vaadin.flow.component.textfield.TextField("Search Filter");
         populateButton = new Button("Muat Data");
-        saveButton = new Button("Save");
+        saveButton = new Button("Simpan");
 
         HorizontalLayout leftLayout = new HorizontalLayout(searchField, populateButton);
         leftLayout.setSpacing(true);

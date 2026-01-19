@@ -95,25 +95,30 @@ public class MasterWorkScheduleView extends Main {
         grid.removeAllColumns();
         grid.setSizeFull();
         grid.getStyle().set("flex", "1");
-        grid.addColumn(HrWorkSchedule::getName).setHeader("Nama").setAutoWidth(true);
+        grid.addColumn(HrWorkSchedule::getName).setHeader("Nama").setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(ws -> ws.getType() != null ? ws.getType().name() : "")
-                .setHeader("Tipe");
+                .setHeader("Tipe")
+                .setAutoWidth(true).setFlexGrow(1);
 
         grid.addColumn(ws -> formatTime(ws.getCheckIn()))
-                .setHeader("Check-In");
+                .setHeader("Check-In")
+                .setAutoWidth(true).setFlexGrow(0);
 
         grid.addColumn(ws -> formatTime(ws.getCheckOut()))
-                .setHeader("Check-Out");
+                .setHeader("Check-Out")
+                .setAutoWidth(true).setFlexGrow(0);
 
         grid.addColumn(ws -> ws.getLabel() != null ? ws.getLabel().name() : "")
-                .setHeader("Label");
+                .setHeader("Label")
+                .setAutoWidth(true).setFlexGrow(1);
 
         grid.addColumn(ws -> BooleanUtils.toString(ws.getIsActive(), "Active", "Inactive"))
-                .setHeader("Status");
+                .setHeader("Status")
+                .setAutoWidth(true).setFlexGrow(1);
 
         grid.addComponentColumn(this::createActionButtons)
                 .setHeader("Aksi")
-                .setAutoWidth(true);
+                .setAutoWidth(true).setFlexGrow(1);
     }
 
     private HorizontalLayout createActionButtons(HrWorkSchedule ws) {

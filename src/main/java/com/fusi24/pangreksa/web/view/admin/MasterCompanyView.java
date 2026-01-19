@@ -76,7 +76,7 @@ public class MasterCompanyView extends Main {
     // ===== TAB 2: BRANCH =====
     private final Grid<HrCompanyBranch> branchGrid = new Grid<>(HrCompanyBranch.class, false);
     private final TextField branchSearchField = new TextField("Cari Cabang");
-    private final Button addBranchButton = new Button("Tambah Branch");
+    private final Button addBranchButton = new Button("Tambah Cabang");
 
     private final Dialog branchDialog = new Dialog();
     private final FormLayout branchForm = new FormLayout();
@@ -155,20 +155,27 @@ public class MasterCompanyView extends Main {
 
         companyGrid.addColumn(HrCompany::getName)
                 .setHeader("Nama")
-                .setAutoWidth(true);
+                .setAutoWidth(true)
+                .setFlexGrow(1);
 
         companyGrid.addColumn(HrCompany::getShortName)
-                .setHeader("Singkatan");
+                .setHeader("Singkatan")
+                .setAutoWidth(true)
+                .setFlexGrow(1);
 
         companyGrid.addColumn(c -> c.getParent() != null ? c.getParent().getName() : "-")
-                .setHeader("Induk");
+                .setHeader("Induk").setAutoWidth(true)
+                .setFlexGrow(1);
 
         companyGrid.addColumn(c -> BooleanUtils.toString(c.getIsActive(), "Active", "Inactive"))
-                .setHeader("Status");
+                .setHeader("Status")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
         companyGrid.addComponentColumn(this::createCompanyActions)
                 .setHeader("Aksi")
-                .setAutoWidth(true);
+                .setAutoWidth(true)
+                .setFlexGrow(0);
     }
 
     private HorizontalLayout createCompanyActions(HrCompany company) {
@@ -205,8 +212,8 @@ public class MasterCompanyView extends Main {
         FormLayout layout = new FormLayout();
         layout.add(
                 ro("Perusahaan", b.getCompany() != null ? b.getCompany().getName() : "-"),
-                ro("Branch Code", b.getBranchCode()),
-                ro("Branch Name", b.getBranchName()),
+                ro("Kode Cabang", b.getBranchCode()),
+                ro("Nama Cabang", b.getBranchName()),
                 ro("Alamat", b.getBranchAddress()),
                 ro("Kota", b.getBranchAddressCity()),
                 ro("Provinsi", b.getBranchAddressProvince()),
@@ -261,7 +268,7 @@ public class MasterCompanyView extends Main {
                 .setHeader("Kode");
 
         branchGrid.addColumn(HrCompanyBranch::getBranchName)
-                .setHeader("Branch Name");
+                .setHeader("Nama Cabang");
 
         branchGrid.addColumn(HrCompanyBranch::getBranchAddressCity)
                 .setHeader("Kota");
@@ -687,7 +694,7 @@ public class MasterCompanyView extends Main {
             branchService.save(currentBranch);
             branchDialog.close();
             refreshBranchGrid();
-            Notification.show("Branch berhasil tersimpan!");
+            Notification.show("Cabang berhasil tersimpan!");
         } catch (Exception e) {
             Notification.show("Error saving branch: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }

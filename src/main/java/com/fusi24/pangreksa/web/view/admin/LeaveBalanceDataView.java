@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 
 @Route("leave-balance-page-access")
@@ -118,20 +119,56 @@ public class LeaveBalanceDataView extends Main {
         add(body);
     }
 
+
+
     private Grid<HrLeaveGenerationLog> createLeaveGenerationLogGrid() {
         leaveGenerationLogGrid = new Grid<>(HrLeaveGenerationLog.class, false);
 
-        leaveGenerationLogGrid.addColumn(log -> log.getCompany().getName()).setHeader("Perusahaan");
-        leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getYear).setHeader("Tahun");
-        leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getDataGenerated).setHeader("Total Data");
-        leaveGenerationLogGrid.addColumn(log -> log.getCreatedBy().getUsername()).setHeader("Dibuat Oleh");
-        leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getCreatedAt).setHeader("Dibuat Pada");
+        DateTimeFormatter dtf =
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-        leaveGenerationLogGrid.setSizeFull(); // ⬅️ penting
-        leaveGenerationLogGrid.setItems(Collections.emptyList());
+        // Kolom penyeimbang (SATU SAJA yang fleksibel)
+        leaveGenerationLogGrid.addColumn(log -> log.getCompany().getName())
+                .setHeader("Perusahaan")
+                .setWidth("260px")
+                .setFlexGrow(0);
+
+        // Kolom kecil
+        leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getYear)
+                .setHeader("Tahun")
+                .setWidth("80px")
+                .setFlexGrow(0);
+
+        leaveGenerationLogGrid.addColumn(HrLeaveGenerationLog::getDataGenerated)
+                .setHeader("Total Data")
+                .setWidth("110px")
+                .setFlexGrow(0);
+
+        leaveGenerationLogGrid.addColumn(log -> log.getCreatedBy().getUsername())
+                .setHeader("Dibuat Oleh")
+                .setWidth("120px")
+                .setFlexGrow(0);
+
+        // Tanggal → format pendek + width cukup
+        leaveGenerationLogGrid.addColumn(log ->
+                        log.getCreatedAt() != null
+                                ? log.getCreatedAt().format(dtf)
+                                : "-"
+                )
+                .setHeader("Tanggal Dibuat")
+                .setWidth("170px")
+                .setFlexGrow(0);
+
+        // Behavior grid
+        leaveGenerationLogGrid.setSizeFull();
+        leaveGenerationLogGrid.setAllRowsVisible(false);
+        leaveGenerationLogGrid.setColumnReorderingAllowed(true);
 
         return leaveGenerationLogGrid;
     }
+
+
+
 
 
     private void setListener() {
@@ -166,7 +203,7 @@ public class LeaveBalanceDataView extends Main {
                 HorizontalLayout leaveTypeCountNF = new HorizontalLayout();
                 leaveTypeCountNF.setWidthFull();
                 leaveTypeCountNF.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-                Span leaveTypeLabel = new Span("Tipe of Leave");
+                Span leaveTypeLabel = new Span("Tipe Cuti");
                 leaveTypeCountNF.add(leaveTypeLabel, new Span(String.valueOf(leaveTypeCount)));
 
                 int totalRowGenerated = Math.toIntExact((int) (personCount * leaveTypeCount) - leaveServerCount);

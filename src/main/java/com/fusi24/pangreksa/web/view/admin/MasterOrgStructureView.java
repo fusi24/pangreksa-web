@@ -82,12 +82,12 @@ public class MasterOrgStructureView extends Main {
 
     private void configureGrid() {
         grid.removeAllColumns();
-        grid.addColumn(org -> org.getCompany() != null ? org.getCompany().getName() : "").setHeader("Perusahaan");
-        grid.addColumn(org -> org.getParent() != null ? org.getParent().getName() : "").setHeader("Induk");
-        grid.addColumn(HrOrgStructure::getName).setHeader("Nama");
-        grid.addColumn(HrOrgStructure::getCode).setHeader("Kode");
-        grid.addColumn(org -> org.getType() != null ? org.getType().name() : "").setHeader("Tipe");
-        grid.addColumn(org -> BooleanUtils.toString(org.getIsActive(), "Active", "Inactive")).setHeader("Aktif");
+        grid.addColumn(org -> org.getCompany() != null ? org.getCompany().getName() : "").setHeader("Perusahaan").setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(org -> org.getParent() != null ? org.getParent().getName() : "").setHeader("Induk").setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(HrOrgStructure::getName).setHeader("Nama").setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(HrOrgStructure::getCode).setHeader("Kode").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(org -> org.getType() != null ? org.getType().name() : "").setHeader("Tipe").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(org -> BooleanUtils.toString(org.getIsActive(), "Active", "Inactive")).setHeader("Aktif").setAutoWidth(true).setFlexGrow(0);
 
         grid.addComponentColumn(this::buildActionButtons)
                 .setHeader("Aksi")
