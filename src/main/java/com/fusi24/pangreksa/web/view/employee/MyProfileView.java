@@ -104,20 +104,20 @@ public class MyProfileView extends Main {
     private TextField ktpNumber = new TextField("Nomor KTP");
     // Address Fields
     private TextArea fullAddress = new TextArea("Alamat lengkap");
-    private Checkbox isDefaultAddress = new Checkbox("Default Alamat");
+    private Checkbox isDefaultAddress = new Checkbox("Alamat Utama");
 
     // Contacts Fields
     private TextField designation = new TextField("Penamaan");
     private TextField relationship = new TextField("Hubungan");
-    private TextField stringValue = new TextField("Value");
+    private TextField stringValue = new TextField("Data Kontak");
     private ComboBox<ContactTypeEnum> typeContact = new ComboBox<>("Tipe Kontak");
     private TextField description = new TextField("Deskripsi");
-    private Checkbox isDefaultContact = new Checkbox("Default Kontak");
+    private Checkbox isDefaultContact = new Checkbox("Kontak Utama");
 
     // Education Fields
     private TextField institution = new TextField("Institusi");
     private TextField program = new TextField("Program");
-    private NumberField score = new NumberField("Score");
+    private NumberField score = new NumberField("Nilai");
     private DatePicker startDate = new DatePicker("Tanggal Mulai");
     private DatePicker finishDate = new DatePicker("Tanggal Selesai");
     private TextField certificateTitle = new TextField("Judul Serfikat");
@@ -131,7 +131,7 @@ public class MyProfileView extends Main {
     private NumberField year = new NumberField("Year");
     private ComboBox<DocumentTypeEnum> typeDocument = new ComboBox<>("Dokumen Tipe");
     private ComboBox<ContentTypeEnum> contentType = new ComboBox<>("Content Type");
-    private NumberField size = new NumberField("Size (bytes)");
+    private NumberField size = new NumberField("Ukuran (bytes)");
     private TextField filename = new TextField("File Nama");
     private TextField path = new TextField("Path");
 
@@ -282,7 +282,7 @@ public class MyProfileView extends Main {
         toolbarLayoutDetail = new HorizontalLayout();
         toolbarLayoutDetail.setAlignItems(FlexComponent.Alignment.END);
 
-        clearButtonOnTab = new Button("Clear");
+        clearButtonOnTab = new Button("Bersihkan");
         saveButtonOnTab = new Button("Tambah");
 
         toolbarLayoutDetail.add(clearButtonOnTab, saveButtonOnTab);
@@ -592,7 +592,7 @@ public class MyProfileView extends Main {
         }).setHeader("Alamat").setAutoWidth(true);
         // Column 2: Default (Yes/No)
         gridAddress.addColumn(address -> address.getIsDefault() ? "Ya" : "Tidak")
-                .setHeader("Default")
+                .setHeader("Utama")
                 .setAutoWidth(true);
 
         // Action column: Delete and Edit buttons

@@ -154,7 +154,7 @@ public class PositionLevelView extends Main {
 
         grid.addSelectionListener(ev -> deleteButton.setEnabled(!ev.getAllSelectedItems().isEmpty()));
 
-        // --- KOLOM 1: Org Structure (Department) ---
+        // --- KOLOM 1: Org Struktur (Department) ---
         grid.addColumn(new ComponentRenderer<>(row -> {
             ComboBox<HrOrgStructure> cb = new ComboBox<>();
             cb.setWidthFull();
@@ -164,7 +164,7 @@ public class PositionLevelView extends Main {
             cb.setValue(row.getOrgStructure());
             cb.addValueChangeListener(e -> row.setOrgStructure(e.getValue()));
             return cb;
-        })).setHeader("Org Structure").setAutoWidth(true).setFlexGrow(2);
+        })).setHeader("Org Struktur").setAutoWidth(true).setFlexGrow(2);
 
         // --- KOLOM 2: Code ---
         grid.addColumn(new ComponentRenderer<>(row -> {

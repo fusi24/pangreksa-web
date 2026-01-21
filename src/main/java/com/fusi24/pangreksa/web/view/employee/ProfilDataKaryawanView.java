@@ -281,8 +281,8 @@ public class ProfilDataKaryawanView extends Main {
                 positionDropdown.setWidth("400px");
                 positionDropdown.setEnabled(false);
 
-                // Saat Company dipilih -> load org structure untuk company tsb
-                // Saat Company dipilih -> load branch & org structure untuk company tsb
+                // Saat Company dipilih -> load Org Struktur untuk company tsb
+                // Saat Company dipilih -> load branch & Org Struktur untuk company tsb
                 companyDropdown.addValueChangeListener(eventCompany -> {
                     orgStructureDropdown.clear();
                     orgStructureDropdown.setItems(java.util.Collections.emptyList());
@@ -296,11 +296,11 @@ public class ProfilDataKaryawanView extends Main {
 
                     HrCompany selectedCompany = eventCompany.getValue();
                     if (selectedCompany != null) {
-                        // Org structure
+                        // Org Struktur
                         java.util.List<HrOrgStructure> orgs =
                                 companyService.getAllOrgStructuresInCompany(selectedCompany);
 
-                        log.debug("Assign dialog: found {} org structures for company {}",
+                        log.debug("Assign dialog: found {} Org Strukturs for company {}",
                                 orgs != null ? orgs.size() : 0,
                                 selectedCompany.getName());
 
@@ -323,7 +323,7 @@ public class ProfilDataKaryawanView extends Main {
                     }
                 });
 
-                // Initial load org structure & branch untuk default company (login user)
+                // Initial load Org Struktur & branch untuk default company (login user)
                 HrCompany initialCompany = companyDropdown.getValue();
                 if (initialCompany != null) {
                     java.util.List<HrOrgStructure> orgs =
@@ -393,7 +393,7 @@ public class ProfilDataKaryawanView extends Main {
                     HrCompany selectedCompany = companyDropdown.getValue();
                     HrCompanyBranch selectedBranch = branchDropdown.getValue();
 
-                    log.debug("Saving Company {}, Org Structure {} and Position {} to Person {}",
+                    log.debug("Saving Company {}, Org Struktur {} and Position {} to Person {}",
                             selectedCompany != null ? selectedCompany.getName() : "-",
                             orgStructureDropdown.getValue(),
                             positionDropdown.getValue(),
@@ -512,7 +512,7 @@ public class ProfilDataKaryawanView extends Main {
         gridEmployees.addColumn(pos -> {
             HrPosition position = pos.getPosition();
             return position != null ? position.getOrgStructure().getName() : "";
-        }).setHeader("Org Structure").setSortable(true);
+        }).setHeader("Org Struktur").setSortable(true);
         gridEmployees.addColumn(pos -> {
             HrDepartment dept = pos.getDepartment();
             return Optional.ofNullable(dept).map(HrDepartment::getName).orElse("");

@@ -58,14 +58,14 @@ public class MasterWorkScheduleView extends Main {
     private final FormLayout form = new FormLayout();
     private final Binder<HrWorkSchedule> binder = new Binder<>(HrWorkSchedule.class);
 
-    private final ComboBox<WorkScheduleType> typeField = new ComboBox<>("Schedule Type");
+    private final ComboBox<WorkScheduleType> typeField = new ComboBox<>("Tipe");
     private final TextField nameField = new TextField("Nama");
     private final TimePicker checkInField = new TimePicker("Check-In");
     private final TimePicker checkOutField = new TimePicker("Check-Out");
     private final TimePicker breakStartField = new TimePicker("Istirahat Mulai");
     private final TimePicker breakEndField = new TimePicker("Istirahat Selesai");
     private final ComboBox<WorkScheduleLabel> labelField = new ComboBox<>("Label");
-    private final Checkbox isOvertimeAutoField = new Checkbox("Auto Overtime");
+    private final Checkbox isOvertimeAutoField = new Checkbox("Lembur Otomatis");
     private final Checkbox isActiveField = new Checkbox("Active");
     private final Select<String> assignmentScopeField = new Select<>();
     private final MultiSelectComboBox<HrOrgStructure> assignedOrgMultiSelect = new MultiSelectComboBox<>("Assigned To");

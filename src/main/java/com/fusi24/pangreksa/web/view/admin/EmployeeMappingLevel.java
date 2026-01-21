@@ -94,7 +94,7 @@ public class EmployeeMappingLevel extends Main {
         body.setSpacing(false);
         body.setSizeFull();
 
-        searchField = new com.vaadin.flow.component.textfield.TextField("Search Filter");
+        searchField = new com.vaadin.flow.component.textfield.TextField("Filter Pencarian");
         populateButton = new Button("Muat Data");
         saveButton = new Button("Simpan");
 

@@ -160,7 +160,7 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
         toolbarLayoutDetail = new HorizontalLayout();
         toolbarLayoutDetail.setAlignItems(FlexComponent.Alignment.END);
 
-        clearButtonOnTab = new Button("Clear");
+        clearButtonOnTab = new Button("Bersihkan");
         saveButtonOnTab = new Button("Tambah");
 
         toolbarLayoutDetail.add(clearButtonOnTab, saveButtonOnTab);

@@ -36,8 +36,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 @Route("user-management-page-access")
-@PageTitle("User Management")
-@Menu(order = 33, icon = "vaadin:user", title = "User Management")
+@PageTitle("Manajemen pengguna")
+@Menu(order = 33, icon = "vaadin:user", title = "Manajemen pengguna")
 @RolesAllowed("USERS_MGT")
 //@PermitAll // When security is enabled, allow all authenticated users
 public class UserManagementView extends Main {
@@ -49,7 +49,7 @@ public class UserManagementView extends Main {
     private final PersonService personService;
     private Authorization auth;
 
-    public static final String VIEW_NAME = "User Management";
+    public static final String VIEW_NAME = "Manajemen pengguna";
     public static final String ROUTE_EDIT = "user-creation-form-access/";
 
     private List<FwAppUser> appUserList;
@@ -100,7 +100,7 @@ public class UserManagementView extends Main {
         body.setPadding(false);
         body.setSpacing(false);
         body.setSizeFull();
-        searchField = new TextField("Search Filter");
+        searchField = new TextField("Filter Pencarian");
         addButton = new Button("Tambah User");
         populateButton = new Button("Muat Data");
         saveButton = new Button("Simpan");

@@ -193,7 +193,7 @@ public class AttendanceView extends Main {
                 applyFilters();
             });
 
-            orgStructureFilter.setPlaceholder("Org Structure");
+            orgStructureFilter.setPlaceholder("Org Struktur");
             orgStructureFilter.setItemLabelGenerator(HrOrgStructure::getName);
             orgStructureFilter.setWidth("150px");
             orgStructureFilter.addValueChangeListener(e -> applyFilters());

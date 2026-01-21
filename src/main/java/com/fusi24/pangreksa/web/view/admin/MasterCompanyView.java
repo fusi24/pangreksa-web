@@ -64,7 +64,7 @@ public class MasterCompanyView extends Main {
     private final TextField registrationNumberField = new TextField("Nomor Registrasi");
     private final com.vaadin.flow.component.datepicker.DatePicker establishmentDateField =
             new com.vaadin.flow.component.datepicker.DatePicker("Tanggal Berdiri");
-    private final TextField phoneField = new TextField("Phone");
+    private final TextField phoneField = new TextField("Handphone");
     private final TextField emailField = new TextField("Email");
     private final TextField websiteField = new TextField("Website");
     private final Checkbox isActiveField = new Checkbox("Aktif");
@@ -243,7 +243,7 @@ public class MasterCompanyView extends Main {
                 ro("Nomor Registrasi", c.getRegistrationNumber()),
                 ro("Tanggal Berdiri",
                         c.getEstablishmentDate() != null ? c.getEstablishmentDate().toString() : "-"),
-                ro("Phone", c.getPhone()),
+                ro("Handphone", c.getPhone()),
                 ro("Email", c.getEmail()),
                 ro("Website", c.getWebsite()),
                 ro("Dikelola HR", BooleanUtils.toString(c.getIsHrManaged(), "Yes", "No")),
