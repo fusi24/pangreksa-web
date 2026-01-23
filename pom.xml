@@ -219,30 +219,6 @@
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    <!-- Can only be true if hilla is used -->
-                    <!-- Takes a few seconds to scan everything for hilla -->
-                    <frontendHotdeploy>false</frontendHotdeploy>
-                    <!-- Prevent scanning for react (not used) -->
-                    <reactEnable>false</reactEnable>
-                    <!-- Only scan required -->
-                    <frontendScanner>
-                        <includes>
-                            <include>
-                                <groupId>software.xdev</groupId>
-                                <artifactId>*vaadin*</artifactId>
-                            </include>
-                            <include>
-                                <groupId>com.vaadin</groupId>
-                            </include>
-                        </includes>
-                        <excludes>
-                            <exclude>
-                                <groupId>com.vaadin.external*</groupId>
-                            </exclude>
-                        </excludes>
-                    </frontendScanner>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
