@@ -62,6 +62,17 @@ public interface HrAttendanceRepository extends CrudRepository<HrAttendance, Lon
             @Param("endDate") LocalDate endDate
     );
 
+    @EntityGraph(attributePaths = {"person", "workSchedule"})
+    @Query("""
+    SELECT a
+    FROM HrAttendance a
+    WHERE a.attendanceDate = :date
+      AND a.checkIn IS NOT NULL
+      AND a.checkOut IS NULL
+""")
+    List<HrAttendance> findIncompleteAttendanceByDate(@Param("date") LocalDate date);
+
+
     @Query("""
         select count(a)
         from HrAttendance a

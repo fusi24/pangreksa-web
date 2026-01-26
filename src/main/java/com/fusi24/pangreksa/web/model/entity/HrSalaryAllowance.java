@@ -34,4 +34,11 @@ public class HrSalaryAllowance extends AuditableEntity<HrSalaryAllowance>{
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable = false)
     private HrCompany company;
+
+    @Column(name = "is_attendance_based", nullable = false)
+    private Boolean isAttendanceBased = false;
+
+    @Column(name = "penalty_rate", precision = 5, scale = 2)
+    private BigDecimal penaltyRate;
+
 }

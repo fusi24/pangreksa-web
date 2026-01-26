@@ -216,7 +216,12 @@ public class LeaveService {
         );
 
         if (application.getStatus() == LeaveStatusEnum.APPROVED) {
-            leaveBalance.setUsedDays(leaveBalance.getUsedDays() + application.getTotalDays());
+            int usedUnit = application.getTotalDays() * 2; // 1 hari = 2 unit
+
+            leaveBalance.setUsedDays(
+                    leaveBalance.getUsedDays() + usedUnit
+            );
+
             leaveBalance.setUpdatedBy(appUser);
             leaveBalance.setUpdatedAt(LocalDateTime.now());
             leaveBalanceRepository.save(leaveBalance);

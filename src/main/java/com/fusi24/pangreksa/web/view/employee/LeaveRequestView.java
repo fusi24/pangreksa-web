@@ -10,6 +10,7 @@ import com.fusi24.pangreksa.web.model.entity.HrLeaveApplication;
 import com.fusi24.pangreksa.web.model.entity.HrLeaveBalance;
 import com.fusi24.pangreksa.web.model.entity.HrPerson;
 import com.fusi24.pangreksa.web.model.enumerate.LeaveStatusEnum;
+import com.fusi24.pangreksa.web.model.view.LeaveBalanceView;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.LeaveService;
 import com.fusi24.pangreksa.web.service.PersonService;
@@ -114,14 +115,23 @@ public class LeaveRequestView extends Main {
 
         for (HrLeaveBalance leaveBalance : leaveBalances) {
             if (leaveBalance.getUsedDays() > 0) {
+
+                LeaveBalanceView view =
+                        new LeaveBalanceView(leaveBalance);
+
+                String sisaHari = view.getRemainingDays() % 1 == 0
+                        ? String.valueOf((int) view.getRemainingDays())
+                        : String.valueOf(view.getRemainingDays());
+
                 horizontalLayoutDashboard.add(
                         createDashboardCard(
                                 leaveBalance.getLeaveAbsenceType().getLabel(),
-                                String.valueOf(leaveBalance.getUsedDays())
+                                sisaHari + " hari"
                         )
                 );
             }
         }
+
 
         // ===== Toolbar =====
         toolbarLayoutMaster = new HorizontalLayout();
@@ -160,6 +170,7 @@ public class LeaveRequestView extends Main {
 
         leaveAppGrid.addColumn(HrLeaveApplication::getTotalDays)
                 .setHeader("Jumlah Hari");
+
 
         leaveAppGrid.addColumn(HrLeaveApplication::getStatus)
                 .setHeader("Status");
@@ -386,11 +397,13 @@ public class LeaveRequestView extends Main {
                     return;
                 }
 
-                int remainingDays = leaveBalance.getRemainingDays();
+                double remainingDays =
+                        leaveBalance.getRemainingDays() / 2.0;
 
                 leaveAbsenceTypeDropdown.setHelperText(
-                        "Sisa saldo cuti: " + remainingDays + " hari (" + selectedType.getLabel() + ")"
+                        "Sisa saldo cuti: " + remainingDays + " hari"
                 );
+
 
                 // submit hanya boleh kalau masih ada saldo cuti tahunan
                 submitButton.setEnabled(remainingDays > 0);
