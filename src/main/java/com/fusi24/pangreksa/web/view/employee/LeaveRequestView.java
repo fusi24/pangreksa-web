@@ -397,8 +397,9 @@ public class LeaveRequestView extends Main {
                     return;
                 }
 
-                double remainingDays =
-                        leaveBalance.getRemainingDays() / 2.0;
+                LeaveBalanceView view = new LeaveBalanceView(leaveBalance);
+
+                double remainingDays = view.getRemainingDays();
 
                 leaveAbsenceTypeDropdown.setHelperText(
                         "Sisa saldo cuti: " + remainingDays + " hari"

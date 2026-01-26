@@ -104,7 +104,7 @@ public class LeaveApprovalView extends Main {
         leaveAppGrid.addColumn(l -> l.getEmployee().getFirstName() + " " +l.getEmployee().getLastName()).setHeader("Mengajukan").setSortable(true);
         leaveAppGrid.addColumn(l -> l.getLeaveAbsenceType().getLabel()).setHeader("Tipe").setSortable(true);
         leaveAppGrid.addColumn(HrLeaveApplication::getStartDate).setHeader("Tanggal Mulai").setSortable(true);
-        leaveAppGrid.addColumn(l -> l.getTotalDays() / 2.0)
+        leaveAppGrid.addColumn(HrLeaveApplication::getTotalDays)
                 .setHeader("Jumlah Hari");
 
         leaveAppGrid.addColumn(HrLeaveApplication::getStatus).setHeader("Status").setSortable(true);
