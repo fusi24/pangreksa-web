@@ -87,16 +87,16 @@
             <groupId>com.vaadin</groupId>
             <artifactId>control-center-starter</artifactId>
         </dependency>
-        <dependency>
-            <groupId>software.xdev.vaadin.maps-leaflet</groupId>
-            <artifactId>flow</artifactId>
-            <version>5.0.1</version>
-        </dependency>
-        <dependency>
-            <groupId>software.xdev.vaadin.maps-leaflet.plugins</groupId>
-            <artifactId>geoman</artifactId>
-            <version>5.0.1</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>software.xdev.vaadin.maps-leaflet</groupId>-->
+<!--            <artifactId>flow</artifactId>-->
+<!--            <version>5.0.1</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>software.xdev.vaadin.maps-leaflet.plugins</groupId>-->
+<!--            <artifactId>geoman</artifactId>-->
+<!--            <version>5.0.1</version>-->
+<!--        </dependency>-->
 
         <!-- Persistence -->
         <dependency>
