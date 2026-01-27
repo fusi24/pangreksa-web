@@ -37,28 +37,28 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Route("master-org-structure-page-access")
-@PageTitle("Master Organization Structure")
-@Menu(order = 5, icon = "vaadin:organization", title = "Master Organization Structure")
+@PageTitle("Master Struktur Organisasi")
+@Menu(order = 5, icon = "vaadin:organization", title = "Master Struktur Organisasi")
 @RolesAllowed("USERS_MGT")
 public class MasterOrgStructureView extends Main {
-    public static final String VIEW_NAME = "Master Organization Structure";
+    public static final String VIEW_NAME = "Master Struktur Organisasi";
     private final HrOrgStructureRepository orgStructureRepo;
     private final HrCompanyRepository companyRepo;
 
     private final Grid<HrOrgStructure> grid = new Grid<>(HrOrgStructure.class);
-    private final TextField searchField = new TextField("Search");
-    private final Button addButton = new Button("Add Organization Structure");
+    private final TextField searchField = new TextField("Cari");
+    private final Button addButton = new Button("Tambah Struktur Organisasi");
 
     private final Dialog dialog = new Dialog();
     private final FormLayout form = new FormLayout();
     private final Binder<HrOrgStructure> binder = new Binder<>(HrOrgStructure.class);
 
-    private final ComboBox<HrCompany> companyField = new ComboBox<>("Company");
-    private final ComboBox<HrOrgStructure> parentField = new ComboBox<>("Parent Structure");
-    private final TextField codeField = new TextField("Code");
-    private final TextField nameField = new TextField("Name");
-    private final ComboBox<OrgStructureEnum> typeField = new ComboBox<>("Type");
-    private final TextArea descriptionField = new TextArea("Description");
+    private final ComboBox<HrCompany> companyField = new ComboBox<>("Perusahaan");
+    private final ComboBox<HrOrgStructure> parentField = new ComboBox<>("Struktur Induk");
+    private final TextField codeField = new TextField("Kode");
+    private final TextField nameField = new TextField("Nama");
+    private final ComboBox<OrgStructureEnum> typeField = new ComboBox<>("Tipe");
+    private final TextArea descriptionField = new TextArea("Deskripsi");
     private final Checkbox isActiveField = new Checkbox();
 
     private HrOrgStructure currentOrgStructure;
@@ -82,25 +82,34 @@ public class MasterOrgStructureView extends Main {
 
     private void configureGrid() {
         grid.removeAllColumns();
-        grid.addColumn(org -> org.getCompany() != null ? org.getCompany().getName() : "").setHeader("Company");
-        grid.addColumn(org -> org.getParent() != null ? org.getParent().getName() : "").setHeader("Parent");
-        grid.addColumn(HrOrgStructure::getName).setHeader("Name");
-        grid.addColumn(HrOrgStructure::getCode).setHeader("Code");
-        grid.addColumn(org -> org.getType() != null ? org.getType().name() : "").setHeader("Type");
-        grid.addColumn(org -> BooleanUtils.toString(org.getIsActive(), "Active", "Inactive")).setHeader("Active");
+        grid.addColumn(org -> org.getCompany() != null ? org.getCompany().getName() : "").setHeader("Perusahaan").setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(org -> org.getParent() != null ? org.getParent().getName() : "").setHeader("Induk").setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(HrOrgStructure::getName).setHeader("Nama").setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(HrOrgStructure::getCode).setHeader("Kode").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(org -> org.getType() != null ? org.getType().name() : "").setHeader("Tipe").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(org -> BooleanUtils.toString(org.getIsActive(), "Active", "Inactive")).setHeader("Aktif").setAutoWidth(true).setFlexGrow(0);
 
-        grid.addComponentColumn(org -> {
-            Button edit = new Button("Edit");
-            edit.addClickListener(e -> openEditDialog(org));
-            return edit;
-        }).setHeader("Edit");
+        grid.addComponentColumn(this::buildActionButtons)
+                .setHeader("Aksi")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
-        grid.addComponentColumn(org -> {
-            Button delete = new Button("Delete");
-            delete.addClickListener(e -> deleteOrgStructure(org));
-            return delete;
-        }).setHeader("Delete");
     }
+
+    private HorizontalLayout buildActionButtons(HrOrgStructure org) {
+        Button ubahButton = new Button("Ubah");
+        ubahButton.addClickListener(e -> openEditDialog(org));
+
+        Button hapusButton = new Button("Hapus");
+        hapusButton.addClickListener(e -> deleteOrgStructure(org));
+
+        HorizontalLayout actions = new HorizontalLayout(ubahButton, hapusButton);
+        actions.setSpacing(true);
+        actions.setPadding(false);
+
+        return actions;
+    }
+
 
     private void configureForm() {
         // Configure company dropdown
@@ -111,7 +120,7 @@ public class MasterOrgStructureView extends Main {
         // Configure parent structure dropdown
         parentField.setItems(orgStructureRepo.findAllWithAssociations());
         parentField.setItemLabelGenerator(parent -> parent != null ? parent.getName() : "");
-        parentField.setPlaceholder("Select Parent Structure (Optional)");
+        parentField.setPlaceholder("Pilih Parent Structure (Optional)");
 
         // Configure type dropdown
         typeField.setItems(OrgStructureEnum.values());
@@ -143,22 +152,22 @@ public class MasterOrgStructureView extends Main {
 
         // Bind fields to entity
         binder.forField(companyField)
-                .asRequired("Company is required")
+                .asRequired("Perusahaan wajib diisi")
                 .bind(HrOrgStructure::getCompany, HrOrgStructure::setCompany);
         
         binder.forField(parentField)
                 .bind(HrOrgStructure::getParent, HrOrgStructure::setParent);
         
         binder.forField(codeField)
-                .asRequired("Code is required")
+                .asRequired("Code wajib diisi")
                 .bind(HrOrgStructure::getCode, HrOrgStructure::setCode);
         
         binder.forField(nameField)
-                .asRequired("Name is required")
+                .asRequired("Name wajib diisi")
                 .bind(HrOrgStructure::getName, HrOrgStructure::setName);
         
         binder.forField(typeField)
-                .asRequired("Type is required")
+                .asRequired("Tipe wajib diisi")
                 .bind(HrOrgStructure::getType, HrOrgStructure::setType);
         
         binder.forField(descriptionField)
@@ -167,15 +176,15 @@ public class MasterOrgStructureView extends Main {
         binder.forField(isActiveField)
                 .bind(HrOrgStructure::getIsActive, HrOrgStructure::setIsActive);
 
-        dialog.add(new H3("Organization Structure Details"), form);
+        dialog.add(new H3("Struktur Organisasi Details"), form);
 
-        Button saveButton = new Button("Save", e -> saveOrgStructure());
-        Button cancelButton = new Button("Cancel", e -> dialog.close());
+        Button saveButton = new Button("Simpan", e -> saveOrgStructure());
+        Button cancelButton = new Button("Batal", e -> dialog.close());
         dialog.getFooter().add(cancelButton, saveButton);
     }
 
     private void addToolbar() {
-        searchField.setPlaceholder("Search by code, name, or type...");
+        searchField.setPlaceholder("Cari berdasarkan kode, nama, atau type...");
         searchField.setClearButtonVisible(true);
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
         searchField.addValueChangeListener(e -> refreshGrid());
@@ -238,7 +247,7 @@ public class MasterOrgStructureView extends Main {
             );
 
             if (isDuplicateCode) {
-                Notification.show("Organization structure code must be unique. Another structure already uses this code.",
+                Notification.show("Kode struktur organisasi harus unik. Kode tersebut sudah digunakan.. Another structure already uses this code.",
                         5000, Notification.Position.MIDDLE);
                 return;
             }
@@ -251,7 +260,7 @@ public class MasterOrgStructureView extends Main {
             );
 
             if (isDuplicateName) {
-                Notification.show("Organization structure name must be unique within the company. Another structure already uses this name.",
+                Notification.show("Struktur Organisasi name must be unique within the company. Another structure already uses this name.",
                         5000, Notification.Position.MIDDLE);
                 return;
             }
@@ -259,7 +268,7 @@ public class MasterOrgStructureView extends Main {
             // Check for circular reference if parent is set
             if (currentOrgStructure.getParent() != null) {
                 if (hasCircularReference(currentOrgStructure, currentOrgStructure.getParent())) {
-                    Notification.show("Cannot create circular reference. The selected parent creates a circular hierarchy.",
+                    Notification.show("Struktur induk yang dipilih menyebabkan hierarki melingkar. The selected parent creates a circular hierarchy.",
                             5000, Notification.Position.MIDDLE);
                     return;
                 }
@@ -268,9 +277,9 @@ public class MasterOrgStructureView extends Main {
             orgStructureRepo.save(currentOrgStructure);
             dialog.close();
             refreshGrid();
-            Notification.show("Saved successfully!");
+            Notification.show("Data berhasil disimpan.");
         } catch (Exception e) {
-            Notification.show("Error saving organization structure: " + e.getMessage());
+            Notification.show("Gagal menyimpan struktur organisasi: " + e.getMessage());
         }
     }
 
@@ -289,23 +298,23 @@ public class MasterOrgStructureView extends Main {
         // Check if this structure has children
         List<HrOrgStructure> children = orgStructureRepo.findByParentId(orgStructure.getId());
         if (!children.isEmpty()) {
-            Notification.show("Cannot delete organization structure. It has " + children.size() + 
+            Notification.show("Cannot delete Struktur Organisasi. It has " + children.size() + 
                     " child structure(s). Please remove or reassign children first.",
                     5000, Notification.Position.MIDDLE);
             return;
         }
 
-        String header = "Delete Organization Structure for " + orgStructure.getName() + "?";
+        String header = "Delete Struktur Organisasi for " + orgStructure.getName() + "?";
         String message = "Are you sure you want to permanently delete this record? This action cannot be undone.";
         ConfirmationDialogUtil.showConfirmation(
                 header,
                 message,
-                "Delete",
+                "Hapus",
                 event -> {
                     try {
                         orgStructureRepo.delete(orgStructure);
                         refreshGrid();
-                        Notification.show("Deleted successfully!");
+                        Notification.show("Data berhasi dihapus.");
                     } catch (Exception ex) {
                         Notification.show("Deletion failed: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
                         ex.printStackTrace();

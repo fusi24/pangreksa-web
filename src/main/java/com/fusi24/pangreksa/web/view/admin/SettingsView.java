@@ -99,7 +99,7 @@ public class SettingsView extends Main {
         toolbarLayoutMaster = new HorizontalLayout();
         toolbarLayoutMaster.setAlignItems(FlexComponent.Alignment.END);
 
-        saveButton = new Button("Save");
+        saveButton = new Button("Simpan");
 
         toolbarLayoutMaster.add(saveButton);
         toolbarLayoutMaster.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
@@ -127,7 +127,7 @@ public class SettingsView extends Main {
                 systemService.saveSystem(system);
             }
 
-            Notification.show("Settings saved successfully!");
+            Notification.show("Settings berhasil tersimpan!");
         });
     }
 

@@ -40,32 +40,32 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Route("master-work-schedule-page-access")
-@PageTitle("Master Work Schedule")
-@Menu(order = 6, icon = "vaadin:calendar", title = "Master Work Schedule")
+@PageTitle("Master Jadwal Kerja")
+@Menu(order = 6, icon = "vaadin:calendar", title = "Master Jadwal Kerja")
 @RolesAllowed("USERS_MGT")
 public class MasterWorkScheduleView extends Main {
 
-    public static final String VIEW_NAME = "Master Work Schedule";
+    public static final String VIEW_NAME = "Master Jadwal Kerja";
 
     private final HrWorkScheduleRepository scheduleRepo;
     private final HrOrgStructureRepository orgStructureRepo;
 
     private final Grid<HrWorkSchedule> grid = new Grid<>(HrWorkSchedule.class);
-    private final TextField searchField = new TextField("Search");
-    private final Button addButton = new Button("Add Work Schedule");
+    private final TextField searchField = new TextField("Cari");
+    private final Button addButton = new Button("Tambah Jadwal Kerja");
 
     private final Dialog dialog = new Dialog();
     private final FormLayout form = new FormLayout();
     private final Binder<HrWorkSchedule> binder = new Binder<>(HrWorkSchedule.class);
 
-    private final ComboBox<WorkScheduleType> typeField = new ComboBox<>("Schedule Type");
-    private final TextField nameField = new TextField("Name");
+    private final ComboBox<WorkScheduleType> typeField = new ComboBox<>("Tipe");
+    private final TextField nameField = new TextField("Nama");
     private final TimePicker checkInField = new TimePicker("Check-In");
     private final TimePicker checkOutField = new TimePicker("Check-Out");
-    private final TimePicker breakStartField = new TimePicker("Break Start");
-    private final TimePicker breakEndField = new TimePicker("Break End");
+    private final TimePicker breakStartField = new TimePicker("Istirahat Mulai");
+    private final TimePicker breakEndField = new TimePicker("Istirahat Selesai");
     private final ComboBox<WorkScheduleLabel> labelField = new ComboBox<>("Label");
-    private final Checkbox isOvertimeAutoField = new Checkbox("Auto Overtime");
+    private final Checkbox isOvertimeAutoField = new Checkbox("Lembur Otomatis");
     private final Checkbox isActiveField = new Checkbox("Active");
     private final Select<String> assignmentScopeField = new Select<>();
     private final MultiSelectComboBox<HrOrgStructure> assignedOrgMultiSelect = new MultiSelectComboBox<>("Assigned To");
@@ -95,32 +95,37 @@ public class MasterWorkScheduleView extends Main {
         grid.removeAllColumns();
         grid.setSizeFull();
         grid.getStyle().set("flex", "1");
-        grid.addColumn(HrWorkSchedule::getName).setHeader("Name").setAutoWidth(true);
+        grid.addColumn(HrWorkSchedule::getName).setHeader("Nama").setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(ws -> ws.getType() != null ? ws.getType().name() : "")
-                .setHeader("Type");
+                .setHeader("Tipe")
+                .setAutoWidth(true).setFlexGrow(1);
 
         grid.addColumn(ws -> formatTime(ws.getCheckIn()))
-                .setHeader("Check-In");
+                .setHeader("Check-In")
+                .setAutoWidth(true).setFlexGrow(0);
 
         grid.addColumn(ws -> formatTime(ws.getCheckOut()))
-                .setHeader("Check-Out");
+                .setHeader("Check-Out")
+                .setAutoWidth(true).setFlexGrow(0);
 
         grid.addColumn(ws -> ws.getLabel() != null ? ws.getLabel().name() : "")
-                .setHeader("Label");
+                .setHeader("Label")
+                .setAutoWidth(true).setFlexGrow(1);
 
         grid.addColumn(ws -> BooleanUtils.toString(ws.getIsActive(), "Active", "Inactive"))
-                .setHeader("Status");
+                .setHeader("Status")
+                .setAutoWidth(true).setFlexGrow(1);
 
         grid.addComponentColumn(this::createActionButtons)
-                .setHeader("Actions")
-                .setAutoWidth(true);
+                .setHeader("Aksi")
+                .setAutoWidth(true).setFlexGrow(1);
     }
 
     private HorizontalLayout createActionButtons(HrWorkSchedule ws) {
         Button detail = new Button("Detail");
         detail.addClickListener(e -> openDetailDialog(ws));
 
-        Button edit = new Button("Edit");
+        Button edit = new Button("Ubah");
         edit.addClickListener(e -> openEditDialog(ws));
 
         return new HorizontalLayout(detail, edit);
@@ -128,21 +133,21 @@ public class MasterWorkScheduleView extends Main {
 
     private void openDetailDialog(HrWorkSchedule ws) {
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Work Schedule Detail");
+        dialog.setHeaderTitle("Jadwal Kerja Detail");
         dialog.setWidth("500px");
 
         FormLayout layout = new FormLayout();
 
         layout.add(
-                createReadOnlyField("Name", ws.getName()),
-                createReadOnlyField("Type", ws.getType() != null ? ws.getType().name() : "-"),
+                createReadOnlyField("Nama", ws.getName()),
+                createReadOnlyField("Tipe", ws.getType() != null ? ws.getType().name() : "-"),
                 createReadOnlyField("Check-In", formatTime(ws.getCheckIn())),
                 createReadOnlyField("Check-Out", formatTime(ws.getCheckOut())),
-                createReadOnlyField("Break Start", formatTime(ws.getBreakStart())),
-                createReadOnlyField("Break End", formatTime(ws.getBreakEnd())),
+                createReadOnlyField("Istirahat Mulai", formatTime(ws.getBreakStart())),
+                createReadOnlyField("Istirahat Selesai", formatTime(ws.getBreakEnd())),
                 createReadOnlyField("Label", ws.getLabel() != null ? ws.getLabel().name() : "-"),
-                createReadOnlyField("Overtime Auto", BooleanUtils.toString(ws.getIsOvertimeAuto(), "Yes", "No")),
-                createReadOnlyField("Assignment", resolveAssignment(ws)),
+                createReadOnlyField("Lembur Otomatis", BooleanUtils.toString(ws.getIsOvertimeAuto(), "Yes", "No")),
+                createReadOnlyField("Penugasan", resolveAssignment(ws)),
                 createReadOnlyField("Status", BooleanUtils.toString(ws.getIsActive(), "Active", "Inactive"))
         );
 
@@ -188,7 +193,7 @@ public class MasterWorkScheduleView extends Main {
         labelField.setItemLabelGenerator(WorkScheduleLabel::name);
         labelField.setRequired(true);
 
-        assignmentScopeField.setLabel("Assignment");
+        assignmentScopeField.setLabel("Penugasan");
         assignmentScopeField.setItems("All", "Selected");
         assignmentScopeField.setRequiredIndicatorVisible(true);
         assignmentScopeField.addValueChangeListener(e -> {
@@ -225,16 +230,16 @@ public class MasterWorkScheduleView extends Main {
         );
 
         // Binder
-        binder.forField(nameField).asRequired("Name is required").bind(HrWorkSchedule::getName, HrWorkSchedule::setName);
-        binder.forField(typeField).asRequired("Type is required").bind(HrWorkSchedule::getType, HrWorkSchedule::setType);
-        binder.forField(checkInField).asRequired("Check-In is required").bind(HrWorkSchedule::getCheckIn, HrWorkSchedule::setCheckIn);
-        binder.forField(checkOutField).asRequired("Check-Out is required").bind(HrWorkSchedule::getCheckOut, HrWorkSchedule::setCheckOut);
+        binder.forField(nameField).asRequired("Name wajib diisi").bind(HrWorkSchedule::getName, HrWorkSchedule::setName);
+        binder.forField(typeField).asRequired("Tipe wajib diisi").bind(HrWorkSchedule::getType, HrWorkSchedule::setType);
+        binder.forField(checkInField).asRequired("Check-In wajib diisi").bind(HrWorkSchedule::getCheckIn, HrWorkSchedule::setCheckIn);
+        binder.forField(checkOutField).asRequired("Check-Out wajib diisi").bind(HrWorkSchedule::getCheckOut, HrWorkSchedule::setCheckOut);
         binder.forField(breakStartField).bind(HrWorkSchedule::getBreakStart, HrWorkSchedule::setBreakStart);
         binder.forField(breakEndField).bind(HrWorkSchedule::getBreakEnd, HrWorkSchedule::setBreakEnd);
-        binder.forField(labelField).asRequired("Label is required").bind(HrWorkSchedule::getLabel, HrWorkSchedule::setLabel);
+        binder.forField(labelField).asRequired("Label wajib diisi").bind(HrWorkSchedule::getLabel, HrWorkSchedule::setLabel);
         binder.forField(isOvertimeAutoField).bind(HrWorkSchedule::getIsOvertimeAuto, HrWorkSchedule::setIsOvertimeAuto);
         binder.forField(isActiveField).bind(HrWorkSchedule::getIsActive, HrWorkSchedule::setIsActive);
-        binder.forField(assignmentScopeField).asRequired("Assignment is required").bind(HrWorkSchedule::getAssignmentScope, HrWorkSchedule::setAssignmentScope);
+        binder.forField(assignmentScopeField).asRequired("Assignment wajib diisi").bind(HrWorkSchedule::getAssignmentScope, HrWorkSchedule::setAssignmentScope);
 
         // Special handling for assignment
 //        binder.withValidator(bean -> {
@@ -244,15 +249,15 @@ public class MasterWorkScheduleView extends Main {
 //            return true;
 //        }, "At least one organization must be selected when assignment is 'Selected'");
 
-        dialog.add(new H3("Work Schedule Details"), form);
+        dialog.add(new H3("Jadwal Kerja Details"), form);
 
-        Button saveButton = new Button("Save", e -> saveSchedule());
-        Button cancelButton = new Button("Cancel", e -> dialog.close());
+        Button saveButton = new Button("Simpan", e -> saveSchedule());
+        Button cancelButton = new Button("Batal", e -> dialog.close());
         dialog.getFooter().add(cancelButton, saveButton);
     }
 
     private void addToolbar() {
-        searchField.setPlaceholder("Search by name, type, or label...");
+        searchField.setPlaceholder("Cari berdasarkan nama, tipe atau label...");
         searchField.setClearButtonVisible(true);
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
         searchField.addValueChangeListener(e -> refreshGrid());
@@ -336,7 +341,7 @@ public class MasterWorkScheduleView extends Main {
 
             // Validate: if "Selected", must have at least one assignment
             if ("Selected".equals(currentSchedule.getAssignmentScope()) && currentSchedule.getAssignments().isEmpty()) {
-                Notification.show("Please select at least one organization structure.");
+                Notification.show("Please select at least one Struktur Organisasi.");
                 return;
             }
 
@@ -346,7 +351,7 @@ public class MasterWorkScheduleView extends Main {
             scheduleRepo.save(currentSchedule);
             dialog.close();
             refreshGrid();
-            Notification.show("Work schedule saved successfully!");
+            Notification.show("Jadwal Kerja berhasil tersimpan!");
         } catch (Exception e) {
             Notification.show("Error: " + e.getMessage());
             e.printStackTrace();
@@ -354,17 +359,17 @@ public class MasterWorkScheduleView extends Main {
     }
 
     private void deleteSchedule(HrWorkSchedule schedule) {
-        String header = "Delete Work Schedule: " + schedule.getName() + "?";
+        String header = "Delete Jadwal Kerja: " + schedule.getName() + "?";
         String message = "This will permanently delete the schedule and its assignments. Are you sure?";
         ConfirmationDialogUtil.showConfirmation(
                 header,
                 message,
-                "Delete",
+                "Hapus",
                 event -> {
                     try {
                         scheduleRepo.delete(schedule);
                         refreshGrid();
-                        Notification.show("Deleted successfully!");
+                        Notification.show("Data berhasi dihapus.");
                     } catch (Exception ex) {
                         Notification.show("Deletion failed: " + ex.getMessage());
                     }

@@ -205,7 +205,7 @@ public class AttendanceView extends Main {
                 applyFilters();
             });
 
-            orgStructureFilter.setPlaceholder("Org Structure");
+            orgStructureFilter.setPlaceholder("Org Struktur");
             orgStructureFilter.setItemLabelGenerator(HrOrgStructure::getName);
             orgStructureFilter.setWidth("150px");
             orgStructureFilter.addValueChangeListener(e -> applyFilters());
@@ -550,7 +550,7 @@ public class AttendanceView extends Main {
                 att.setAppUser(user); // ensure AppUserInfo is linked
                 att.setAttendanceDate(dateField.getValue());
 
-                // Resolve work schedule for this person on this date
+                // Resolve Jadwal Kerja for this person on this date
                 HrWorkSchedule schedule = workScheduleService.getActiveScheduleForUser(
                         user, dateField.getValue()
                 );

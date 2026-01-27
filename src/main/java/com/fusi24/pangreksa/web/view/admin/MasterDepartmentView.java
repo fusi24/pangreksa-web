@@ -40,16 +40,16 @@ public class MasterDepartmentView extends Main {
     private final HrDepartmentRepo departmentRepo;
 
     private final Grid<HrDepartment> grid = new Grid<>(HrDepartment.class);
-    private final TextField searchField = new TextField("Search");
-    private final Button addButton = new Button("Add Department");
+    private final TextField searchField = new TextField("Cari");
+    private final Button addButton = new Button("Tambah Department");
 
     private final Dialog dialog = new Dialog();
     private final FormLayout form = new FormLayout();
     private final Binder<HrDepartment> binder = new Binder<>(HrDepartment.class);
 
-    private final TextField codeField = new TextField("Code");
-    private final TextField nameField = new TextField("Name");
-    private final TextField descriptionField = new TextField("Description");
+    private final TextField codeField = new TextField("Kode");
+    private final TextField nameField = new TextField("Nama");
+    private final TextField descriptionField = new TextField("Deskripsi");
     private final Checkbox isActiveField = new Checkbox();
     // For simplicity, isActive as checkbox could be added, but we'll skip for brevity
 
@@ -70,20 +70,20 @@ public class MasterDepartmentView extends Main {
     }
 
     private void configureGrid() {
-        grid.setColumns("code", "name", "description");
+        grid.setColumns("Kode", "Nama", "Deskripsi");
         grid.addColumn(t -> BooleanUtils.toString(t.getIsActive(), "Active", "Inactive")).setHeader("Status");
 
         grid.addComponentColumn(dept -> {
-            Button edit = new Button("Edit");
+            Button edit = new Button("Ubah");
             edit.addClickListener(e -> openEditDialog(dept));
             return edit;
-        }).setHeader("Edit");
+        }).setHeader("Ubah");
 
         grid.addComponentColumn(dept -> {
-            Button delete = new Button("Delete");
+            Button delete = new Button("Hapus");
             delete.addClickListener(e -> deleteDepartment(dept));
             return delete;
-        }).setHeader("Delete");
+        }).setHeader("Hapus");
     }
 
     private void configureForm() {
@@ -94,10 +94,10 @@ public class MasterDepartmentView extends Main {
 
         // Explicitly bind each field
         binder.forField(codeField)
-                .asRequired("Code is required")
+                .asRequired("Code wajib diisi")
                 .bind(HrDepartment::getCode, HrDepartment::setCode);
         binder.forField(nameField)
-                .asRequired("Name is required")
+                .asRequired("Name wajib diisi")
                 .bind(HrDepartment::getName, HrDepartment::setName);
         binder.forField(descriptionField)
                 .bind(HrDepartment::getDescription, HrDepartment::setDescription);
@@ -106,13 +106,13 @@ public class MasterDepartmentView extends Main {
 
         dialog.add(new H3("Department Details"), form);
 
-        Button saveButton = new Button("Save", e -> saveDepartment());
-        Button cancelButton = new Button("Cancel", e -> dialog.close());
+        Button saveButton = new Button("Simpan", e -> saveDepartment());
+        Button cancelButton = new Button("Batal", e -> dialog.close());
         dialog.getFooter().add(cancelButton, saveButton);
     }
 
     private void addToolbar() {
-        searchField.setPlaceholder("Search by code or name...");
+        searchField.setPlaceholder("Cari berdasarkan code or name...");
         searchField.setClearButtonVisible(true);
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
         searchField.addValueChangeListener(e -> refreshGrid());
@@ -179,7 +179,7 @@ public class MasterDepartmentView extends Main {
             departmentRepo.save(currentDepartment);
             dialog.close();
             refreshGrid();
-            Notification.show("Saved successfully!");
+            Notification.show("Data berhasil disimpan.");
         } catch (Exception e) {
             Notification.show("Error saving department: " + e.getMessage());
         }
@@ -191,13 +191,13 @@ public class MasterDepartmentView extends Main {
         ConfirmationDialogUtil.showConfirmation(
                 header,
                 message,
-                "Delete", // The text on the confirm button
+                "Hapus", // The text on the confirm button
                 // The action to perform on confirmation
                 event -> {
                     try {
                         departmentRepo.delete(department);
                         refreshGrid();
-                        Notification.show("Deleted successfully!");
+                        Notification.show("Data berhasi dihapus.");
                     } catch (Exception ex) {
                         Notification.show("Deletion failed: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
                         ex.printStackTrace();

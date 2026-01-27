@@ -39,44 +39,44 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Route("master-company-page-access")
-@PageTitle("Master Company")
-@Menu(order = 4, icon = "vaadin:building", title = "Master Company")
+@PageTitle("Master perusahaan")
+@Menu(order = 4, icon = "vaadin:building", title = "Master perusahaan")
 @RolesAllowed("USERS_MGT")
 public class MasterCompanyView extends Main {
 
-    public static final String VIEW_NAME = "Master Company";
+    public static final String VIEW_NAME = "Master perusahaan";
 
     private final HrCompanyRepository companyRepo;
     private final CompanyBranchService branchService;
 
     // ===== TAB 1: COMPANY =====
     private final Grid<HrCompany> companyGrid = new Grid<>(HrCompany.class);
-    private final TextField companySearchField = new TextField("Search");
-    private final Button addCompanyButton = new Button("Add Company");
+    private final TextField companySearchField = new TextField("Cari");
+    private final Button addCompanyButton = new Button("Tambah perusahaan");
 
     private final Dialog companyDialog = new Dialog();
     private final FormLayout companyForm = new FormLayout();
     private final Binder<HrCompany> companyBinder = new Binder<>(HrCompany.class);
 
-    private final ComboBox<HrCompany> parentField = new ComboBox<>("Parent Company");
-    private final TextField nameField = new TextField("Name");
-    private final TextField shortNameField = new TextField("Short Name");
-    private final TextField registrationNumberField = new TextField("Registration Number");
+    private final ComboBox<HrCompany> parentField = new ComboBox<>("Induk perusahaan");
+    private final TextField nameField = new TextField("Nama");
+    private final TextField shortNameField = new TextField("Singkatan");
+    private final TextField registrationNumberField = new TextField("Nomor Registrasi");
     private final com.vaadin.flow.component.datepicker.DatePicker establishmentDateField =
-            new com.vaadin.flow.component.datepicker.DatePicker("Establishment Date");
-    private final TextField phoneField = new TextField("Phone");
+            new com.vaadin.flow.component.datepicker.DatePicker("Tanggal Berdiri");
+    private final TextField phoneField = new TextField("Handphone");
     private final TextField emailField = new TextField("Email");
     private final TextField websiteField = new TextField("Website");
-    private final Checkbox isActiveField = new Checkbox("Active");
-    private final Checkbox isHrManagedField = new Checkbox("HR Managed");
-    private final TextArea notesField = new TextArea("Notes");
+    private final Checkbox isActiveField = new Checkbox("Aktif");
+    private final Checkbox isHrManagedField = new Checkbox("Dikelola HR");
+    private final TextArea notesField = new TextArea("Catatan");
 
     private HrCompany currentCompany;
 
     // ===== TAB 2: BRANCH =====
     private final Grid<HrCompanyBranch> branchGrid = new Grid<>(HrCompanyBranch.class, false);
-    private final TextField branchSearchField = new TextField("Search Branch");
-    private final Button addBranchButton = new Button("Add Branch");
+    private final TextField branchSearchField = new TextField("Cari Cabang");
+    private final Button addBranchButton = new Button("Tambah Cabang");
 
     private final Dialog branchDialog = new Dialog();
     private final FormLayout branchForm = new FormLayout();
@@ -114,7 +114,7 @@ public class MasterCompanyView extends Main {
                 LumoUtility.Padding.MEDIUM,
                 LumoUtility.Gap.SMALL
         );
-
+        setSizeFull();
         add(new ViewToolbar(VIEW_NAME));
 
         TabSheet tabs = new TabSheet();
@@ -126,7 +126,6 @@ public class MasterCompanyView extends Main {
         tabs.add("Pindah Cabang", createSwitchBranchTab());
 
         add(tabs);
-
         refreshCompanyGrid();
         refreshBranchGrid();
     }
@@ -139,42 +138,54 @@ public class MasterCompanyView extends Main {
         configureCompanyForm();
         Component toolbar = buildCompanyToolbar();
 
-        VerticalLayout layout = new VerticalLayout(toolbar, companyGrid, companyDialog);
+        companyGrid.setSizeFull();
+
+        VerticalLayout layout = new VerticalLayout(toolbar, companyGrid);
         layout.setPadding(false);
         layout.setSpacing(false);
-        layout.setWidthFull();
+        layout.setSizeFull();
+        layout.setFlexGrow(1, companyGrid);
+
         return layout;
     }
+
 
     private void configureCompanyGrid() {
         companyGrid.removeAllColumns();
 
         companyGrid.addColumn(HrCompany::getName)
-                .setHeader("Name")
-                .setAutoWidth(true);
+                .setHeader("Nama")
+                .setAutoWidth(true)
+                .setFlexGrow(1);
 
         companyGrid.addColumn(HrCompany::getShortName)
-                .setHeader("Short Name");
+                .setHeader("Singkatan")
+                .setAutoWidth(true)
+                .setFlexGrow(1);
 
         companyGrid.addColumn(c -> c.getParent() != null ? c.getParent().getName() : "-")
-                .setHeader("Parent");
+                .setHeader("Induk").setAutoWidth(true)
+                .setFlexGrow(1);
 
         companyGrid.addColumn(c -> BooleanUtils.toString(c.getIsActive(), "Active", "Inactive"))
-                .setHeader("Status");
+                .setHeader("Status")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
         companyGrid.addComponentColumn(this::createCompanyActions)
-                .setHeader("Actions")
-                .setAutoWidth(true);
+                .setHeader("Aksi")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
     }
 
     private HorizontalLayout createCompanyActions(HrCompany company) {
         Button detail = new Button("Detail");
         detail.addClickListener(e -> openCompanyDetailDialog(company));
 
-        Button edit = new Button("Edit");
+        Button edit = new Button("Ubah");
         edit.addClickListener(e -> openEditCompanyDialog(company));
 
-        Button delete = new Button("Delete");
+        Button delete = new Button("Hapus");
         delete.addClickListener(e -> deleteCompany(company));
 
         return new HorizontalLayout(detail, edit, delete);
@@ -184,10 +195,10 @@ public class MasterCompanyView extends Main {
         Button detail = new Button("Detail");
         detail.addClickListener(e -> openBranchDetailDialog(branch));
 
-        Button edit = new Button("Edit");
+        Button edit = new Button("Ubah");
         edit.addClickListener(e -> openEditBranchDialog(branch));
 
-        Button delete = new Button("Delete");
+        Button delete = new Button("Hapus");
         delete.addClickListener(e -> deleteBranch(branch));
 
         return new HorizontalLayout(detail, edit, delete);
@@ -200,13 +211,13 @@ public class MasterCompanyView extends Main {
 
         FormLayout layout = new FormLayout();
         layout.add(
-                ro("Company", b.getCompany() != null ? b.getCompany().getName() : "-"),
-                ro("Branch Code", b.getBranchCode()),
-                ro("Branch Name", b.getBranchName()),
-                ro("Address", b.getBranchAddress()),
-                ro("City", b.getBranchAddressCity()),
-                ro("Province", b.getBranchAddressProvince()),
-                ro("Timezone", b.getBranchTimezone()),
+                ro("Perusahaan", b.getCompany() != null ? b.getCompany().getName() : "-"),
+                ro("Kode Cabang", b.getBranchCode()),
+                ro("Nama Cabang", b.getBranchName()),
+                ro("Alamat", b.getBranchAddress()),
+                ro("Kota", b.getBranchAddressCity()),
+                ro("Provinsi", b.getBranchAddressProvince()),
+                ro("Zona Waktu", b.getBranchTimezone()),
                 ro("Latitude", b.getBranchLatitude() != null ? b.getBranchLatitude().toPlainString() : "-"),
                 ro("Longitude", b.getBranchLongitude() != null ? b.getBranchLongitude().toPlainString() : "-")
         );
@@ -221,23 +232,23 @@ public class MasterCompanyView extends Main {
 
     private void openCompanyDetailDialog(HrCompany c) {
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Company Detail");
+        dialog.setHeaderTitle("Perusahaan Detail");
         dialog.setWidth("500px");
 
         FormLayout layout = new FormLayout();
         layout.add(
-                ro("Name", c.getName()),
-                ro("Short Name", c.getShortName()),
-                ro("Parent Company", c.getParent() != null ? c.getParent().getName() : "-"),
-                ro("Registration Number", c.getRegistrationNumber()),
-                ro("Establishment Date",
+                ro("Nama", c.getName()),
+                ro("Singkatan", c.getShortName()),
+                ro("Induk perusahaan", c.getParent() != null ? c.getParent().getName() : "-"),
+                ro("Nomor Registrasi", c.getRegistrationNumber()),
+                ro("Tanggal Berdiri",
                         c.getEstablishmentDate() != null ? c.getEstablishmentDate().toString() : "-"),
-                ro("Phone", c.getPhone()),
+                ro("Handphone", c.getPhone()),
                 ro("Email", c.getEmail()),
                 ro("Website", c.getWebsite()),
-                ro("HR Managed", BooleanUtils.toString(c.getIsHrManaged(), "Yes", "No")),
+                ro("Dikelola HR", BooleanUtils.toString(c.getIsHrManaged(), "Yes", "No")),
                 ro("Status", BooleanUtils.toString(c.getIsActive(), "Active", "Inactive")),
-                ro("Notes", c.getNotes())
+                ro("Catatan", c.getNotes())
         );
 
         Button close = new Button("Close", e -> dialog.close());
@@ -251,22 +262,22 @@ public class MasterCompanyView extends Main {
         branchGrid.removeAllColumns();
 
         branchGrid.addColumn(b -> b.getCompany() != null ? b.getCompany().getName() : "-")
-                .setHeader("Company");
+                .setHeader("Perusahaan");
 
         branchGrid.addColumn(HrCompanyBranch::getBranchCode)
-                .setHeader("Code");
+                .setHeader("Kode");
 
         branchGrid.addColumn(HrCompanyBranch::getBranchName)
-                .setHeader("Branch Name");
+                .setHeader("Nama Cabang");
 
         branchGrid.addColumn(HrCompanyBranch::getBranchAddressCity)
-                .setHeader("City");
+                .setHeader("Kota");
 
         branchGrid.addColumn(HrCompanyBranch::getBranchTimezone)
-                .setHeader("Timezone");
+                .setHeader("Zona Waktu");
 
         branchGrid.addComponentColumn(this::createBranchActions)
-                .setHeader("Actions");
+                .setHeader("Aksi");
     }
 
     private TextField ro(String label, String value) {
@@ -280,7 +291,7 @@ public class MasterCompanyView extends Main {
 
     private void configureCompanyForm() {
         parentField.setItemLabelGenerator(c -> c != null ? c.getName() : "");
-        parentField.setPlaceholder("Select Parent Company (Optional)");
+        parentField.setPlaceholder("Pilih Induk perusahaan (Optional)");
 
         nameField.setRequired(true);
         nameField.setMaxLength(100);
@@ -310,7 +321,7 @@ public class MasterCompanyView extends Main {
         emailField.setMaxLength(50);
         websiteField.setMaxLength(100);
 
-        notesField.setPlaceholder("Additional notes...");
+        notesField.setPlaceholder("Tambahitional notes...");
         notesField.setMinLength(0);
         notesField.setMaxLength(2000);
         notesField.setHeight("120px");
@@ -339,7 +350,7 @@ public class MasterCompanyView extends Main {
                 .bind(HrCompany::getParent, HrCompany::setParent);
 
         companyBinder.forField(nameField)
-                .asRequired("Name is required")
+                .asRequired("Name wajib diisi")
                 .bind(HrCompany::getName, HrCompany::setName);
 
         companyBinder.forField(shortNameField)
@@ -361,16 +372,16 @@ public class MasterCompanyView extends Main {
                 .bind(HrCompany::getNotes, HrCompany::setNotes);
 
         companyDialog.removeAll();
-        companyDialog.add(new H3("Company Details"), companyForm);
+        companyDialog.add(new H3("Perusahaan Details"), companyForm);
 
-        Button saveButton = new Button("Save", e -> saveCompany());
-        Button cancelButton = new Button("Cancel", e -> companyDialog.close());
+        Button saveButton = new Button("Simpan", e -> saveCompany());
+        Button cancelButton = new Button("Batal", e -> companyDialog.close());
         companyDialog.getFooter().removeAll();
         companyDialog.getFooter().add(cancelButton, saveButton);
     }
 
     private Component buildCompanyToolbar() {
-        companySearchField.setPlaceholder("Search by name, short name, reg. number, phone, email, or website...");
+        companySearchField.setPlaceholder("Cari berdasarkan name, Singkatan, reg. number, phone, email, or website...");
         companySearchField.setClearButtonVisible(true);
         companySearchField.setValueChangeMode(ValueChangeMode.EAGER);
         companySearchField.addValueChangeListener(e -> refreshCompanyGrid());
@@ -444,7 +455,7 @@ public class MasterCompanyView extends Main {
 
             if (duplicateName) {
                 Notification.show(
-                        "Company name must be unique. Another company already uses this name.",
+                        "Perusahaan name must be unique. Another company already uses this name.",
                         5000,
                         Notification.Position.MIDDLE
                 );
@@ -455,7 +466,7 @@ public class MasterCompanyView extends Main {
             companyDialog.close();
             refreshCompanyGrid();
             refreshBranchGrid();
-            Notification.show("Saved successfully!");
+            Notification.show("Data berhasil disimpan.");
         } catch (Exception e) {
             Notification.show("Error saving company: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
@@ -468,13 +479,13 @@ public class MasterCompanyView extends Main {
         ConfirmationDialogUtil.showConfirmation(
                 header,
                 message,
-                "Delete",
+                "Hapus",
                 event -> {
                     try {
                         companyRepo.delete(company);
                         refreshCompanyGrid();
                         refreshBranchGrid();
-                        Notification.show("Deleted successfully!");
+                        Notification.show("Data berhasi dihapus.");
                     } catch (Exception ex) {
                         Notification.show("Deletion failed: " + ex.getMessage(),
                                 5000, Notification.Position.MIDDLE);
@@ -492,16 +503,21 @@ public class MasterCompanyView extends Main {
         configureBranchForm();
         Component toolbar = buildBranchToolbar();
 
-        VerticalLayout layout = new VerticalLayout(toolbar, branchGrid, branchDialog);
+        branchGrid.setSizeFull();
+
+        VerticalLayout layout = new VerticalLayout(toolbar, branchGrid);
+        layout.setSizeFull();
         layout.setPadding(false);
         layout.setSpacing(false);
-        layout.setWidthFull();
+        layout.setFlexGrow(1, branchGrid);
+
         return layout;
     }
 
 
+
     private Component buildBranchToolbar() {
-        branchSearchField.setPlaceholder("Search by code, name, city, province...");
+        branchSearchField.setPlaceholder("Cari berdasarkan code, name, city, province...");
         branchSearchField.setClearButtonVisible(true);
         branchSearchField.setValueChangeMode(ValueChangeMode.EAGER);
         branchSearchField.addValueChangeListener(e -> refreshBranchGrid());
@@ -587,8 +603,8 @@ public class MasterCompanyView extends Main {
         branchDialog.removeAll();
         branchDialog.add(new H3("Branch Details"), branchForm);
 
-        Button saveButton = new Button("Save", e -> saveBranch());
-        Button cancelButton = new Button("Cancel", e -> branchDialog.close());
+        Button saveButton = new Button("Simpan", e -> saveBranch());
+        Button cancelButton = new Button("Batal", e -> branchDialog.close());
         branchDialog.getFooter().removeAll();
         branchDialog.getFooter().add(cancelButton, saveButton);
     }
@@ -678,7 +694,7 @@ public class MasterCompanyView extends Main {
             branchService.save(currentBranch);
             branchDialog.close();
             refreshBranchGrid();
-            Notification.show("Branch saved successfully!");
+            Notification.show("Cabang berhasil tersimpan!");
         } catch (Exception e) {
             Notification.show("Error saving branch: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
@@ -691,12 +707,12 @@ public class MasterCompanyView extends Main {
         ConfirmationDialogUtil.showConfirmation(
                 header,
                 message,
-                "Delete",
+                "Hapus",
                 event -> {
                     try {
                         branchService.delete(branch);
                         refreshBranchGrid();
-                        Notification.show("Deleted successfully!");
+                        Notification.show("Data berhasi dihapus.");
                     } catch (Exception ex) {
                         Notification.show("Deletion failed: " + ex.getMessage(),
                                 5000, Notification.Position.MIDDLE);

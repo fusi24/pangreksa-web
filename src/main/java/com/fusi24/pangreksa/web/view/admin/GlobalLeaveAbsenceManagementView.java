@@ -36,8 +36,8 @@ import java.util.List;
 import java.util.stream.StreamSupport;
 
 @Route("leave-absence-management-access")
-@PageTitle("Global Leave Absence Management")
-@Menu(order = 39, icon = "vaadin:calendar-user", title = "Global Leave Absence Management")
+@PageTitle("Pengelolaan Cuti dan Izin Karyawan")
+@Menu(order = 39, icon = "vaadin:calendar-user", title = "Pengelolaan Cuti dan Izin Karyawan")
 @RolesAllowed("LEAVE_ABSC_MGT")
 //@PermitAll // When security is enabled, allow all authenticated users
 public class GlobalLeaveAbsenceManagementView extends Main {
@@ -48,7 +48,7 @@ public class GlobalLeaveAbsenceManagementView extends Main {
     private final LeaveService leaveService;
     private Authorization auth;
 
-    public static final String VIEW_NAME = "Global Leave Absence Management";
+    public static final String VIEW_NAME = "Pengelolaan Cuti dan Izin Karyawan";
 
     private VerticalLayout body;
 
@@ -100,8 +100,8 @@ public class GlobalLeaveAbsenceManagementView extends Main {
         body.setSpacing(false);
         body.setHeightFull();
 
-        addButton = new Button("Add");
-        saveButton = new Button("Save");
+        addButton = new Button("Tambah");
+        saveButton = new Button("Simpan");
 
         HorizontalLayout functionLeaveAbsenceManagement = new HorizontalLayout();
         functionLeaveAbsenceManagement.setWidthFull();
@@ -140,14 +140,14 @@ public class GlobalLeaveAbsenceManagementView extends Main {
                 }
             });
             return sortOrderField;
-        })).setHeader("Sort Order").setFlexGrow(0).setAutoWidth(true);
+        })).setHeader("Set Urutan").setFlexGrow(0).setAutoWidth(true);
 
         // Editable Type column
         leaveAbsenceTypesGrid.addColumn(new ComponentRenderer<>(lat -> {
             TextField labelField = new TextField();
             labelField.setValue(lat.getLeaveType());
             labelField.setWidthFull();
-            labelField.setErrorMessage("Type is required");
+            labelField.setErrorMessage("Tipe wajib diisi");
             labelField.setManualValidation(true);
             labelField.setValueChangeMode(ValueChangeMode.EAGER);
             labelField.addValueChangeListener(e -> {
@@ -159,14 +159,14 @@ public class GlobalLeaveAbsenceManagementView extends Main {
             });
 
             return labelField;
-        })).setHeader("Type").setFlexGrow(0);
+        })).setHeader("Tipe").setFlexGrow(0);
 
         // Editable Name/ Label column
         leaveAbsenceTypesGrid.addColumn(new ComponentRenderer<>(lat -> {
             TextField labelField = new TextField();
             labelField.setValue(lat.getLabel());
             labelField.setWidthFull();
-            labelField.setErrorMessage("Name is required");
+            labelField.setErrorMessage("Name wajib diisi");
             labelField.setManualValidation(true);
             labelField.setValueChangeMode(ValueChangeMode.EAGER);
             labelField.addValueChangeListener(e -> {
@@ -177,7 +177,7 @@ public class GlobalLeaveAbsenceManagementView extends Main {
                 this.isGridEdit = true;
             });
             return labelField;
-        })).setHeader("Name").setFlexGrow(1);
+        })).setHeader("Nama").setFlexGrow(1);
 
         // Editable Leave Absence Type Column
         leaveAbsenceTypesGrid.addColumn(new ComponentRenderer<>(lat -> {
@@ -196,14 +196,14 @@ public class GlobalLeaveAbsenceManagementView extends Main {
                 }
             });
             return pagesDropdown;
-        })).setHeader("Leave Type").setFlexGrow(0).setWidth("200px");
+        })).setHeader("Tipe Cuti").setFlexGrow(0).setWidth("200px");
 
         // Editable Description column
         leaveAbsenceTypesGrid.addColumn(new ComponentRenderer<>(lat -> {
             TextField labelField = new TextField();
             labelField.setValue(lat.getDescription());
             labelField.setWidthFull();
-            labelField.setErrorMessage("Description is required");
+            labelField.setErrorMessage("Description wajib diisi");
             labelField.setManualValidation(true);
             labelField.setValueChangeMode(ValueChangeMode.EAGER);
             labelField.addValueChangeListener(e -> {
@@ -214,7 +214,7 @@ public class GlobalLeaveAbsenceManagementView extends Main {
                 this.isGridEdit = true;
             });
             return labelField;
-        })).setHeader("Description").setFlexGrow(1);
+        })).setHeader("Deskripsi").setFlexGrow(1);
 
         // Editable Active column
         leaveAbsenceTypesGrid.addColumn(new ComponentRenderer<>(lat -> {
@@ -239,21 +239,21 @@ public class GlobalLeaveAbsenceManagementView extends Main {
                 this.isGridEdit = true;
             });
             return maxDaysField;
-        })).setHeader("Max Days").setFlexGrow(0).setAutoWidth(true);
+        })).setHeader("Maksimal Cuti").setFlexGrow(0).setAutoWidth(true);
 
         // Action column with delete button (icon only, no title)
         // Inside your grid's delete column
         leaveAbsenceTypesGrid.addColumn(new ComponentRenderer<>(lat -> {
             Button deleteButton = new Button();
             deleteButton.setIcon(VaadinIcon.CLOSE.create());
-            deleteButton.getElement().setAttribute("title", "Delete");
+            deleteButton.getElement().setAttribute("title", "Hapus");
             deleteButton.addClickListener(e -> {
                 ConfirmDialog confirmDialog = new ConfirmDialog();
                 confirmDialog.setHeader("Confirm Deletion");
-                confirmDialog.setText("Are you sure you want to delete '" + lat.getLabel() + "'?");
+                confirmDialog.setText("Apakah Anda yakin ingin menghapus '" + lat.getLabel() + "'?");
                 confirmDialog.setCancelable(true);
                 confirmDialog.addCancelListener(ev -> {});
-                confirmDialog.setConfirmText("Delete");
+                confirmDialog.setConfirmText("Hapus");
                 confirmDialog.addConfirmListener(ev -> {
                     if (lat.getId() != null) {
                         // Mark for deletion (will be deleted on save)
@@ -293,7 +293,7 @@ public class GlobalLeaveAbsenceManagementView extends Main {
             HrLeaveAbsenceTypes newLeaveAbsenceType = HrLeaveAbsenceTypes.builder()
                     .leaveAbsenceType(LeaveAbsenceTypeEnum.UNPAID_LEAVE)
                     .leaveType("NEW")
-                    .label("New Leave Type")
+                    .label("New Tipe Cuti")
                     .isEnable(Boolean.FALSE)
                     .description("n/a")
                     .maxAllowedDays(0)

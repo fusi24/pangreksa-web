@@ -37,8 +37,8 @@ import java.util.List;
 import java.util.stream.StreamSupport;
 
 @Route("responsibilities-page-access")
-@PageTitle("Responsibilities")
-@Menu(order = 4, icon = "vaadin:clipboard-check", title = "Responsibilities")
+@PageTitle("Hak Akses")
+@Menu(order = 4, icon = "vaadin:clipboard-check", title = "Hak Akses")
 @RolesAllowed("RESPONSIBL")
 //@PermitAll // When security is enabled, allow all authenticated users
 public class ResponsibilitiesView extends Main {
@@ -49,7 +49,7 @@ public class ResponsibilitiesView extends Main {
     private final CommonService commonService;
     private Authorization auth;
 
-    public static final String VIEW_NAME = "Responsibilities";
+    public static final String VIEW_NAME = "Hak Akses";
     private VerticalLayout body;
     private Button populateButton;
     private Button saveMenuButton;
@@ -127,7 +127,7 @@ public class ResponsibilitiesView extends Main {
                 }
             });
             return sortOrderField;
-        })).setHeader("Sort Order").setFlexGrow(0).setAutoWidth(true);
+        })).setHeader("Urutan").setFlexGrow(0).setAutoWidth(true);
 
         // menu group
         menuGrid.addColumn(new ComponentRenderer<>(menu -> {
@@ -149,7 +149,7 @@ public class ResponsibilitiesView extends Main {
             });
 
             return cbGroup;
-        })).setHeader("Menu Group").setFlexGrow(1).setAutoWidth(true);
+        })).setHeader("Grup Menu").setFlexGrow(1).setAutoWidth(true);
 
         // Menu label editable
         menuGrid.addColumn(new ComponentRenderer<>(menu -> {
@@ -164,7 +164,7 @@ public class ResponsibilitiesView extends Main {
                 }
             });
             return labelField;
-        })).setHeader("Menu Label").setFlexGrow(1).setAutoWidth(true);
+        })).setHeader("Label Menu").setFlexGrow(1).setAutoWidth(true);
 
         // Pages Editable
         menuGrid.addColumn(new ComponentRenderer<>(menu -> {
@@ -184,7 +184,7 @@ public class ResponsibilitiesView extends Main {
                 }
             });
             return pagesDropdown;
-        })).setHeader("Pages").setFlexGrow(1).setWidth("350px");
+        })).setHeader("Halaman").setFlexGrow(1).setWidth("350px");
 
         // Can View editable
         menuGrid.addColumn(new ComponentRenderer<>(menu -> {
@@ -197,7 +197,7 @@ public class ResponsibilitiesView extends Main {
                 }
             });
             return viewCheckbox;
-        })).setHeader("Can View").setFlexGrow(0).setAutoWidth(true);
+        })).setHeader("Lihat").setFlexGrow(0).setAutoWidth(true);
 
         // Can Create editable
         menuGrid.addColumn(new ComponentRenderer<>(menu -> {
@@ -210,7 +210,7 @@ public class ResponsibilitiesView extends Main {
                 }
             });
             return createCheckbox;
-        })).setHeader("Can Create").setFlexGrow(0).setAutoWidth(true);
+        })).setHeader("Tambah").setFlexGrow(0).setAutoWidth(true);
 
         // Can Edit editable
         menuGrid.addColumn(new ComponentRenderer<>(menu -> {
@@ -223,7 +223,7 @@ public class ResponsibilitiesView extends Main {
                 }
             });
             return editCheckbox;
-        })).setHeader("Can Edit").setFlexGrow(0).setAutoWidth(true);
+        })).setHeader("Ubah").setFlexGrow(0).setAutoWidth(true);
 
         // Can Delete editable
         menuGrid.addColumn(new ComponentRenderer<>(menu -> {
@@ -236,13 +236,13 @@ public class ResponsibilitiesView extends Main {
                 }
             });
             return deleteCheckbox;
-        })).setHeader("Can Delete").setFlexGrow(0).setAutoWidth(true);
+        })).setHeader("Hapus").setFlexGrow(0).setAutoWidth(true);
 
         // Action column with delete button (icon only, no title)
         menuGrid.addColumn(new ComponentRenderer<>(menu -> {
             Button deleteButton = new Button();
             deleteButton.setIcon(VaadinIcon.CLOSE.create());
-            deleteButton.getElement().setAttribute("title", "Delete");
+            deleteButton.getElement().setAttribute("title", "Hapus");
             deleteButton.addClickListener(e -> {
                 menuGrid.getListDataView().removeItem(menu);
                 if (menu.getId() != null) {
@@ -277,7 +277,7 @@ public class ResponsibilitiesView extends Main {
                 }
             });
             return sortOrderField;
-        })).setHeader("Sort Order").setFlexGrow(0).setAutoWidth(true);
+        })).setHeader("Urutan").setFlexGrow(0).setAutoWidth(true);
 
         // Editable Label column
         respGrid.addColumn(new ComponentRenderer<>(resp -> {
@@ -289,7 +289,7 @@ public class ResponsibilitiesView extends Main {
                 this.isRespEdit = true;
             });
             return labelField;
-        })).setHeader("Responsibility").setFlexGrow(1);
+        })).setHeader("Hak Akses").setFlexGrow(1);
 
         // Editable Description column
         respGrid.addColumn(new ComponentRenderer<>(resp -> {
@@ -301,7 +301,7 @@ public class ResponsibilitiesView extends Main {
                 this.isRespEdit = true;
             });
             return descField;
-        })).setHeader("Description").setFlexGrow(2);
+        })).setHeader("Deskripsi").setFlexGrow(2);
 
         // Editable Active column
         respGrid.addColumn(new ComponentRenderer<>(resp -> {
@@ -311,13 +311,13 @@ public class ResponsibilitiesView extends Main {
                 this.isRespEdit = true;
             });
             return activeCheckbox;
-        })).setHeader("active").setFlexGrow(2);
+        })).setHeader("Aktif").setFlexGrow(2);
 
         // Action column with delete button (icon only, no title)
         respGrid.addColumn(new ComponentRenderer<>(resp -> {
             Button deleteButton = new Button();
             deleteButton.setIcon(VaadinIcon.CLOSE.create());
-            deleteButton.getElement().setAttribute("title", "Delete");
+            deleteButton.getElement().setAttribute("title", "Hapus");
             deleteButton.addClickListener(e -> {
                 respGrid.getListDataView().removeItem(resp);
                 this.isMenuEdit = true;
@@ -345,12 +345,12 @@ public class ResponsibilitiesView extends Main {
         body.setSpacing(false);
         body.setSizeFull();
 
-        responsibilityDropdown = new ComboBox<>("Responsibility");
-        populateButton = new Button("Populate");
-        addMenuButton = new Button("Add");
-        saveMenuButton = new Button("Save");
-        addRespButton = new Button("Add");
-        saveRespButton = new Button("Save");
+        responsibilityDropdown = new ComboBox<>("Hak Akses");
+        populateButton = new Button("Muat Data");
+        addMenuButton = new Button("Tambah");
+        saveMenuButton = new Button("Simpan");
+        addRespButton = new Button("Tambah");
+        saveRespButton = new Button("Simpan");
 
         responsibilityDropdown.setItemLabelGenerator(FwResponsibilities::getLabel);
         responsibilityDropdown.setItems(adminService.findActiveResponsibilities());
@@ -390,7 +390,7 @@ public class ResponsibilitiesView extends Main {
         menuTab.add(functionMenuListGrid, menuGrid);
         menuTab.setFlexGrow(1, menuGrid);
 
-        tabsheet.add("Menu Management", menuTab);
+        tabsheet.add("Manajemen Menu", menuTab);
 
 // ===== TAB: RESPONSIBILITY LIST =====
         VerticalLayout respTab = new VerticalLayout();
@@ -404,7 +404,7 @@ public class ResponsibilitiesView extends Main {
         respTab.add(functionResponsibilitiesListGrid, respGrid);
         respTab.setFlexGrow(1, respGrid);
 
-        tabsheet.add("Responsibility List", respTab);
+        tabsheet.add("Daftar Hak Akses", respTab);
 
         body.add(tabsheet);
         body.setFlexGrow(1, tabsheet);
@@ -425,7 +425,7 @@ public class ResponsibilitiesView extends Main {
                 menuGrid.setItems(new ArrayList<>(fwResponsibilitiesMenu));
                 this.isMenuEdit = false;
             } else {
-                Notification.show("Please select responsibility before populating the grid.");
+                Notification.show("Silakan pilih hak akses terlebih dahulu.");
             }
         });
 
@@ -442,7 +442,7 @@ public class ResponsibilitiesView extends Main {
             FwResponsibilitiesMenu newRm = new FwResponsibilitiesMenu();
             FwMenus fwMenu = new FwMenus();
             fwMenu.setSortOrder(maxSortOrder + 1);
-            fwMenu.setLabel("New Label");
+            fwMenu.setLabel("Label Baru");
 
             newRm.setMenu(fwMenu);
             newRm.setResponsibility(this.responsibilityDropdown.getValue());
@@ -463,7 +463,7 @@ public class ResponsibilitiesView extends Main {
 
                 this.isMenuEdit = false;
 
-                Notification.show("Changes saved successfully.");
+                Notification.show("Perubahan berhasil disimpan.");
             }
         });
 
@@ -479,9 +479,9 @@ public class ResponsibilitiesView extends Main {
             // Add a new empty FwResponsibilitiesMenu to the grid
             FwResponsibilities resp = new FwResponsibilities();
             resp.setSortOrder(maxSortOrder + 1);
-            resp.setLabel("New Responsibilities");
+            resp.setLabel("Hak Akses Baru");
             resp.setIsActive(false);
-            resp.setDescription("New Responsibilities Description");
+            resp.setDescription("Hak Akses Baru Description");
             respGrid.getListDataView().addItem(resp);
 
             this.isRespEdit = true;
@@ -499,7 +499,7 @@ public class ResponsibilitiesView extends Main {
 
                 this.isRespEdit = false;
 
-                Notification.show("Responsibility List saved successfully.");
+                Notification.show("Daftar hak akses berhasil disimpan.");
 
                 this.responsibilityDropdown.setItems(adminService.findActiveResponsibilities());
                 this.menuGrid.setItems(Collections.emptyList());

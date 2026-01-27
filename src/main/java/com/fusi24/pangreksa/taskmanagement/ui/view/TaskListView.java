@@ -59,7 +59,7 @@ public class TaskListView extends Main {
 
         taskGrid = new Grid<>();
         taskGrid.setItems(query -> taskService.list(toSpringPageRequest(query)).stream());
-        taskGrid.addColumn(Task::getDescription).setHeader("Description");
+        taskGrid.addColumn(Task::getDescription).setHeader("Deskripsi");
         taskGrid.addColumn(task -> Optional.ofNullable(task.getDueDate()).map(dateFormatter::format).orElse("Never"))
                 .setHeader("Due Date");
         taskGrid.addColumn(task -> dateTimeFormatter.format(task.getCreationDate())).setHeader("Creation Date");

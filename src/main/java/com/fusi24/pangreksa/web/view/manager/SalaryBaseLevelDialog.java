@@ -66,7 +66,7 @@ public class SalaryBaseLevelDialog extends Dialog {
         layout.setSpacing(true);
 
         // ===== Company (readonly based on login user) =====
-        companyCB = new ComboBox<>("Company");
+        companyCB = new ComboBox<>("Perusahaan");
         companyCB.setItems(company);
         companyCB.setItemLabelGenerator(c -> c != null ? c.getName() : "");
         companyCB.setValue(company);
@@ -74,24 +74,24 @@ public class SalaryBaseLevelDialog extends Dialog {
         companyCB.setWidthFull();
 
         // ===== Level Code =====
-        levelCodeTF = new TextField("Level Code");
+        levelCodeTF = new TextField("Kode Level");
         levelCodeTF.setReadOnly(true);
         levelCodeTF.setWidthFull();
 
         // ===== Amount =====
-        amountTF = new TextField("Amount");
+        amountTF = new TextField("Nominal");
         amountTF.setAllowedCharPattern("[0-9]");
         amountTF.setWidthFull();
 
         // ===== Dates =====
-        startDateDP = new DatePicker("Start Date");
+        startDateDP = new DatePicker("Tanggal Mulai");
         startDateDP.setWidthFull();
 
-        endDateDP = new DatePicker("End Date");
+        endDateDP = new DatePicker("Tanggal Selesai");
         endDateDP.setWidthFull();
 
         // ===== Reason =====
-        reasonCB = new ComboBox<>("Reason");
+        reasonCB = new ComboBox<>("Keterangan");
         reasonCB.setItems(REASONS);
         reasonCB.setWidthFull();
 
@@ -99,10 +99,10 @@ public class SalaryBaseLevelDialog extends Dialog {
         activeCB = new Checkbox("Active");
         activeCB.setValue(true);
 
-        // ===== Default start date =====
+        // ===== Default Tanggal Mulai =====
         startDateDP.setValue(LocalDate.now());
 
-        // ===== ADD mode: auto-generate code on start date change =====
+        // ===== ADD mode: auto-generate code on Tanggal Mulai change =====
         if (editingVersion == null) {
             startDateDP.addValueChangeListener(ev -> {
                 if (ev.getValue() != null) {
@@ -133,8 +133,8 @@ public class SalaryBaseLevelDialog extends Dialog {
         }
 
         // ===== Buttons =====
-        Button cancelBtn = new Button("Cancel", e -> close());
-        Button saveBtn = new Button("Save");
+        Button cancelBtn = new Button("Batal", e -> close());
+        Button saveBtn = new Button("Simpan");
 
         saveBtn.addClickListener(e -> {
             LocalDate start = startDateDP.getValue();
@@ -142,15 +142,15 @@ public class SalaryBaseLevelDialog extends Dialog {
             String reason = reasonCB.getValue();
 
             if (start == null) {
-                Notification.show("Start Date wajib diisi");
+                Notification.show("Tanggal Mulai wajib diisi");
                 return;
             }
             if (amountTF.getValue() == null || amountTF.getValue().isBlank()) {
-                Notification.show("Amount wajib diisi");
+                Notification.show("Nominal wajib diisi");
                 return;
             }
             if (reason == null || reason.isBlank()) {
-                Notification.show("Reason wajib diisi");
+                Notification.show("Keterangan wajib diisi");
                 return;
             }
 
@@ -158,7 +158,7 @@ public class SalaryBaseLevelDialog extends Dialog {
             try {
                 amount = new BigDecimal(amountTF.getValue());
             } catch (Exception ex) {
-                Notification.show("Amount tidak valid");
+                Notification.show("Nominaltidak valid");
                 return;
             }
 

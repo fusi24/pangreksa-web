@@ -164,13 +164,13 @@ public class KomponenGajiView extends Main {
         body.setHeightFull();
 
         withInactiveBasicSalary = new Checkbox(true);
-        withInactiveBasicSalary.setLabel("With Inactive Level Code");
+        withInactiveBasicSalary.setLabel("Tampilkan Level Gaji Tidak Aktif");
 
         withInactiveAllowance = new Checkbox(true);
-        withInactiveAllowance.setLabel("With Inactive Allowance");
+        withInactiveAllowance.setLabel("Tampilkan Tunjangan Tidak Aktif");
 
         withInactivePositionAllowance = new Checkbox(true);
-        withInactivePositionAllowance.setLabel("With Inactive Allowance");
+        withInactivePositionAllowance.setLabel("Tampilkan Tunjangan Tidak Aktif");
 
         this.tabsheet = new TabSheet();
         tabsheet.setWidthFull();
@@ -192,7 +192,7 @@ public class KomponenGajiView extends Main {
        ========================= */
 
     private Component createSalaryBaseLevelFunction(){
-        sblAddButton = new Button("Add");
+        sblAddButton = new Button("Tambah");
         sblSaveButton = new Button("Refresh");
 
         HorizontalLayout leftLayout = new HorizontalLayout();
@@ -214,33 +214,33 @@ public class KomponenGajiView extends Main {
 
         salaryBaseLevelGrid.addColumn(item ->
                 item.getCompany() != null ? item.getCompany().getName() : ""
-        ).setHeader("Company").setAutoWidth(true);
+        ).setHeader("Perusahaan").setAutoWidth(true);
 
 
 
         salaryBaseLevelGrid.addColumn(HrSalaryBaseLevel::getLevelCode)
-                .setHeader("Level Code").setAutoWidth(true);
+                .setHeader("Kode Level").setAutoWidth(true);
 
         salaryBaseLevelGrid.addColumn(item ->
                         item.getBaseSalary() == null ? "" : decimalAmountFormater(item.getBaseSalary()))
-                .setHeader("Amount").setAutoWidth(true)
+                .setHeader("Nominal").setAutoWidth(true)
                 .setTextAlign(ColumnTextAlign.END);
 
         salaryBaseLevelGrid.addColumn(item ->
                         item.getStartDate() == null ? "" : item.getStartDate().toString())
-                .setHeader("Start Date").setAutoWidth(true);
+                .setHeader("Tanggal Mulai").setAutoWidth(true);
 
         salaryBaseLevelGrid.addColumn(item ->
                         item.getEndDate() == null ? "" : item.getEndDate().toString())
-                .setHeader("End Date").setAutoWidth(true);
+                .setHeader("Tanggal Selesai").setAutoWidth(true);
 
         salaryBaseLevelGrid.addColumn(item ->
                         item.getReason() == null ? "" : item.getReason())
-                .setHeader("Reason").setAutoWidth(true);
+                .setHeader("Keterangan").setAutoWidth(true);
 
         salaryBaseLevelGrid.addColumn(item ->
-                Boolean.TRUE.equals(item.getIsActive()) ? "Yes" : "No"
-        ).setHeader("Active").setAutoWidth(true);
+                Boolean.TRUE.equals(item.getIsActive()) ? "Ya" : "Tidak"
+        ).setHeader("Aktif").setAutoWidth(true);
 
 
         // ✅ ACTION COLUMN DI TEMPAT YANG BENAR
@@ -248,7 +248,7 @@ public class KomponenGajiView extends Main {
             HorizontalLayout actions = new HorizontalLayout();
 
             Button detail = new Button("Detail", e -> openSalaryBaseLevelDetail(item));
-            Button edit = new Button("Edit", e -> {
+            Button edit = new Button("Ubah", e -> {
                 SalaryBaseLevelDialog dialog = new SalaryBaseLevelDialog(
                         salaryBaseLevelService,
                         currentAppUser.getCompany(),
@@ -259,7 +259,7 @@ public class KomponenGajiView extends Main {
                 dialog.open();
             });
 
-            Button delete = new Button("Delete", e -> {
+            Button delete = new Button("Hapus", e -> {
                 if (auth.canDelete && item.getId() != null) {
                     salaryBaseLevelService.delete(item);
                     populateSalaryBaseLevelGrid(withInactiveBasicSalary.getValue());
@@ -272,7 +272,7 @@ public class KomponenGajiView extends Main {
 
             actions.add(detail, edit, delete);
             return actions;
-        })).setHeader("Actions").setAutoWidth(true);
+        })).setHeader("Aksi").setAutoWidth(true);
 
         VerticalLayout salaryBaseLevelLayout = new VerticalLayout(functionMenuLayout, salaryBaseLevelGrid);
         salaryBaseLevelLayout.setSpacing(false);
@@ -283,8 +283,8 @@ public class KomponenGajiView extends Main {
     }
 
     private Component createAlowanceFunction(){
-        saAddButton = new Button("Add");
-        saSaveButton = new Button("Save");
+        saAddButton = new Button("Tambah");
+        saSaveButton = new Button("Simpan");
 
         HorizontalLayout leftLayout = new HorizontalLayout();
         leftLayout.setSpacing(true);
@@ -312,7 +312,7 @@ public class KomponenGajiView extends Main {
                 this.isAllowanceEdit = true;
             });
             return nameField;
-        })).setHeader("Allowance Name");
+        })).setHeader("Nama Tunjangan");
 
         salaryAllowanceGrid.addColumn(new ComponentRenderer<>(item -> {
             TextField salaryField = new TextField();
@@ -339,7 +339,7 @@ public class KomponenGajiView extends Main {
             });
 
             return salaryField;
-        })).setHeader("Amount").setAutoWidth(true).setTextAlign(ColumnTextAlign.END);
+        })).setHeader("Nominal").setAutoWidth(true).setTextAlign(ColumnTextAlign.END);
 
         salaryAllowanceGrid.addColumn(new ComponentRenderer<>(item -> {
             DatePicker startDate = new DatePicker();
@@ -351,7 +351,7 @@ public class KomponenGajiView extends Main {
                 this.isAllowanceEdit = true;
             });
             return startDate;
-        })).setHeader("Start Date").setWidth("130px");
+        })).setHeader("Tanggal Mulai").setWidth("130px");
 
         salaryAllowanceGrid.addColumn(new ComponentRenderer<>(item -> {
             DatePicker endDate = new DatePicker();
@@ -363,7 +363,7 @@ public class KomponenGajiView extends Main {
                 this.isAllowanceEdit = true;
             });
             return endDate;
-        })).setHeader("End Date").setWidth("130px");
+        })).setHeader("Tanggal Selesai").setWidth("130px");
 
         salaryAllowanceGrid.addColumn(new ComponentRenderer<>(item -> {
             Button deleteButton = new Button(VaadinIcon.TRASH.create());
@@ -372,25 +372,25 @@ public class KomponenGajiView extends Main {
                 if (!this.auth.canDelete) return;
 
                 Dialog confirm = new Dialog();
-                confirm.setHeaderTitle("Delete allowance?");
-                Span msg = new Span("Are you sure you want to delete \"" +
+                confirm.setHeaderTitle("Hapus Tunjangan");
+                Span msg = new Span("Apakah Anda yakin ingin menghapus \"" +
                         (item.getName() != null ? item.getName() : "(no name)") + "\"?");
                 confirm.add(new VerticalLayout(msg));
 
-                Button cancel = new Button("Cancel", ev -> confirm.close());
-                Button yes = new Button("Delete", ev -> {
+                Button cancel = new Button("Batal", ev -> confirm.close());
+                Button yes = new Button("Hapus", ev -> {
                     if (item.getId() != null) {
                         payrollService.deleteSalaryAllowance(item);
                     }
                     salaryAllowanceGrid.getListDataView().removeItem(item);
-                    Notification.show("Allowance deleted");
+                    Notification.show("Tunjangan berhasil dihapus");
                     confirm.close();
                 });
                 confirm.getFooter().add(cancel, yes);
                 confirm.open();
             });
             return deleteButton;
-        })).setHeader("Actions").setFlexGrow(0).setAutoWidth(true);
+        })).setHeader("Aksi").setFlexGrow(0).setAutoWidth(true);
 
         VerticalLayout salaryAlowanceLayout = new VerticalLayout(functionMenuLayout, salaryAllowanceGrid);
         salaryAlowanceLayout.setSpacing(false);
@@ -418,14 +418,14 @@ public class KomponenGajiView extends Main {
         orgStructureGrid.setWidth(WIDTH_);
         orgStructureGrid.setHeightFull();
         orgStructureGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
-        orgStructureGrid.addColumn(HrOrgStructure::getName).setHeader("Organization");
+        orgStructureGrid.addColumn(HrOrgStructure::getName).setHeader("Str Organisasi");
 
         positionGrid = new Grid<>(HrPosition.class, false);
         positionGrid.addClassNames("position-grid");
         positionGrid.setWidth(WIDTH_);
         positionGrid.setHeightFull();
         positionGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
-        positionGrid.addColumn(HrPosition::getName).setHeader("Position");
+        positionGrid.addColumn(HrPosition::getName).setHeader("Posisi");
 
         HorizontalLayout horizontalbodyLayout = new HorizontalLayout(
                 orgStructureGrid,
@@ -447,18 +447,18 @@ public class KomponenGajiView extends Main {
 
     private void openSalaryBaseLevelDetail(HrSalaryBaseLevel sbl) {
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Salary Base Level Detail");
+        dialog.setHeaderTitle("Detail Gaji Pokok");
         dialog.setWidth("500px");
 
         FormLayout layout = new FormLayout();
         layout.add(
-                ro("Company", sbl.getCompany() != null ? sbl.getCompany().getName() : "-"),
-                ro("Level Code", sbl.getLevelCode()),
-                ro("Amount", decimalAmountFormater(sbl.getBaseSalary())),
-                ro("Start Date", String.valueOf(sbl.getStartDate())),
-                ro("End Date", String.valueOf(sbl.getEndDate())),
-                ro("Active", Boolean.TRUE.equals(sbl.getIsActive()) ? "Yes" : "No"),
-                ro("Reason", sbl.getReason())
+                ro("Perusahaan", sbl.getCompany() != null ? sbl.getCompany().getName() : "-"),
+                ro("Kode Level", sbl.getLevelCode()),
+                ro("Nominal", decimalAmountFormater(sbl.getBaseSalary())),
+                ro("Tanggal Mulai", String.valueOf(sbl.getStartDate())),
+                ro("Tanggal Selesai", String.valueOf(sbl.getEndDate())),
+                ro("Active", Boolean.TRUE.equals(sbl.getIsActive()) ? "Ya" : "Tidak"),
+                ro("Keterangan", sbl.getReason())
         );
 
         Button close = new Button("Close", e -> dialog.close());
@@ -498,8 +498,7 @@ public class KomponenGajiView extends Main {
         calcullationDateTF.setI18n(DatePickerUtil.getIndonesianI18n());
         calcullationDateTF.setValue(LocalDate.now());
         calcullationDateTF.setTooltipText(
-                "is the specific date used as a reference point to perform a calculation. " +
-                        "It determines the effective point in time for applying formulas, rules, or computations."
+                "Tanggal acuan yang digunakan untuk menghitung total tunjangan."
         );
 
         totalallowanceTF.addThemeVariants(TextFieldVariant.LUMO_ALIGN_RIGHT);
@@ -507,8 +506,8 @@ public class KomponenGajiView extends Main {
         totalallowanceTF.setPrefixComponent(new Span("Rp "));
         totalallowanceTF.setValue(decimalAmountFormater(BigDecimal.ZERO));
 
-        paSaveButton = new Button("Save");
-        paAddButton = new Button("Add");
+        paSaveButton = new Button("Simpan");
+        paAddButton = new Button("Tambah");
 
         populateAvailableAllowanceList();
 
@@ -518,11 +517,11 @@ public class KomponenGajiView extends Main {
                 new FormLayout.ResponsiveStep("0", 1, FormLayout.ResponsiveStep.LabelsPosition.ASIDE)
         );
 
-        formLayout.addFormItem(companyTF, "Company");
-        formLayout.addFormItem(organizationTF, "Organization");
-        formLayout.addFormItem(positionTF, "Position");
-        formLayout.addFormItem(calcullationDateTF, "Calculation Date");
-        formLayout.addFormItem(totalallowanceTF, "Total Allowance");
+        formLayout.addFormItem(companyTF, "Perusahaan");
+        formLayout.addFormItem(organizationTF, "Str Organisasi");
+        formLayout.addFormItem(positionTF, "Posisi");
+        formLayout.addFormItem(calcullationDateTF, "Tanggal Perhitungan");
+        formLayout.addFormItem(totalallowanceTF, "Total Tunjangan");
 
         companyTF.setValue(currentAppUser.getCompany().getName());
 
@@ -557,7 +556,7 @@ public class KomponenGajiView extends Main {
                 amountField.setValue(decimalAmountFormater(item.getAllowance().getAmount()));
             }
             return amountField;
-        })).setHeader("Amount").setAutoWidth(true).setTextAlign(ColumnTextAlign.END);
+        })).setHeader("Nominal").setAutoWidth(true).setTextAlign(ColumnTextAlign.END);
 
         positionAllowanceGrid.addColumn(new ComponentRenderer<>(item -> {
             DatePicker startDate = new DatePicker();
@@ -569,7 +568,7 @@ public class KomponenGajiView extends Main {
                 this.isPositionallowanceEdit = true;
             });
             return startDate;
-        })).setHeader("Start Date").setWidth("130px");
+        })).setHeader("Tanggal Mulai").setWidth("130px");
 
         positionAllowanceGrid.addColumn(new ComponentRenderer<>(item -> {
             DatePicker endDate = new DatePicker();
@@ -582,7 +581,7 @@ public class KomponenGajiView extends Main {
                 calculateTotalAllowance();
             });
             return endDate;
-        })).setHeader("End Date").setWidth("130px");
+        })).setHeader("Tanggal Selesai").setWidth("130px");
 
         positionAllowanceGrid.addColumn(new ComponentRenderer<>(item -> {
             Button deleteButton = new Button(VaadinIcon.CLOSE.create());
@@ -594,7 +593,7 @@ public class KomponenGajiView extends Main {
             });
             deleteButton.setEnabled(this.auth.canDelete);
             return item.getId() == null ? deleteButton : null;
-        })).setHeader("Actions").setFlexGrow(0).setAutoWidth(true);
+        })).setHeader("Aksi").setFlexGrow(0).setAutoWidth(true);
 
         VerticalLayout vLayout = new VerticalLayout(formLayout, functionMenuLayout, positionAllowanceGrid);
         vLayout.setWidth("100%");
@@ -709,10 +708,10 @@ public class KomponenGajiView extends Main {
             dialog.open();
         });
 
-        // ✅ Refresh base salary
+        // ✅ Refresh Gaji Pokok
         sblSaveButton.addClickListener(e -> {
             populateSalaryBaseLevelGrid(withInactiveBasicSalary.getValue());
-            Notification.show("Refreshed");
+            Notification.show("Data berhasil diperbarui");
         });
 
         withInactiveBasicSalary.addValueChangeListener(e -> {
@@ -740,7 +739,7 @@ public class KomponenGajiView extends Main {
                 }
                 populateAllowanceGrid(withInactiveAllowance.getValue());
                 this.isAllowanceEdit = false;
-                Notification.show("Data Allowance Saved Successfully");
+                Notification.show("Data tunjangan berhasil disimpan");
             }
         });
 
@@ -798,8 +797,8 @@ public class KomponenGajiView extends Main {
                     return row;
                 }));
 
-                Button cancelButton = new Button("Cancel", event -> dialog.close());
-                Button addButton = new Button("Add");
+                Button cancelButton = new Button("Batal", event -> dialog.close());
+                Button addButton = new Button("Tambah");
 
                 if(!this.auth.canEdit){
                     addButton.setEnabled(false);
@@ -824,7 +823,7 @@ public class KomponenGajiView extends Main {
                         positionAllowanceGrid.getListDataView().addItem(newPA);
                         isPositionallowanceEdit = true;
                     } else {
-                        Notification.show("Please select an allowance and position");
+                        Notification.show("Silakan pilih tunjangan dan posisi");
                     }
 
                     calculateTotalAllowance();
@@ -855,14 +854,14 @@ public class KomponenGajiView extends Main {
                 );
 
                 this.isPositionallowanceEdit = false;
-                Notification.show("Data Position Allowance Saved Successfully");
+                Notification.show("Data tunjangan posisi berhasil disimpan");
             }
         });
 
         tabsheet.addSelectedChangeListener(event -> {
             Tab selectedTab = event.getSelectedTab();
             log.debug("Select tab {} on tabsheet", selectedTab.getLabel());
-            if (selectedTab.getLabel().equals("Allowance Packages")) {
+            if (selectedTab.getLabel().equals("Paket Tunjangan")) {
                 populateAvailableAllowanceList();
             }
         });

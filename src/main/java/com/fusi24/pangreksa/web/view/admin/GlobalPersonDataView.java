@@ -94,13 +94,13 @@ public class GlobalPersonDataView extends Main {
         body.setPadding(false);
         body.setSpacing(false);
         body.setSizeFull();
-        companyDropdown = new ComboBox<>("Company");
+        companyDropdown = new ComboBox<>("Perusahaan");
         companyDropdown.setItems(companyService.getallCompanies());
         companyDropdown.setItemLabelGenerator(HrCompany::getName);
         companyDropdown.getStyle().setWidth("350px");
 
-        populateButton = new Button("Populate");
-        addPersonButton = new Button("Add Person");
+        populateButton = new Button("Muat Data");
+        addPersonButton = new Button("Tambah Karyawan");
 
         // Create left and right layouts
         HorizontalLayout leftLayout = new HorizontalLayout(companyDropdown, populateButton);
@@ -141,8 +141,8 @@ public class GlobalPersonDataView extends Main {
         tabB.setPadding(false);
         tabB.setSpacing(false);
 
-        tabsheet.add("Employees", tabA);
-        tabsheet.add("Unassigned Persons", tabB);
+        tabsheet.add("Karyawan", tabA);
+        tabsheet.add("Person Belum Ditugaskan", tabB);
 
         gridEmployees = new Grid<>(HrPersonPosition.class, false);
         gridEmployees.setSizeFull();
@@ -150,36 +150,43 @@ public class GlobalPersonDataView extends Main {
         gridEmployees.addColumn(pos -> {
             HrPerson p = pos.getPerson();
             return p != null ? p.getFirstName() : "";
-        }).setHeader("First Name");
+        }).setHeader("Nama Awal");
 
         gridEmployees.addColumn(pos -> {
             HrPerson p = pos.getPerson();
             return p != null ? p.getLastName() : "";
-        }).setHeader("Last Name");
+        }).setHeader("Nama Akhir");
 
         gridEmployees.addColumn(pos -> {
             HrPosition position = pos.getPosition();
             return position != null ? position.getName() : "";
-        }).setHeader("Position");
+        }).setHeader("Posisi");
 
         gridEmployees.addColumn(HrPersonPosition::getStartDate)
-                .setHeader("Start Date");
+                .setHeader("Tanggal Mulai");
 
 
         gridUnassignedPersons = new Grid<>(HrPerson.class, false);
         gridUnassignedPersons.setSizeFull();
 
         gridUnassignedPersons.addColumn(HrPerson::getFirstName)
-                .setHeader("First Name");
+                .setHeader("Nama Awal")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
         gridUnassignedPersons.addColumn(HrPerson::getLastName)
-                .setHeader("Last Name");
+                .setHeader("Nama Akhir")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
         gridUnassignedPersons.addColumn(person ->
                 person.getCreatedAt() != null
                         ? new PrettyTime().format(person.getCreatedAt())
                         : ""
-        ).setHeader("Created Date");
+        ).setHeader("Tanggal Dibuat")
+                .setAutoWidth(true)
+                .setFlexGrow(1);
+
 
         tabA.add(gridEmployees);
         tabA.setFlexGrow(1, gridEmployees);
@@ -212,7 +219,7 @@ public class GlobalPersonDataView extends Main {
             if (this.auth.canCreate) {
                 UI.getCurrent().navigate(ROUTE_EDIT);
             } else {
-                Notification.show("You do not have permission to add a new person.");
+                Notification.show("Anda tidak memiliki izin untuk menambahkan person baru.");
             }
         });
     }

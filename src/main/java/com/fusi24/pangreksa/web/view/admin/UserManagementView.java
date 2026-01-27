@@ -36,8 +36,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 @Route("user-management-page-access")
-@PageTitle("User Management")
-@Menu(order = 33, icon = "vaadin:user", title = "User Management")
+@PageTitle("Manajemen pengguna")
+@Menu(order = 33, icon = "vaadin:user", title = "Manajemen pengguna")
 @RolesAllowed("USERS_MGT")
 //@PermitAll // When security is enabled, allow all authenticated users
 public class UserManagementView extends Main {
@@ -49,7 +49,7 @@ public class UserManagementView extends Main {
     private final PersonService personService;
     private Authorization auth;
 
-    public static final String VIEW_NAME = "User Management";
+    public static final String VIEW_NAME = "Manajemen pengguna";
     public static final String ROUTE_EDIT = "user-creation-form-access/";
 
     private List<FwAppUser> appUserList;
@@ -100,10 +100,10 @@ public class UserManagementView extends Main {
         body.setPadding(false);
         body.setSpacing(false);
         body.setSizeFull();
-        searchField = new TextField("Search Filter");
-        addButton = new Button("Add User");
-        populateButton = new Button("Populate");
-        saveButton = new Button("Save");
+        searchField = new TextField("Filter Pencarian");
+        addButton = new Button("Tambah User");
+        populateButton = new Button("Muat Data");
+        saveButton = new Button("Simpan");
 
         HorizontalLayout leftLayout = new HorizontalLayout(searchField, populateButton);
         leftLayout.setSpacing(true);
@@ -167,13 +167,13 @@ public class UserManagementView extends Main {
             });
 
             return personCombo;
-        })).setHeader("Person").setSortable(true);
+        })).setHeader("Karyawan").setSortable(true);
 
         // Company column: inline editable ComboBox with search
         gridUsers.addColumn(new ComponentRenderer<>(user -> {
             ComboBox<HrCompany> companyCombo = new ComboBox<>();
             companyCombo.setItemLabelGenerator(HrCompany::getName);
-            companyCombo.setPlaceholder("Select company");
+            companyCombo.setPlaceholder("Pilih perusahaan");
             companyCombo.setClearButtonVisible(true);
 
             companyCombo.setItems(query -> {
@@ -195,7 +195,7 @@ public class UserManagementView extends Main {
             });
 
             return companyCombo;
-        })).setHeader("Company").setSortable(true);
+        })).setHeader("Perusahaan").setSortable(true);
 
         // Username editable
         gridUsers.addColumn(new ComponentRenderer<>(user -> {
@@ -206,7 +206,7 @@ public class UserManagementView extends Main {
                 // Optionally set an isEdit flag here
             });
             return nicknameField;
-        })).setHeader("Nickname").setSortable(true);
+        })).setHeader("Nama").setSortable(true);
         // isActive editable
         gridUsers.addColumn(new ComponentRenderer<>(user -> {
             Checkbox activeCheckbox = new Checkbox(Boolean.TRUE.equals(user.getIsActive()));
@@ -215,7 +215,7 @@ public class UserManagementView extends Main {
                 // Optionally set an isEdit flag here
             });
             return activeCheckbox;
-        })).setHeader("Active").setSortable(true);
+        })).setHeader("Aktif").setSortable(true);
 
         gridUsers.addColumn(FwAppUser::getLastLogin).setHeader("Last Login").setSortable(true).setFlexGrow(0).setAutoWidth(true);
         // Action column with delete button (icon only, no title)
@@ -223,7 +223,7 @@ public class UserManagementView extends Main {
             // Edit button
             Button editButton = new Button();
             editButton.setIcon(VaadinIcon.USER.create());
-            editButton.getElement().setAttribute("title", "Edit Person");
+            editButton.getElement().setAttribute("title", "Edit Karyawan");
             editButton.addClickListener(e -> {
                 UI.getCurrent().navigate(ROUTE_EDIT + user.getId());
             });
@@ -253,8 +253,8 @@ public class UserManagementView extends Main {
 
 
                 HorizontalLayout buttonLayout = new HorizontalLayout();
-                Button cancelButton = new Button("Cancel", event -> dialog.close());
-                Button saveButton = new Button("Save");
+                Button cancelButton = new Button("Batal", event -> dialog.close());
+                Button saveButton = new Button("Simpan");
 
                 if(!this.auth.canEdit){
                     saveButton.setEnabled(false);
@@ -350,7 +350,7 @@ public class UserManagementView extends Main {
 
             FwAppUser hasNoPassword = usersToSave.stream().filter(p -> p.getPassword() == null && p.getPasswordHash() == null).findFirst().orElse(null);
             if(hasNoPassword != null) {
-                Notification.show("Password is required for User: "+hasNoPassword.getUsername(), 500, Notification.Position.MIDDLE);
+                Notification.show("Password wajib diisi for User: "+hasNoPassword.getUsername(), 500, Notification.Position.MIDDLE);
                 return;
             }
 
