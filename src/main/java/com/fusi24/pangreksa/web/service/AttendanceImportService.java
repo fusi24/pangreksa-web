@@ -8,6 +8,8 @@ import com.fusi24.pangreksa.web.model.entity.HrWorkSchedule;
 import com.fusi24.pangreksa.web.repo.FwAppUserRepository;
 import com.fusi24.pangreksa.web.repo.HrAttendanceRepository;
 import com.fusi24.pangreksa.web.repo.HrCompanyBranchRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.Getter;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.usermodel.DateUtil;
@@ -32,6 +34,9 @@ public class AttendanceImportService {
     private final HrCompanyBranchRepository branchRepository;
     private final HrWorkScheduleService workScheduleService;
     private final AttendanceService attendanceService;
+
+    @PersistenceContext
+    private EntityManager em;
 
     public AttendanceImportService(HrAttendanceRepository attendanceRepo,
                                    FwAppUserRepository appUserRepository,
@@ -59,23 +64,23 @@ public class AttendanceImportService {
         }
     }
 
-    // ✅ Dipakai dialog Upload (path temp file)
     @Transactional
     public ImportResult importAttendance(Path filePath,
                                          String filename,
                                          String notes,
                                          Long branchId,
                                          AppUserInfo modifier) {
+
         try (InputStream in = Files.newInputStream(filePath)) {
             return importAttendance(in, filename, notes, branchId, modifier);
-        } catch (Exception e) {
+        } catch (IOException e) {
             ImportResult r = new ImportResult();
             r.getErrors().add("Gagal membaca file: " + e.getMessage());
             return r;
         }
     }
 
-    // ✅ Core import: inilah yang melakukan INSERT/UPDATE
+    // ✅ ini yang dipakai UI kamu kalau sudah pegang InputStream langsung
     @Transactional
     public ImportResult importAttendance(InputStream fileStream,
                                          String filename,
@@ -90,7 +95,7 @@ public class AttendanceImportService {
             branch = branchRepository.findById(branchId).orElse(null);
         }
 
-        final List<RowData> rows;
+        List<RowData> rows;
         try {
             rows = parseFile(fileStream, filename);
         } catch (Exception ex) {
@@ -98,18 +103,10 @@ public class AttendanceImportService {
             return result;
         }
 
-        if (rows.isEmpty()) {
-            result.getErrors().add("Tidak ada baris data yang bisa diproses (hasil parsing kosong).");
-            return result;
-        }
-
-        String notesTrim = notes == null ? null : notes.trim();
-
         for (int i = 0; i < rows.size(); i++) {
             RowData r = rows.get(i);
 
             try {
-                // validasi minimal
                 if (r.noId == null || r.attendanceDate == null) {
                     result.skippedInvalidRow++;
                     continue;
@@ -122,7 +119,6 @@ public class AttendanceImportService {
                     continue;
                 }
 
-                // schedule berdasarkan user dan tanggal
                 HrWorkSchedule schedule = workScheduleService.getActiveScheduleForUser(user, r.attendanceDate);
                 if (schedule == null) {
                     result.skippedNoSchedule++;
@@ -140,13 +136,12 @@ public class AttendanceImportService {
                 att.setWorkSchedule(schedule);
                 att.setAttendanceDate(r.attendanceDate);
 
-                // check in/out dari file
                 att.setCheckIn(r.checkIn);
                 att.setCheckOut(r.checkOut);
 
                 // notes dari dialog (dipakai untuk semua row)
-                if (notesTrim != null && !notesTrim.isEmpty()) {
-                    att.setNotes(notesTrim);
+                if (notes != null && !notes.trim().isEmpty()) {
+                    att.setNotes(notes.trim());
                 }
 
                 // branch copy ke kolom attendance
@@ -156,29 +151,40 @@ public class AttendanceImportService {
                     att.setBranchAddress(branch.getBranchAddress());
                 }
 
-                // ✅ simpan lewat service existing agar status otomatis ke-set
+                // status + total work minutes dll ikut logic existing
                 attendanceService.saveAttendance(att, modifier);
 
                 if (isNew) result.inserted++;
                 else result.updated++;
 
             } catch (Exception ex) {
-                // +2 karena excel/csv biasanya baris 1 header, mulai data dari baris 2
-                result.getErrors().add("Row #" + (i + 2) + " error: " + ex.getMessage());
-                if (result.getErrors().size() > 30) {
+                result.getErrors().add("Row #" + (i + 2) + " error: " + ex.getMessage()); // +2 header
+                result.skippedInvalidRow++;
+
+                if (result.getErrors().size() > 20) {
                     result.getErrors().add("Error terlalu banyak, sisanya dipotong.");
                     break;
                 }
             }
         }
 
+        try {
+            callProcessUploadedAttendancePenalty();
+        } catch (Exception ex) {
+            result.getErrors().add("SP penalty gagal dijalankan: " + ex.getMessage());
+        }
+
         return result;
+    }
+
+    private void callProcessUploadedAttendancePenalty() {
+        // Postgres: CALL sp_process_uploaded_attendance_penalty();
+        em.createNativeQuery("CALL sp_process_uploaded_attendance_penalty()").executeUpdate();
     }
 
     // =========================
     // Parsing
     // =========================
-
     private static class RowData {
         Long noId;
         LocalDate attendanceDate;
@@ -188,8 +194,10 @@ public class AttendanceImportService {
 
     private List<RowData> parseFile(InputStream is, String filename) throws Exception {
         String lower = filename == null ? "" : filename.toLowerCase(Locale.ROOT);
+
         if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) return parseExcel(is);
         if (lower.endsWith(".csv")) return parseCsv(is);
+
         throw new IllegalArgumentException("Format file tidak didukung: " + filename);
     }
 
@@ -197,13 +205,11 @@ public class AttendanceImportService {
         List<RowData> out = new ArrayList<>();
 
         try (Workbook wb = WorkbookFactory.create(is)) {
-            Sheet sheet = wb.getNumberOfSheets() > 0 ? wb.getSheetAt(0) : null;
+            Sheet sheet = wb.getSheetAt(0);
             if (sheet == null) return out;
 
             DataFormatter fmt = new DataFormatter(Locale.US);
-
-            Row headerRow = sheet.getRow(0);
-            Map<String, Integer> headerMap = readHeaderMap(headerRow, fmt);
+            Map<String, Integer> headerMap = readHeaderMap(sheet.getRow(0), fmt);
 
             Integer cNoId = headerMap.get("no. id");
             Integer cTanggal = headerMap.get("tanggal");
@@ -246,17 +252,10 @@ public class AttendanceImportService {
         if (header == null) return map;
 
         for (Cell cell : header) {
-            String raw = fmt.formatCellValue(cell);
-            String key = normalizeHeader(raw);
+            String key = fmt.formatCellValue(cell).trim().toLowerCase(Locale.ROOT);
             if (!key.isEmpty()) map.put(key, cell.getColumnIndex());
         }
         return map;
-    }
-
-    private String normalizeHeader(String s) {
-        if (s == null) return "";
-        // handle BOM + trim + lower
-        return s.replace("\uFEFF", "").trim().toLowerCase(Locale.ROOT);
     }
 
     private LocalDate parseDateCell(Cell cell, DataFormatter fmt) {
@@ -271,13 +270,14 @@ public class AttendanceImportService {
             String s = fmt.formatCellValue(cell).trim();
             if (s.isEmpty()) return null;
 
-            // contoh: "3/20/2024"
-            for (DateTimeFormatter p : List.of(
+            List<DateTimeFormatter> patterns = List.of(
                     DateTimeFormatter.ofPattern("M/d/yyyy"),
                     DateTimeFormatter.ofPattern("MM/dd/yyyy"),
                     DateTimeFormatter.ofPattern("d/M/yyyy"),
                     DateTimeFormatter.ofPattern("dd/MM/yyyy")
-            )) {
+            );
+
+            for (DateTimeFormatter p : patterns) {
                 try { return LocalDate.parse(s, p); } catch (Exception ignored) {}
             }
 
@@ -299,7 +299,7 @@ public class AttendanceImportService {
         String[] headers = splitCsvLine(lines.get(0));
         Map<String, Integer> headerMap = new HashMap<>();
         for (int i = 0; i < headers.length; i++) {
-            headerMap.put(normalizeHeader(headers[i]), i);
+            headerMap.put(headers[i].trim().toLowerCase(Locale.ROOT), i);
         }
 
         Integer cNoId = headerMap.get("no. id");
@@ -341,7 +341,6 @@ public class AttendanceImportService {
     }
 
     private String[] splitCsvLine(String line) {
-        // simple split (untuk template kamu yang “normal”)
         return line.split(",", -1);
     }
 
@@ -355,12 +354,14 @@ public class AttendanceImportService {
         s = s.trim();
         if (s.isEmpty()) return null;
 
-        for (DateTimeFormatter p : List.of(
+        List<DateTimeFormatter> patterns = List.of(
                 DateTimeFormatter.ofPattern("M/d/yyyy"),
                 DateTimeFormatter.ofPattern("MM/dd/yyyy"),
                 DateTimeFormatter.ofPattern("d/M/yyyy"),
                 DateTimeFormatter.ofPattern("dd/MM/yyyy")
-        )) {
+        );
+
+        for (DateTimeFormatter p : patterns) {
             try { return LocalDate.parse(s, p); } catch (Exception ignored) {}
         }
 
@@ -374,7 +375,6 @@ public class AttendanceImportService {
         String s = timeStr.trim();
         if (s.isEmpty()) return null;
 
-        // template: "08:35"
         try {
             LocalTime t = LocalTime.parse(s, DateTimeFormatter.ofPattern("H:mm"));
             return LocalDateTime.of(date, t);
