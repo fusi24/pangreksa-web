@@ -58,5 +58,19 @@ public class HrAttendance {
         this.updatedAt = LocalDateTime.now();
     }
 
+    @Column(name = "branch_code")
+    private String branchCode;
+
+    @Column(name = "branch_name")
+    private String branchName;
+
+    @Column(name = "branch_address")
+    private String branchAddress;
+
+    // di HrAttendance.java
+    @Column(name = "total_work_minutes")
+    private Integer totalWorkMinutes;
+
+
     // Getters and Setters
 }

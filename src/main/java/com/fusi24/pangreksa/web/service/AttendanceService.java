@@ -5,6 +5,7 @@ import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.model.enumerate.LeaveStatusEnum;
 import com.fusi24.pangreksa.web.repo.FwAppUserRepository;
 import com.fusi24.pangreksa.web.repo.HrAttendanceRepository;
+import com.fusi24.pangreksa.web.repo.HrCompanyBranchRepository;
 import com.fusi24.pangreksa.web.repo.HrLeaveApplicationRepository;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
@@ -39,6 +40,9 @@ public class AttendanceService {
 
     @Autowired
     private HrLeaveApplicationRepository hrLeaveApplicationRepository;
+
+    @Autowired
+    private HrCompanyBranchRepository hrCompanyBranchRepository;
 
     @Getter
     private FwAppUser currentUser;
@@ -191,8 +195,12 @@ public class AttendanceService {
     }
 
     public HrAttendance saveAttendance(HrAttendance att, AppUserInfo modifier) {
-        // Auto-set status based on check-in/out vs schedule
+        // 1) hitung total work minutes dulu (berdasarkan check_in/out)
+        fillTotalWorkMinutes(att);
+
+        // 2) status existing
         setStatusBasedOnSchedule(att);
+
         return attendanceRepo.save(att);
     }
 
@@ -350,5 +358,37 @@ public class AttendanceService {
         att.setStatus(status);
     }
 
+    public List<HrCompanyBranch> getBranchesForCurrentUserCompany() {
+        if (currentUser == null) {
+            throw new IllegalStateException("App user is not set. Please call setUser() before using this method.");
+        }
+        if (currentUser.getCompany() == null) {
+            return List.of();
+        }
+        return hrCompanyBranchRepository.findByCompanyOrderByBranchNameAsc(currentUser.getCompany());
+    }
+
+    private void fillTotalWorkMinutes(HrAttendance att) {
+        if (att == null) return;
+
+        // default null / 0 sesuai kebutuhan UI kamu
+        if (att.getCheckIn() == null || att.getCheckOut() == null) {
+            att.setTotalWorkMinutes(null); // atau 0
+            return;
+        }
+
+        // Validasi: clock-out harus >= clock-in
+        if (att.getCheckOut().isBefore(att.getCheckIn())) {
+            att.setTotalWorkMinutes(null); // atau 0
+            return;
+        }
+
+        long minutes = java.time.Duration.between(att.getCheckIn(), att.getCheckOut()).toMinutes();
+
+        // kalau mau batas maksimum (mis. 24 jam) silakan, tapi optional
+        if (minutes < 0) minutes = 0;
+
+        att.setTotalWorkMinutes((int) minutes);
+    }
 
 }

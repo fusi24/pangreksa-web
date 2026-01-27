@@ -8,6 +8,7 @@ import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.repo.FwAppUserRepository;
 import com.fusi24.pangreksa.web.service.*;
 import com.fusi24.pangreksa.web.view.common.CheckInOutDialog;
+import com.fusi24.pangreksa.web.view.common.UploadAttendanceDialog;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -70,6 +71,8 @@ public class AttendanceView extends Main {
     private final RoleManagementService roleManagementService;
     private final HrWorkScheduleService hrWorkScheduleService;
     private final FwAppUserRepository appUserRepository;
+    private final AttendanceImportService attendanceImportService;
+    private final HrCompanyBranchService hrCompanyBranchService;
 
     private Authorization auth;
     private String responsibility;
@@ -95,7 +98,9 @@ public class AttendanceView extends Main {
             RoleManagementService roleManagementService,
             CompanyService companyService,
             HrWorkScheduleService hrWorkScheduleService,
-            FwAppUserRepository appUserRepository) {
+            FwAppUserRepository appUserRepository,
+            AttendanceImportService attendanceImportService,
+            HrCompanyBranchService hrCompanyBranchService) {
 
         this.currentUser = currentUser;
         this.commonService = commonService;
@@ -106,6 +111,8 @@ public class AttendanceView extends Main {
         this.companyService = companyService;
         this.hrWorkScheduleService = hrWorkScheduleService;
         this.appUserRepository = appUserRepository;
+        this.attendanceImportService = attendanceImportService;
+        this.hrCompanyBranchService = hrCompanyBranchService;
 
         this.attendanceService.setUser(currentUser.require());
         this.responsibility = (String) UI.getCurrent().getSession().getAttribute("responsibility");
@@ -156,6 +163,11 @@ public class AttendanceView extends Main {
 
         grid.addColumn(att -> att.getCheckOut() != null ? att.getCheckOut().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) : "-")
                 .setHeader("Clock-Out").setWidth("100px");
+
+        grid.addColumn(att -> formatWorkDuration(att.getTotalWorkMinutes()))
+                .setHeader("Total Jam Kerja")
+                .setWidth("140px");
+
         grid.addColumn(att -> {
                     // Jika belum checkout → status disembunyikan
                     if (att.getCheckOut() == null) {
@@ -232,7 +244,11 @@ public class AttendanceView extends Main {
         addAttendanceButton.setVisible(isHr);
         addAttendanceButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-        HorizontalLayout toolbar = new HorizontalLayout(filterBar, searchField, refreshButton, addAttendanceButton);
+        Button uploadAttendanceButton = new Button("Upload Absensi", e -> openUploadAttendanceDialog());
+        uploadAttendanceButton.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
+        uploadAttendanceButton.setVisible(isHr);
+
+        HorizontalLayout toolbar = new HorizontalLayout(filterBar, searchField, refreshButton, uploadAttendanceButton, addAttendanceButton);
         toolbar.setWidthFull();
         toolbar.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
 
@@ -352,7 +368,9 @@ public class AttendanceView extends Main {
 
             attendance.setCheckOut(now);
             try {
-                attendanceService.saveAttendance(attendance, attendanceService.getCurrentUser());
+                // ✅ pakai AppUserInfo dari CurrentUser
+                attendanceService.saveAttendance(attendance, currentUser.require());
+
                 Notification.show("Clock-out berhasil", 3000, Notification.Position.MIDDLE);
                 applyFilters();
             } catch (Exception ex) {
@@ -363,7 +381,6 @@ public class AttendanceView extends Main {
 
         return new HorizontalLayout(clockOutBtn);
     }
-
 
     private void applyFilters() {
 
@@ -558,4 +575,25 @@ public class AttendanceView extends Main {
             }
         }
     }
+
+    private String formatWorkDuration(Integer totalMinutes) {
+        if (totalMinutes == null || totalMinutes <= 0) return "-";
+
+        int hours = totalMinutes / 60;
+        int minutes = totalMinutes % 60;
+
+        // format HH:mm
+        return String.format("%02d:%02d", hours, minutes);
+    }
+
+    private void openUploadAttendanceDialog() {
+        UploadAttendanceDialog dialog = new UploadAttendanceDialog(
+                attendanceImportService,
+                hrCompanyBranchService,
+                currentUser,
+                this::applyFilters
+        );
+        dialog.open();
+    }
+
 }

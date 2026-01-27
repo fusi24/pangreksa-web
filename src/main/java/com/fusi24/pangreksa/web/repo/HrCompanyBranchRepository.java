@@ -1,5 +1,6 @@
 package com.fusi24.pangreksa.web.repo;
 
+import com.fusi24.pangreksa.web.model.entity.HrCompany;
 import com.fusi24.pangreksa.web.model.entity.HrCompanyBranch;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,4 +16,7 @@ public interface HrCompanyBranchRepository extends JpaRepository<HrCompanyBranch
     List<HrCompanyBranch> findByCompanyId(Long companyId);
 
     boolean existsByCompanyIdAndBranchCodeIgnoreCase(Long companyId, String branchCode);
+
+    List<HrCompanyBranch> findByCompanyOrderByBranchNameAsc(HrCompany company);
+
 }
