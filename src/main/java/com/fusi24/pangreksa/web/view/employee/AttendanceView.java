@@ -168,6 +168,11 @@ public class AttendanceView extends Main {
                 .setHeader("Total Jam Kerja")
                 .setWidth("140px");
 
+        grid.addColumn(att -> formatAttendanceLocation(att))
+                .setHeader("Lokasi Absen")
+                .setAutoWidth(true)
+                .setFlexGrow(1);
+
         grid.addColumn(att -> {
                     // Jika belum checkout → status disembunyikan
                     if (att.getCheckOut() == null) {
@@ -594,6 +599,27 @@ public class AttendanceView extends Main {
                 this::applyFilters
         );
         dialog.open();
+    }
+
+    private String formatAttendanceLocation(HrAttendance att) {
+        if (att == null) return "-";
+
+        String code = att.getBranchCode();
+        String name = att.getBranchName();
+
+        if ((code == null || code.isBlank()) && (name == null || name.isBlank())) {
+            return "-";
+        }
+
+        // Contoh output: "YO - YASMIN OFFICE"
+        if (code != null && !code.isBlank() && name != null && !name.isBlank()) {
+            return code.trim() + " - " + name.trim();
+        }
+
+        // fallback kalau salah satu null
+        return code != null && !code.isBlank()
+                ? code.trim()
+                : name.trim();
     }
 
 }
