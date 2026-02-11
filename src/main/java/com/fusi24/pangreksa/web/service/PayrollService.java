@@ -575,7 +575,7 @@ public class PayrollService {
                 .netTakeHomePay(enhancedNetTakeHomePay) // <-- NEW
 
                 .calculatedAt(LocalDateTime.now())
-                .notes("Calculated")                    
+                .notes("Calculated")
                 .build();
 
         return hrPayrollCalculationRepository.save(calculation);
