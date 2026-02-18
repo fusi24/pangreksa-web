@@ -5,5 +5,7 @@ public enum SystemTypeEnum {
     BOOL,
     INT,
     DATE,
-    DATETIME
+    DATETIME,
+    DECIMAL
+
 }
