@@ -248,6 +248,9 @@ public class LeaveRequestView extends Main {
 
         DatePicker startDate = new DatePicker("Tanggal Mulai");
         DatePicker endDate = new DatePicker("Tanggal Selesai");
+        // Default: tidak boleh pilih tanggal sebelum hari ini
+        startDate.setMin(LocalDate.now());
+        endDate.setMin(LocalDate.now());
 
         startDate.setI18n(DatePickerUtil.getIndonesianI18n());
         endDate.setI18n(DatePickerUtil.getIndonesianI18n());
@@ -286,7 +289,7 @@ public class LeaveRequestView extends Main {
         if (manager != null) {
             submittedToCombo.setValue(manager);
         } else {
-            submittedToCombo.setHelperText(
+            submittedToCombo.setErrorMessage(
                     "Manager tidak ditemukan. silahkan hubungi HR."
             );
         }
@@ -364,6 +367,35 @@ public class LeaveRequestView extends Main {
                 dialog.close();
                 requestButton.setEnabled(true);
             }
+
+            HrLeaveAbsenceTypes selectedType = leaveAbsenceTypeDropdown.getValue();
+            LocalDate selectedStartDate = startDate.getValue();
+
+            if (selectedType == null || selectedStartDate == null) {
+                Notification.show(
+                        "Tipe cuti dan tanggal mulai wajib diisi.",
+                        3000,
+                        Notification.Position.MIDDLE
+                );
+                return;
+            }
+
+            // VALIDASI KHUSUS CUTI TAHUNAN (misal id = 1)
+            if (selectedType.getId() == 1) {
+
+                LocalDate minimalDate = LocalDate.now().plusDays(7);
+
+                if (selectedStartDate.isBefore(minimalDate)) {
+                    Notification.show(
+                            "Pengajuan Cuti Tahunan minimal 7 hari sebelum hari H.\n" +
+                                    "Tanggal mulai minimal: " + minimalDate,
+                            4000,
+                            Notification.Position.MIDDLE
+                    );
+                    return;
+                }
+            }
+
         });
 
 
@@ -382,6 +414,9 @@ public class LeaveRequestView extends Main {
 
             // HANYA untuk Cuti Tahunan (misal id = 1)
             if (selectedType.getId() == 1) {
+                // BONUS: khusus Cuti Tahunan minimal 7 hari dari sekarang
+                startDate.setMin(LocalDate.now().plusDays(7));
+
                 HrLeaveBalance leaveBalance = leaveService.getLeaveBalance(
                         currentUser.require(),
                         LocalDate.now().getYear(),
@@ -409,10 +444,10 @@ public class LeaveRequestView extends Main {
                 // submit hanya boleh kalau masih ada saldo cuti tahunan
                 submitButton.setEnabled(remainingDays > 0);
             } else {
-                // Untuk jenis cuti selain Cuti Tahunan:
-                // tidak cek saldo, submit selalu boleh
+                // Reset kembali ke minimal hari ini
+                startDate.setMin(LocalDate.now());
+
                 submitButton.setEnabled(true);
-                // (boleh tambah helper text khusus kalau mau)
             }
         });
 
