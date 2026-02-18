@@ -368,7 +368,6 @@ public class MyProfileView extends Main {
         ktpNumber.setMinLength(16);
         ktpNumber.setPattern("\\d*"); // hanya digit
         ktpNumber.setAllowedCharPattern("\\d");
-        ktpNumber.setHelperText("Masukkan 16 digit angka tanpa spasi");
         ktpNumber.setErrorMessage("NIK harus 16 digit angka tanpa spasi");
         ktpNumber.addValueChangeListener(e -> {
             String v = e.getValue();
@@ -410,7 +409,7 @@ public class MyProfileView extends Main {
         // Names: only letters and spaces
         firstName.setAllowedCharPattern("[\\p{L}\\s]");
         firstName.setMaxLength(50);
-        firstName.setHelperText("Hanya huruf & spasi, wajib diisi");
+
         firstName.addValueChangeListener(e -> {
             String v = e.getValue() != null ? e.getValue().trim() : "";
             boolean ok = v.matches("^[\\p{L} ]+$");
@@ -419,7 +418,7 @@ public class MyProfileView extends Main {
 
         middleName.setAllowedCharPattern("[\\p{L}\\s]");
         middleName.setMaxLength(50);
-        middleName.setHelperText("Hanya huruf & spasi (opsional)");
+
         middleName.addValueChangeListener(e -> {
             String v = e.getValue() != null ? e.getValue().trim() : "";
             boolean ok = v.isEmpty() || v.matches("^[\\p{L} ]+$");
@@ -428,7 +427,7 @@ public class MyProfileView extends Main {
 
         lastName.setAllowedCharPattern("[\\p{L}\\s]");
         lastName.setMaxLength(50);
-        lastName.setHelperText("Hanya huruf & spasi, wajib diisi");
+
         lastName.addValueChangeListener(e -> {
             String v = e.getValue() != null ? e.getValue().trim() : "";
             boolean ok = v.matches("^[\\p{L} ]+$");
@@ -438,7 +437,7 @@ public class MyProfileView extends Main {
         // Tempat Kelahiran: letters & spaces, min 2 chars
         pob.setAllowedCharPattern("[\\p{L}\\s]");
         pob.setMaxLength(100);
-        pob.setHelperText("Hanya huruf & spasi");
+
         pob.addValueChangeListener(e -> {
             String v = e.getValue() != null ? e.getValue().trim() : "";
             boolean ok = v.isEmpty() ? true : v.matches("^[\\p{L} ]{2,}$");
@@ -666,13 +665,13 @@ public class MyProfileView extends Main {
             // reset errors
             stringValue.setInvalid(false);
             relationship.setInvalid(false);
-            if (e.getValue() == ContactTypeEnum.EMAIL) {
-                stringValue.setHelperText("Format: nama@email.com, maks 160 karakter");
-            } else if (e.getValue() == ContactTypeEnum.NUMBER) {
-                stringValue.setHelperText("Hanya angka, maks 15 digit");
-            } else {
-                stringValue.setHelperText(null);
-            }
+//            if (e.getValue() == ContactTypeEnum.EMAIL) {
+//                stringValue.setHelperText("Format: nama@email.com, maks 160 karakter");
+//            } else if (e.getValue() == ContactTypeEnum.NUMBER) {
+//                stringValue.setHelperText("Hanya angka, maks 15 digit");
+//            } else {
+//                stringValue.setHelperText(null);
+//            }
         });
         stringValue.addValueChangeListener(e -> { validateCurrentContactInputs(); updateSaveButtonState(); });
         relationship.addValueChangeListener(e -> { validateCurrentContactInputs(); updateSaveButtonState(); });

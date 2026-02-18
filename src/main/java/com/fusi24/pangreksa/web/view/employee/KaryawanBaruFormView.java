@@ -14,6 +14,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.shared.Tooltip;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
@@ -73,6 +74,8 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
     private PersonPtkpService personPtkpService;
     private PersonTanggunganService personTanggunganService;
+    private Tooltip stringValueTooltip;
+
 
 
     public static final String VIEW_NAME = "Form Karyawan Baru";
@@ -566,7 +569,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         ktpNumber.setPattern("\\d*");
         ktpNumber.setMaxLength(16);
         ktpNumber.setMinLength(16);
-        ktpNumber.setHelperText("Masukkan 16 digit angka tanpa spasi");
+        Tooltip.forComponent(ktpNumber).setText("Masukkan 16 digit angka tanpa spasi");
         ktpNumber.setErrorMessage("NIK harus 16 digit angka tanpa spasi");
         ktpNumber.addValueChangeListener(e -> {
             String v = e.getValue();
@@ -580,43 +583,50 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         });
 
         // Names: only letters & spaces
+// First Name
         firstName.setAllowedCharPattern("[\\p{L}\\s]");
         firstName.setMaxLength(50);
-        firstName.setHelperText("Hanya huruf & spasi, wajib diisi");
+        Tooltip.forComponent(firstName).setText("Hanya huruf & spasi, wajib diisi");
         firstName.addValueChangeListener(e -> {
             String v = e.getValue() != null ? e.getValue().trim() : "";
             boolean ok = v.matches("^[\\p{L} ]+$");
             firstName.setInvalid(v.isEmpty() ? false : !ok);
         });
 
+// Middle Name
         middleName.setAllowedCharPattern("[\\p{L}\\s]");
         middleName.setMaxLength(50);
-        middleName.setHelperText("Hanya huruf & spasi (opsional)");
+        Tooltip.forComponent(middleName).setText("Hanya huruf & spasi (opsional)");
+
         middleName.addValueChangeListener(e -> {
             String v = e.getValue() != null ? e.getValue().trim() : "";
             boolean ok = v.isEmpty() || v.matches("^[\\p{L} ]+$");
             middleName.setInvalid(!ok);
         });
 
+// Last Name
         lastName.setAllowedCharPattern("[\\p{L}\\s]");
         lastName.setMaxLength(50);
-        lastName.setHelperText("Hanya huruf & spasi, wajib diisi");
+        Tooltip.forComponent(lastName).setText("Hanya huruf & spasi, wajib diisi");
+
         lastName.addValueChangeListener(e -> {
             String v = e.getValue() != null ? e.getValue().trim() : "";
             boolean ok = v.matches("^[\\p{L} ]+$");
             lastName.setInvalid(v.isEmpty() ? false : !ok);
         });
 
-        // Tempat Kelahiran: letters & spaces, min 2 chars
+// Tempat Lahir
         pob.setAllowedCharPattern("[\\p{L}\\s]");
         pob.setMaxLength(100);
-        pob.setHelperText("Hanya huruf & spasi, wajib diisi"); // --- UPDATE HELPER TEXT ---
+        Tooltip.forComponent(pob).setText("Hanya huruf & spasi, wajib diisi");
+
         pob.addValueChangeListener(e -> {
             String v = e.getValue() != null ? e.getValue().trim() : "";
             // --- UPDATE VALIDASI (TIDAK BOLEH KOSONG) ---
             boolean ok = v.matches("^[\\p{L} ]{2,}$");
             pob.setInvalid(v.isEmpty() ? false : !ok); // Biarkan validasi save() menangani jika kosong
         });
+
 
         // Tanggal Kelahiran: set max to today
         dob.setMax(LocalDate.now());
@@ -832,31 +842,35 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         relationship.setRequiredIndicatorVisible(false);
         description.setRequiredIndicatorVisible(false);
         // ---------------------------------
+        stringValueTooltip = Tooltip.forComponent(stringValue);
 
         // ===== Added contact type dynamic validation =====
         if (typeContact != null && stringValue != null) {
             Runnable applyContactTypeRules = () -> {
-                Object t = typeContact.getValue();
+                ContactTypeEnum t = typeContact.getValue();
 
-                // Reset validasi
                 stringValue.setInvalid(false);
                 stringValue.setAllowedCharPattern(null);
 
                 if (t == ContactTypeEnum.EMAIL) {
+
                     stringValue.setMaxLength(160);
-                    stringValue.setHelperText("Email valid, contoh: nama@domain.com");
+                    stringValueTooltip.setText("Email valid, contoh: nama@domain.com");
 
                 } else if (t == ContactTypeEnum.NUMBER || t == ContactTypeEnum.EMERGENCY) {
-                    stringValue.setAllowedCharPattern("\\d"); // Hanya digit
-                    stringValue.setMaxLength(18); // Batas 18
-                    stringValue.setHelperText("Hanya angka, maks. 18 digit");
+
+                    stringValue.setAllowedCharPattern("\\d");
+                    stringValue.setMaxLength(18);
+                    stringValueTooltip.setText("Hanya angka, maks. 18 digit");
 
                 } else {
+
                     stringValue.setAllowedCharPattern(null);
-                    stringValue.setMaxLength(255); // Default
-                    stringValue.setHelperText(null);
+                    stringValue.setMaxLength(255);
+                    stringValueTooltip.setText("");
                 }
             };
+
 
             // Listener untuk mengubah aturan saat Tipe Kontak diganti
             typeContact.addValueChangeListener(e -> applyContactTypeRules.run());
