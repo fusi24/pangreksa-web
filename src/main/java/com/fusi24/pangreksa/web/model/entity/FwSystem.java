@@ -4,6 +4,7 @@ import com.fusi24.pangreksa.web.model.enumerate.SystemTypeEnum;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -48,5 +49,9 @@ public class FwSystem extends AuditableEntity<FwSystem> {
 
     @Column(name = "datetime_val")
     private LocalDateTime datetimeVal;
+
+    @Column(name = "decimal_val")
+    private BigDecimal decimalVal;
+
 }
 

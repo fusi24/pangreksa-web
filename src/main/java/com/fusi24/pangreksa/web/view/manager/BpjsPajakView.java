@@ -293,16 +293,28 @@ public class BpjsPajakView extends Main {
                         component = cb;
                         break;
                     }
-                    case "INT": {
-                        IntegerField tf = new IntegerField();
-                        tf.setStepButtonsVisible(true);
-                        tf.setMin(0);
-                        tf.setMax( system.getIntVal() > 100 ? 100000000 : 100);
-                        tf.setValue(system.getIntVal() != null ? system.getIntVal() : 0);
-                        tf.addValueChangeListener(e -> system.setIntVal(e.getValue() != null ? e.getValue() : null));
-                        component = tf;
+                    case "DECIMAL": {
+                        NumberField nf = new NumberField();
+                        nf.setStep(0.01);              // Bisa 2.50
+                        nf.setMin(0);
+                        nf.setMax(100);
+                        nf.setStepButtonsVisible(true);
+                        nf.setValue(system.getDecimalVal() != null
+                                ? system.getDecimalVal().doubleValue()
+                                : 0.0);
+
+                        nf.addValueChangeListener(e -> {
+                            if (e.getValue() != null) {
+                                system.setDecimalVal(BigDecimal.valueOf(e.getValue()));
+                            } else {
+                                system.setDecimalVal(null);
+                            }
+                        });
+
+                        component = nf;
                         break;
                     }
+
                     case "DATE": {
                         DatePicker dp = new DatePicker();
                         dp.setValue(system.getDateVal() != null ? system.getDateVal() : null);
