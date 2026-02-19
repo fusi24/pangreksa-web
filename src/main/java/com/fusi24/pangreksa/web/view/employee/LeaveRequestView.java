@@ -337,21 +337,54 @@ public class LeaveRequestView extends Main {
         ComboBox<HrPerson> finalSubmittedToCombo = submittedToCombo;
         submitButton.addClickListener(e -> {
 
+            HrLeaveAbsenceTypes selectedType = leaveAbsenceTypeDropdown.getValue();
+            LocalDate selectedStartDate = startDate.getValue();
+            LocalDate selectedEndDate = endDate.getValue();
             HrPerson approver = submittedToCombo.getValue();
+
+            // VALIDASI WAJIB
             if (approver == null) {
-                Notification.show(
-                        "Pilih penyetuju sebelum mengirim pengajuan.",
-                        3000,
-                        Notification.Position.MIDDLE
-                );
+                Notification.show("Pilih penyetuju sebelum mengirim pengajuan.",
+                        3000, Notification.Position.MIDDLE);
                 return;
             }
 
+            if (selectedType == null || selectedStartDate == null || selectedEndDate == null) {
+                Notification.show("Semua field wajib diisi.",
+                        3000, Notification.Position.MIDDLE);
+                return;
+            }
+
+            // VALIDASI CUTI TAHUNAN
+            if (selectedType.getId() == 1) {
+
+                LocalDate minimalDate = LocalDate.now().plusDays(7);
+
+                if (selectedStartDate.isBefore(minimalDate)) {
+                    Notification.show(
+                            "Tanggal mulai minimal 7 hari dari hari ini.\nMinimal: " + minimalDate,
+                            4000, Notification.Position.MIDDLE);
+                    return;
+                }
+
+                if (selectedEndDate.isBefore(minimalDate)) {
+                    Notification.show(
+                            "Tanggal selesai minimal 7 hari dari hari ini.\nMinimal: " + minimalDate,
+                            4000, Notification.Position.MIDDLE);
+                    return;
+                }
+            }
+
+            // ================================
+            // BARU SAVE SETELAH VALIDASI LOLOS
+            // ================================
+
             if (this.auth.canCreate) {
+
                 HrLeaveApplication request = HrLeaveApplication.builder()
-                        .leaveAbsenceType(leaveAbsenceTypeDropdown.getValue())
-                        .startDate(startDate.getValue())
-                        .endDate(endDate.getValue())
+                        .leaveAbsenceType(selectedType)
+                        .startDate(selectedStartDate)
+                        .endDate(selectedEndDate)
                         .reason(reason.getValue())
                         .status(LeaveStatusEnum.SUBMITTED)
                         .submittedTo(approver)
@@ -367,41 +400,14 @@ public class LeaveRequestView extends Main {
                 dialog.close();
                 requestButton.setEnabled(true);
             }
-
-            HrLeaveAbsenceTypes selectedType = leaveAbsenceTypeDropdown.getValue();
-            LocalDate selectedStartDate = startDate.getValue();
-
-            if (selectedType == null || selectedStartDate == null) {
-                Notification.show(
-                        "Tipe cuti dan tanggal mulai wajib diisi.",
-                        3000,
-                        Notification.Position.MIDDLE
-                );
-                return;
-            }
-
-            // VALIDASI KHUSUS CUTI TAHUNAN (misal id = 1)
-            if (selectedType.getId() == 1) {
-
-                LocalDate minimalDate = LocalDate.now().plusDays(7);
-
-                if (selectedStartDate.isBefore(minimalDate)) {
-                    Notification.show(
-                            "Pengajuan Cuti Tahunan minimal 7 hari sebelum hari H.\n" +
-                                    "Tanggal mulai minimal: " + minimalDate,
-                            4000,
-                            Notification.Position.MIDDLE
-                    );
-                    return;
-                }
-            }
-
         });
+
 
 
         // Validasi leave balance hanya untuk Cuti Tahunan (misal id = 1).
         // Untuk Tipe Cuti lain (menikah, ibadah, dll), submitButton tetap enabled.
         leaveAbsenceTypeDropdown.addValueChangeListener(e -> {
+
             HrLeaveAbsenceTypes selectedType = e.getValue();
 
             // default: belum bisa submit
@@ -412,10 +418,13 @@ public class LeaveRequestView extends Main {
                 return;
             }
 
-            // HANYA untuk Cuti Tahunan (misal id = 1)
+            // CUTI TAHUNAN (misal id = 1)
             if (selectedType.getId() == 1) {
-                // BONUS: khusus Cuti Tahunan minimal 7 hari dari sekarang
-                startDate.setMin(LocalDate.now().plusDays(7));
+
+                LocalDate minDate = LocalDate.now().plusDays(7);
+
+                startDate.setMin(minDate);
+                endDate.setMin(minDate);
 
                 HrLeaveBalance leaveBalance = leaveService.getLeaveBalance(
                         currentUser.require(),
@@ -423,33 +432,32 @@ public class LeaveRequestView extends Main {
                         selectedType
                 );
 
-                // <<< TAMBAHAN: handle kalau leaveBalance null >>>
                 if (leaveBalance == null) {
                     leaveAbsenceTypeDropdown.setHelperText(
-                            "Data Saldo Cuti. tidak ditemukan. silahkan hubungi HR."
+                            "Data Saldo Cuti tidak ditemukan. Silahkan hubungi HR."
                     );
                     submitButton.setEnabled(false);
                     return;
                 }
 
                 LeaveBalanceView view = new LeaveBalanceView(leaveBalance);
-
                 double remainingDays = view.getRemainingDays();
 
                 leaveAbsenceTypeDropdown.setHelperText(
                         "Sisa saldo cuti: " + remainingDays + " hari"
                 );
 
-
-                // submit hanya boleh kalau masih ada saldo cuti tahunan
                 submitButton.setEnabled(remainingDays > 0);
-            } else {
-                // Reset kembali ke minimal hari ini
-                startDate.setMin(LocalDate.now());
 
+            } else {
+
+                // tipe cuti selain tahunan
+                startDate.setMin(LocalDate.now());
+                endDate.setMin(LocalDate.now());
                 submitButton.setEnabled(true);
             }
         });
+
 
 
         cancelButton.addClickListener(e -> {
