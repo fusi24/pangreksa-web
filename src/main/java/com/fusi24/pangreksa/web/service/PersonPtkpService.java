@@ -38,9 +38,17 @@ public class PersonPtkpService {
                     ptkpRepo.save(old);
                 });
 
-        int dependentCount = (int) tanggunganList.stream()
-                .filter(t -> Boolean.TRUE.equals(t.getStillDependent()))
-                .count();
+        // default marriage kalau null
+        if (marriageStatus == null) {
+            marriageStatus = MarriageEnum.NO;   // default belum menikah = TK
+        }
+        int dependentCount = 0;
+
+        if (tanggunganList != null && !tanggunganList.isEmpty()) {
+            dependentCount = (int) tanggunganList.stream()
+                    .filter(t -> Boolean.TRUE.equals(t.getStillDependent()))
+                    .count();
+        }
 
         HrPersonPtkp ptkp = calculatorService.calculateFromMaster(
                 marriageStatus,
@@ -51,4 +59,5 @@ public class PersonPtkpService {
         ptkp.setPerson(person);
         return ptkpRepo.save(ptkp);
     }
+
 }
