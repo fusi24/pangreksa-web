@@ -294,14 +294,18 @@ public class BpjsPajakView extends Main {
                         break;
                     }
                     case "DECIMAL": {
+
                         NumberField nf = new NumberField();
-                        nf.setStep(0.01);              // Bisa 2.50
+
+                        nf.setStep(0.01);
                         nf.setMin(0);
                         nf.setMax(100);
                         nf.setStepButtonsVisible(true);
-                        nf.setValue(system.getDecimalVal() != null
-                                ? system.getDecimalVal().doubleValue()
-                                : 0.0);
+                        nf.setWidthFull();
+
+                        if (system.getDecimalVal() != null) {
+                            nf.setValue(system.getDecimalVal().doubleValue());
+                        }
 
                         nf.addValueChangeListener(e -> {
                             if (e.getValue() != null) {
