@@ -14,6 +14,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +44,10 @@ final class FSTUserDetailsService implements UserDetailsService {
         } else {
             // Roles
             List<VwAppUserRole> appUserRoleList = appUserRoleRepository.findByUsername(username);
+
+            FwAppUser appUser = appUserOptional.get();
+            appUser.setLastLogin(LocalDateTime.now());
+            appUserRepository.save(appUser);
 
             Collection<GrantedAuthority> roles = appUserRoleList.stream()
                     .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getRole())) // Prefix roles with "ROLE_" diperlukan oleh Spring Security untuk GrantedAuthority.

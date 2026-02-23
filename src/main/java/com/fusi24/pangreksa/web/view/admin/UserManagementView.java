@@ -33,6 +33,8 @@ import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Route("user-management-page-access")
@@ -209,15 +211,32 @@ public class UserManagementView extends Main {
         })).setHeader("Nama").setSortable(true);
         // isActive editable
         gridUsers.addColumn(new ComponentRenderer<>(user -> {
-            Checkbox activeCheckbox = new Checkbox(Boolean.TRUE.equals(user.getIsActive()));
-            activeCheckbox.addValueChangeListener(e -> {
-                user.setIsActive(e.getValue());
-                // Optionally set an isEdit flag here
-            });
-            return activeCheckbox;
-        })).setHeader("Aktif").setSortable(true);
+                    Checkbox activeCheckbox = new Checkbox(Boolean.TRUE.equals(user.getIsActive()));
+                    activeCheckbox.addValueChangeListener(e -> {
+                        user.setIsActive(e.getValue());
+                    });
+                    return activeCheckbox;
+                }))
+                .setHeader("Aktif")
+                .setAutoWidth(true)     // ⬅️ penting
+                .setFlexGrow(0)         // ⬅️ penting
+                .setWidth("90px");      // ⬅️ opsional, supaya stabil
 
-        gridUsers.addColumn(FwAppUser::getLastLogin).setHeader("Last Login").setSortable(true).setFlexGrow(0).setAutoWidth(true);
+        gridUsers.addColumn(user -> {
+                    if (user.getLastLogin() == null) {
+                        return "-";
+                    }
+
+                    return user.getLastLogin()
+                            .atZone(ZoneId.of("Asia/Jakarta"))
+                            .format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm"));
+                })
+                .setHeader("Last Login")
+                .setWidth("170px")     // ⬅️ tambahkan ini
+                .setFlexGrow(0)        // ⬅️ jangan expand
+                .setSortable(true)
+                .setResizable(true);
+
         // Action column with delete button (icon only, no title)
         gridUsers.addColumn(new ComponentRenderer<>(user -> {
             // Edit button
