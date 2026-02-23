@@ -88,6 +88,7 @@ public class AttendanceView extends Main {
     private DatePicker endDateFilter = new DatePicker();
 
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy");
+    private Button checkInButton;
 
     public AttendanceView(
             CurrentUser currentUser,
@@ -144,6 +145,9 @@ public class AttendanceView extends Main {
 
     private void initializeView() {
         this.setHeightFull();
+        if ("Karyawan".equals(this.responsibility)) {
+            updateCheckInButtonState();
+        }
 
         // === Grid Configuration ===
         grid.addColumn(att -> att.getPerson().getFirstName() + " " + att.getPerson().getLastName())
@@ -243,6 +247,12 @@ public class AttendanceView extends Main {
         searchField.setVisible(isHr);
 
         Button refreshButton = new Button(new Icon(VaadinIcon.REFRESH), e -> applyFilters());
+        checkInButton = new Button("Check-In / Check-Out");
+        checkInButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        checkInButton.setIcon(new Icon(VaadinIcon.CLOCK));
+        checkInButton.addClickListener(e -> openSelfServiceCheckInOut());
+        checkInButton.setVisible("Karyawan".equals(this.responsibility));
+
         refreshButton.setAriaLabel("Refresh");
 
         Button addAttendanceButton = new Button("Tambah Absensi", e -> openAddAttendanceDialog());
@@ -253,7 +263,14 @@ public class AttendanceView extends Main {
         uploadAttendanceButton.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
         uploadAttendanceButton.setVisible(isHr);
 
-        HorizontalLayout toolbar = new HorizontalLayout(filterBar, searchField, refreshButton, uploadAttendanceButton, addAttendanceButton);
+        HorizontalLayout toolbar = new HorizontalLayout(
+                filterBar,
+                searchField,
+                refreshButton,
+                checkInButton, // ← TAMBAHKAN DI SINI
+                uploadAttendanceButton,
+                addAttendanceButton
+        );
         toolbar.setWidthFull();
         toolbar.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
 
@@ -272,6 +289,24 @@ public class AttendanceView extends Main {
 
         add(layout);
         initDataProvider();
+    }
+
+    private void updateCheckInButtonState() {
+        if (checkInButton == null) return;
+
+        HrAttendance today = attendanceService.getOrCreateTodayAttendance(attendanceService.getCurrentUser());
+        if (today == null) return;
+
+        if (today.getCheckIn() != null && today.getCheckOut() != null) {
+            checkInButton.setEnabled(false);
+            checkInButton.setText("Sudah Absen Hari Ini");
+        } else if (today.getCheckIn() != null) {
+            checkInButton.setEnabled(true);
+            checkInButton.setText("Clock-Out Sekarang");
+        } else {
+            checkInButton.setEnabled(true);
+            checkInButton.setText("Clock-In Sekarang");
+        }
     }
 
     private void initDataProvider() {
@@ -368,20 +403,31 @@ public class AttendanceView extends Main {
         clockOutBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
 
         clockOutBtn.addClickListener(e -> {
-            ZoneId jakartaZone = ZoneId.of("Asia/Jakarta");
-            LocalDateTime now = LocalDateTime.now(jakartaZone);
 
-            attendance.setCheckOut(now);
-            try {
-                // ✅ pakai AppUserInfo dari CurrentUser
-                attendanceService.saveAttendance(attendance, currentUser.require());
+            ConfirmationDialogUtil.showConfirmation(
+                    "Konfirmasi Clock-Out",
+                    "Apakah Anda yakin ingin melakukan Clock-Out sekarang?",
+                    "Ya, Clock-Out",
+                    ev -> {
 
-                Notification.show("Clock-out berhasil", 3000, Notification.Position.MIDDLE);
-                applyFilters();
-            } catch (Exception ex) {
-                attendance.setCheckOut(null);
-                Notification.show("Gagal clock-out: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
-            }
+                        ZoneId jakartaZone = ZoneId.of("Asia/Jakarta");
+                        LocalDateTime now = LocalDateTime.now(jakartaZone);
+
+                        attendance.setCheckOut(now);
+
+                        try {
+                            attendanceService.saveAttendance(attendance, currentUser.require());
+
+                            Notification.show("Clock-out berhasil", 3000, Notification.Position.MIDDLE);
+                            applyFilters();
+
+                        } catch (Exception ex) {
+                            attendance.setCheckOut(null);
+                            Notification.show("Gagal clock-out: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
+                        }
+                    }
+            );
+
         });
 
         return new HorizontalLayout(clockOutBtn);
@@ -450,17 +496,23 @@ public class AttendanceView extends Main {
 
     // === KARYAWAN: Self-service check-in/out ===
     private void openSelfServiceCheckInOut() {
-        HrAttendance currentRecord = attendanceService.getOrCreateTodayAttendance(attendanceService.getCurrentUser());
-        if (currentRecord != null) {
-            CheckInOutDialog dialog = new CheckInOutDialog(
-                    attendanceService,
-                    currentRecord,
-                    currentUser,
-                    this::applyFilters
-            );
-            dialog.open();
-        }
+        HrAttendance currentRecord =
+                attendanceService.getOrCreateTodayAttendance(attendanceService.getCurrentUser());
+
+        if (currentRecord == null) return;
+
+        CheckInOutDialog dialog = new CheckInOutDialog(
+                attendanceService,
+                currentRecord,
+                currentUser,
+                () -> {
+                    applyFilters();
+                    updateCheckInButtonState(); // ⬅️ penting
+                }
+        );
+        dialog.open();
     }
+
 
     // === HR: Manual add attendance ===
     private void openAddAttendanceDialog() {
