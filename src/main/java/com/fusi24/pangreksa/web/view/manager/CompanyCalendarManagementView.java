@@ -31,9 +31,9 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 
-@Route("Perusahaan-calendar-mgt-page-access")
-@PageTitle("Perusahaan Calendar Management")
-@Menu(order = 20, icon = "vaadin:clipboard-check", title = "Perusahaan Calendar Management")
+@Route("company-calendar-mgt-page-access")
+@PageTitle("Manjemen Kalender Perusahaan")
+@Menu(order = 20, icon = "vaadin:clipboard-check", title = "Manjemen Kalender Perusahaan")
 @RolesAllowed("KAL_FORM")
 //@PermitAll // When security is enabled, allow all authenticated users
 public class CompanyCalendarManagementView extends Main {
@@ -44,10 +44,8 @@ public class CompanyCalendarManagementView extends Main {
     private final CalendarService calendarService;
     private Authorization auth;
 
-    public static final String VIEW_NAME = "Perusahaan Calendar Management";
-
+    public static final String VIEW_NAME = "Manjemen Kalender Perusahaan";
     private VerticalLayout body;
-
     private ComboBox<Integer> yearDropdown;
     private Button populateButton;
     private Button saveButton;
