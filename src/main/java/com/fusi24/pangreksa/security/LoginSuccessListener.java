@@ -7,11 +7,16 @@ import org.springframework.security.authentication.event.AuthenticationSuccessEv
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+
 
 @Component
 public class LoginSuccessListener {
 
     private final FwAppUserRepository userRepository;
+
+
 
     public LoginSuccessListener(FwAppUserRepository userRepository) {
         this.userRepository = userRepository;
@@ -22,8 +27,11 @@ public class LoginSuccessListener {
 
         String username = event.getAuthentication().getName();
         FwAppUser user = userRepository.findByUsername(username).orElse(null);
+
         if (user != null) {
-            user.setLastLogin(LocalDateTime.now());
+            user.setLastLogin(
+                    ZonedDateTime.now(ZoneId.of("Asia/Jakarta")).toLocalDateTime()
+            );
             userRepository.save(user);
         }
     }
