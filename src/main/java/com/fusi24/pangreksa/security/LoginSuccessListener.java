@@ -21,7 +21,6 @@ public class LoginSuccessListener {
     public void handleLoginSuccess(AuthenticationSuccessEvent event) {
 
         String username = event.getAuthentication().getName();
-
         FwAppUser user = userRepository.findByUsername(username).orElse(null);
         if (user != null) {
             user.setLastLogin(LocalDateTime.now());
