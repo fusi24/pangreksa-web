@@ -167,3 +167,46 @@ vaadin-grid.compact-mode vaadin-combo-box {
 vaadin-grid::part(cell) {
     border-bottom: 1px solid var(--lumo-contrast-10pct);
 }
+
+/* =========================================
+   ENTERPRISE SIDEBAR STYLE
+========================================= */
+
+/* Drawer width */
+vaadin-app-layout::part(drawer) {
+    width: 230px;
+    border-right: 1px solid var(--lumo-contrast-10pct);
+}
+
+/* Group header style */
+vaadin-side-nav-item[expanded]::part(link) {
+    font-weight: 600;
+}
+
+/* Default menu item */
+vaadin-side-nav-item::part(link) {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    transition: background 0.15s ease-in-out;
+}
+
+/* Hover effect */
+vaadin-side-nav-item::part(link):hover {
+    background-color: var(--lumo-primary-color-10pct);
+}
+
+/* Active menu highlight */
+vaadin-side-nav-item[active]::part(link) {
+    background-color: var(--lumo-primary-color-20pct);
+    font-weight: 600;
+}
+
+/* Nested child indentation */
+vaadin-side-nav-item vaadin-side-nav-item::part(link) {
+    padding-left: 24px;
+}
+
+vaadin-combo-box {
+    font-size: 0.8rem;
+}

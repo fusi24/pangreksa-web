@@ -71,6 +71,7 @@ public final class MainLayout extends AppLayout {
         navLayout.addClassNames(Padding.Top.NONE, Padding.Right.MEDIUM, Padding.Bottom.MEDIUM, Padding.Left.MEDIUM);
 
         setPrimarySection(Section.DRAWER);
+        setDrawerOpened(true);
         addToDrawer(createHeader(), responsibilitySwitcher(), new Scroller(navLayout), createUserMenu());
     }
 
@@ -83,8 +84,8 @@ public final class MainLayout extends AppLayout {
                 logoUrl.toLowerCase().endsWith(".jpg") ||
                 logoUrl.toLowerCase().endsWith(".jpeg"))) {
             Image img = new Image(logoUrl, "App Logo");
-            img.setHeight("40px");
-            img.setWidth("40px");
+            img.setHeight("32px");
+            img.setWidth("32px");
             appLogo = img;
         } else {
             appLogo = VaadinIcon.CUBES.create();
@@ -93,7 +94,8 @@ public final class MainLayout extends AppLayout {
 
         String name = systemService.getStringAppName();
         var appName = new Span( !name.equals("") ? name : "Pangreksa");
-        appName.addClassNames(FontWeight.SEMIBOLD, FontSize.LARGE);
+        appName.addClassNames(FontWeight.SEMIBOLD);
+        appName.getStyle().set("font-size", "0.95rem");
 
         var header = new Div(appLogo, appName);
         header.addClassNames(Display.FLEX, Padding.MEDIUM, Gap.MEDIUM, AlignItems.CENTER, Padding.Top.MEDIUM,
@@ -106,7 +108,7 @@ public final class MainLayout extends AppLayout {
         responsibilityDropdown = new ComboBox<>("Responsibility");
         responsibilityDropdown.setItems(responsibilityList);
         responsibilityDropdown.setItemLabelGenerator(Responsibility::getResponsibility);
-        responsibilityDropdown.getStyle().setWidth("250px");
+        responsibilityDropdown.setWidthFull();
         responsibilityDropdown.setPlaceholder("Select responsibility..");
 
         String resp = (String) UI.getCurrent().getSession().getAttribute("responsibility");
@@ -134,6 +136,25 @@ public final class MainLayout extends AppLayout {
         return div;
     }
 
+    private Icon getGroupIcon(String groupName) {
+        switch (groupName.toLowerCase()) {
+            case "master data":
+                return VaadinIcon.DATABASE.create();
+            case "attendance":
+                return VaadinIcon.CLOCK.create();
+            case "leave":
+                return VaadinIcon.CALENDAR.create();
+            case "payroll":
+                return VaadinIcon.MONEY.create();
+            case "settings":
+                return VaadinIcon.COG.create();
+            case "user management":
+                return VaadinIcon.USERS.create();
+            default:
+                return VaadinIcon.FOLDER.create();
+        }
+    }
+
     private SideNav populateNavigation(Responsibility responsibility){
         var nav = new SideNav();
 
@@ -147,6 +168,7 @@ public final class MainLayout extends AppLayout {
 
                         // Create a top-level group item (non-clickable header)
                         SideNavItem groupItem = new SideNavItem(groupName);
+                        groupItem.setPrefixComponent(getGroupIcon(groupName));
 
                         // Optionally add an icon (you'd need to map group name to icon separately if desired)
                         // groupItem.setPrefixComponent(new Icon("..."));
