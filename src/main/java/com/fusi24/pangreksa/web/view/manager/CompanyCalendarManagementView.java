@@ -175,9 +175,13 @@ public class CompanyCalendarManagementView extends Main {
             layout.setWidthFull();
 
             ComboBox<CalendarTypeEnum> typeBox = new ComboBox<>();
-            typeBox.setItems(CalendarTypeEnum.values());
+
+            typeBox.setItems(CalendarTypeEnum.values());   // ✅ WAJIB
+            typeBox.setItemLabelGenerator(CalendarTypeEnum::getLabel);
             typeBox.setWidthFull();
+
             typeBox.setValue(item.getCalendarType());
+
             typeBox.addValueChangeListener(e -> {
                 item.setCalendarType(e.getValue());
                 this.isEdit = true;
