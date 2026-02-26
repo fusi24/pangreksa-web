@@ -70,7 +70,7 @@ public class MasterDepartmentView extends Main {
     }
 
     private void configureGrid() {
-        grid.setColumns("Kode", "Nama", "Deskripsi");
+        grid.setColumns("code", "name", "description");
         grid.addColumn(t -> BooleanUtils.toString(t.getIsActive(), "Active", "Inactive")).setHeader("Status");
 
         grid.addComponentColumn(dept -> {
