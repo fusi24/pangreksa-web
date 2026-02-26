@@ -3,3 +3,167 @@
 .no-dropdown-icon::part(toggle-button) {
     display: none;
 }
+
+/* =========================================
+   ENTERPRISE GLOBAL CONFIG
+========================================= */
+
+html {
+    --lumo-font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+
+    --lumo-font-size-xxl: 1.15rem;
+    --lumo-font-size-xl: 1.0rem;
+    --lumo-font-size-l: 0.92rem;
+    --lumo-font-size-m: 0.82rem;
+    --lumo-font-size-s: 0.74rem;
+    --lumo-font-size-xs: 0.68rem;
+
+    --lumo-border-radius-m: 6px;
+    --lumo-border-radius-s: 4px;
+
+    --lumo-space-xs: 4px;
+    --lumo-space-s: 6px;
+    --lumo-space-m: 10px;
+    --lumo-space-l: 14px;
+}
+
+/* =========================================
+   APP LAYOUT
+========================================= */
+
+vaadin-app-layout::part(drawer) {
+    width: 230px;
+    border-right: 1px solid var(--lumo-contrast-10pct);
+}
+
+vaadin-app-layout::part(navbar) {
+    min-height: 48px;
+    border-bottom: 1px solid var(--lumo-contrast-10pct);
+}
+
+/* =========================================
+   SIDE NAV
+========================================= */
+
+vaadin-side-nav {
+    font-size: 0.82rem;
+}
+
+vaadin-side-nav-item::part(link) {
+    padding: 6px 12px;
+    border-radius: 6px;
+}
+
+vaadin-side-nav-item::part(link):hover {
+    background-color: var(--lumo-contrast-5pct);
+}
+
+/* =========================================
+   GRID STYLE
+========================================= */
+
+vaadin-grid {
+    font-size: 0.8rem;
+    border: 1px solid var(--lumo-contrast-10pct);
+    border-radius: 8px;
+}
+
+vaadin-grid::part(header-cell) {
+    font-weight: 600;
+    font-size: 0.78rem;
+    background-color: var(--lumo-contrast-5pct);
+    padding: 6px 8px;
+}
+
+vaadin-grid::part(cell) {
+    padding: 4px 8px;
+}
+
+vaadin-grid::part(row) {
+    min-height: 34px;
+}
+
+/* =========================================
+   FORM COMPONENTS
+========================================= */
+
+vaadin-text-field,
+vaadin-date-picker,
+vaadin-number-field,
+vaadin-combo-box {
+    font-size: 0.8rem;
+}
+
+vaadin-text-field::part(input-field),
+vaadin-date-picker::part(input-field),
+vaadin-number-field::part(input-field),
+vaadin-combo-box::part(input-field) {
+    min-height: 30px;
+}
+
+/* =========================================
+   BUTTON STYLE
+========================================= */
+
+vaadin-button {
+    font-size: 0.78rem;
+    border-radius: 6px;
+}
+
+vaadin-button[theme~="primary"] {
+    font-weight: 500;
+}
+
+/* =========================================
+   MAIN CONTENT
+========================================= */
+
+main {
+    padding: 16px !important;
+}
+
+/* =========================================
+   GRID HOVER EFFECT
+========================================= */
+
+vaadin-grid::part(row):hover {
+    background-color: var(--lumo-primary-color-10pct);
+    cursor: pointer;
+}
+
+/* =========================================
+   STICKY HEADER ENHANCEMENT
+========================================= */
+
+vaadin-grid::part(header-cell) {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+/* =========================================
+   DENSITY MODE
+========================================= */
+
+vaadin-grid.compact-mode {
+    font-size: 0.75rem;
+}
+
+vaadin-grid.compact-mode::part(row) {
+    min-height: 30px;
+}
+
+vaadin-grid.compact-mode::part(cell) {
+    padding: 3px 6px;
+}
+
+vaadin-grid.compact-mode vaadin-text-field,
+vaadin-grid.compact-mode vaadin-date-picker,
+vaadin-grid.compact-mode vaadin-number-field,
+vaadin-grid.compact-mode vaadin-combo-box {
+    font-size: 0.75rem;
+}
+
+vaadin-grid::part(cell) {
+    border-bottom: 1px solid var(--lumo-contrast-10pct);
+}
