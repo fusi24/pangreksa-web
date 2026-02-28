@@ -29,6 +29,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.RoundingMode;
+import java.util.stream.Collectors;
 
 @Service
 public class PayrollService {
@@ -52,6 +53,11 @@ public class PayrollService {
     private final HrLeaveApplicationRepository hrLeaveApplicationRepository;
 
     private final SystemService systemService;
+
+    private static final int SCALE_MONEY = 2;
+
+    private static final BigDecimal BD_12 = BigDecimal.valueOf(12);
+    private static final BigDecimal BD_100 = BigDecimal.valueOf(100);
 
     @Autowired
     public PayrollService(HrSalaryBaseLevelRepository hrSalaryBaseLevelRepository,
@@ -361,7 +367,7 @@ public class PayrollService {
 
             // PTKP aktif → simpan BULANAN (dibagi 12)
             HrPersonPtkp activePtkp = hrPersonPtkpRepository
-                    .findActiveByPersonId(person.getId(), payrollDate)
+                    .findCurrentByPersonId(person.getId())
                     .orElse(null);
 
             String ptkpCode = activePtkp == null ? "NOT_SET" : activePtkp.getPtkpCode();
@@ -516,19 +522,18 @@ public class PayrollService {
             throw new IllegalArgumentException("Payroll input/person must not be null");
         }
 
-        BigDecimal grossSalary = resolveGrossSalary(payrollInput.getPerson().getId());
+        BigDecimal baseSalary = resolveGrossSalary(payrollInput.getPerson().getId());
         BigDecimal ptkpMonth   = nvl(payrollInput.getPtkpAmount());
 
         Integer sumAttendance = payrollInput.getSumAttendance(); // sudah diisi saat create/recalc
         Integer paramAttendanceDays = payrollInput.getParamAttendanceDays();
-        BigDecimal realGrossSalary = computeRealGrossDeduction(grossSalary, sumAttendance, paramAttendanceDays);
 
         BigDecimal computedTaxable;
         if (ptkpMonth.compareTo(BigDecimal.ZERO) <= 0) {
             // PTKP expired / tidak ada → anggap tidak kena pajak
             computedTaxable = BigDecimal.ZERO;
         } else {
-            computedTaxable = grossSalary.subtract(ptkpMonth);
+            computedTaxable = baseSalary.subtract(ptkpMonth);
             if (computedTaxable.compareTo(BigDecimal.ZERO) < 0) {
                 computedTaxable = BigDecimal.ZERO;
             }
@@ -537,41 +542,66 @@ public class PayrollService {
         BigDecimal totalAllowances = parseAllowanceTotal(payrollInput);                // poin 2A
         BigDecimal totalOvertimes = calculateOvertimeTotal(payrollInput, startOfMonth, startOfNextMonth); // poin 2B
 
+        BigDecimal attendanceAllowanceDeduction = computeAttendanceAllowanceDeduction(totalAllowances, sumAttendance, paramAttendanceDays);
+
         BigDecimal bonus = nvl(totalBonus);
         BigDecimal otherDed = nvl(totalOtherDeductions);
 
+        BigDecimal computedGrossSalary = baseSalary
+                .add(totalAllowances)
+                .add(totalOvertimes)
+                .add(bonus);
+
         // potongan jaminan kesehatan (rupiah)
-        BigDecimal healthDeduction = resolveHealthInsuranceDeduction(grossSalary);
+        BigDecimal healthDeduction = resolveBpjsDeduction(computedGrossSalary);
+
+        BigDecimal monthlyPph21 = calculateMonthlyPph21FromGross(
+                computedGrossSalary,
+                payrollInput.getPtkpAmount(),               // pastikan ini monthly PTKP (sesuai requirement dikali 12 di fungsi)
+                payrollInput.getPerson().getStatusEmployee()
+        );
 
         // THP final (sesuai struktur perhitungan kamu)
-        BigDecimal netTakeHomePay = grossSalary
+        BigDecimal netTakeHomePay = baseSalary
                 .add(totalAllowances)
                 .add(totalOvertimes)
                 .add(bonus)
                 .subtract(otherDed)
-                .subtract(computedTaxable)
+                .subtract(monthlyPph21)
                 .subtract(healthDeduction);
 
-        BigDecimal enhancedNetTakeHomePay = netTakeHomePay.subtract(realGrossSalary);
+        BigDecimal aad = attendanceAllowanceDeduction == null ? BigDecimal.ZERO : attendanceAllowanceDeduction;
+        BigDecimal enhancedNetTakeHomePay = netTakeHomePay.subtract(aad);
+
+        if (enhancedNetTakeHomePay.signum() < 0) {
+            enhancedNetTakeHomePay = BigDecimal.ZERO; // optional safety
+        }
 
         HrPayrollCalculation current = hrPayrollCalculationRepository.findFirstByPayrollInputId(payrollInput.getId());
 
         HrPayrollCalculation calculation = HrPayrollCalculation.builder()
                 .id(current == null ? null : current.getId())
                 .payrollInput(payrollInput)
-                .grossSalary(grossSalary)
+
+                // NEW: pindahkan nilai lama gross ke base_salary
+                .baseSalary(baseSalary)
+
+                // NEW: gross_salary = base + allowances + overtime + bonus
+                .grossSalary(computedGrossSalary)
+
                 .totalAllowances(totalAllowances)
                 .totalOvertimes(totalOvertimes)
                 .totalBonus(bonus)
+
                 .totalOtherDeductions(otherDed)
 
                 // simpan hasil gross-ptkp ke DB
-                .totalTaxable(computedTaxable)
+                .totalTaxable(monthlyPph21)
 
                 // simpan health deduction ke DB
                 .healthDeduction(healthDeduction)
 
-                .realGrossSalary(realGrossSalary) // <-- NEW
+                .attendanceAllowanceDeduction(aad) // <-- NEW
                 .netTakeHomePay(enhancedNetTakeHomePay) // <-- NEW
 
                 .calculatedAt(LocalDateTime.now())
@@ -1174,36 +1204,191 @@ public class PayrollService {
         }
     }
 
-    private BigDecimal computeRealGrossDeduction(BigDecimal grossSalary, Integer sumAttendance, Integer paramAttendanceDays) {
-        BigDecimal gross = nvl(grossSalary);
+    private BigDecimal computeAttendanceAllowanceDeduction(
+            BigDecimal totalAllowances,
+            Integer sumAttendance,
+            Integer paramAttendanceDays
+    ) {
+        BigDecimal allowances = totalAllowances == null ? BigDecimal.ZERO : totalAllowances;
 
-        int sum = sumAttendance == null ? 0 : sumAttendance;
-        int param = paramAttendanceDays == null ? 0 : paramAttendanceDays;
+        int sum = (sumAttendance == null ? 0 : sumAttendance);
+        int param = (paramAttendanceDays == null ? 0 : paramAttendanceDays);
 
-        if (param <= 0) {
-            // tidak ada basis 100%, supaya tidak crash kita anggap tidak ada potongan
-            return BigDecimal.ZERO;
-        }
+        if (param <= 0) return BigDecimal.ZERO;      // tidak bisa prorata
+        if (allowances.signum() <= 0) return BigDecimal.ZERO;
 
-        int diff = sum - param;
-        if (diff >= 0) {
-            return BigDecimal.ZERO;
-        }
+        int absentDays = param - sum;
+        if (absentDays <= 0) return BigDecimal.ZERO; // hadir >= target => tidak dipotong
 
-        int missing = Math.abs(diff); // jumlah hari kurang
-        // missingPct = missing / param * 100
-        BigDecimal missingPct = BigDecimal.valueOf(missing)
-                .multiply(BigDecimal.valueOf(100))
-                .divide(BigDecimal.valueOf(param), 6, RoundingMode.HALF_UP);
+        // per-day allowance
+        BigDecimal perDay = allowances.divide(BigDecimal.valueOf(param), 6, RoundingMode.HALF_UP);
 
-        // potongan rupiah = gross * missingPct / 100
-        BigDecimal deduction = gross
-                .multiply(missingPct)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal deduction = perDay.multiply(BigDecimal.valueOf(absentDays))
+                .setScale(2, RoundingMode.HALF_UP);
 
-        if (deduction.compareTo(BigDecimal.ZERO) < 0) return BigDecimal.ZERO;
-        if (deduction.compareTo(gross) > 0) return gross; // safety clamp
+        // safety clamp
+        if (deduction.signum() < 0) return BigDecimal.ZERO;
+        if (deduction.compareTo(allowances) > 0) return allowances;
+
         return deduction;
+    }
+
+    private BigDecimal resolveBpjsDeduction(BigDecimal grossSalary) {
+        BigDecimal gross = nvl(grossSalary);
+        if (gross.signum() <= 0) return BigDecimal.ZERO;
+
+        // 1) ambil config 100-104 dari fw_system.string_val
+        Map<Integer, String> cfg = fwSystemRepository.findBySortOrderIn(Set.of(100,101,102,103,104))
+                .stream()
+                .collect(Collectors.toMap(FwSystem::getSortOrder, FwSystem::getStringVal, (a, b) -> a));
+
+        BigDecimal rateKes = parseDecimal(cfg.get(100)); // persen
+        BigDecimal rateJht = parseDecimal(cfg.get(101)); // persen
+        BigDecimal rateJp  = parseDecimal(cfg.get(102)); // persen
+        BigDecimal capKes  = parseDecimal(cfg.get(103)); // uang
+        BigDecimal capJp   = parseDecimal(cfg.get(104)); // uang
+
+        // default bila null / kosong
+        rateKes = nvl(rateKes);
+        rateJht = nvl(rateJht);
+        rateJp  = nvl(rateJp);
+
+        // cap kalau tidak ada, dianggap tidak dibatasi (pakai gross)
+        BigDecimal baseKes = (capKes == null || capKes.signum() <= 0) ? gross : gross.min(capKes);
+        BigDecimal baseJht = gross;
+        BigDecimal baseJp  = (capJp  == null || capJp.signum()  <= 0) ? gross : gross.min(capJp);
+
+        BigDecimal bpjsKes = percentOf(baseKes, rateKes);
+        BigDecimal bpjsJht = percentOf(baseJht, rateJht);
+        BigDecimal bpjsJp  = percentOf(baseJp,  rateJp);
+
+        return bpjsKes.add(bpjsJht).add(bpjsJp).setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal percentOf(BigDecimal amount, BigDecimal ratePercent) {
+        if (amount == null || ratePercent == null) return BigDecimal.ZERO;
+        if (amount.signum() <= 0 || ratePercent.signum() <= 0) return BigDecimal.ZERO;
+
+        return amount
+                .multiply(ratePercent)
+                .divide(BigDecimal.valueOf(100), SCALE_MONEY, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Parsing string_val menjadi BigDecimal.
+     * Jika kamu simpan string_val tanpa format ribuan, ini cukup.
+     * Kalau ada format (mis "12.000.000" atau "12,000,000"), rapikan dulu.
+     */
+    private BigDecimal parseDecimal(String raw) {
+        if (raw == null) return null;
+        String s = raw.trim();
+        if (s.isEmpty()) return null;
+
+        // normalize: buang pemisah ribuan umum
+        s = s.replace(" ", "");
+        s = s.replace(",", "");     // 12,000,000 -> 12000000
+        // Jika di DB kamu pakai 12.000.000 sebagai ribuan, uncomment:
+        // s = s.replace(".", "");
+
+        try {
+            return new BigDecimal(s);
+        } catch (NumberFormatException ex) {
+            return null; // atau lempar exception supaya ketahuan config rusak
+        }
+    }
+
+    private BigDecimal calculateMonthlyPph21FromGross(
+            BigDecimal monthlyGrossSalary,
+            BigDecimal monthlyPtkpAmount,
+            String statusEmployee
+    ) {
+        BigDecimal grossMonth = nvl(monthlyGrossSalary);
+        BigDecimal ptkpMonth  = nvl(monthlyPtkpAmount);
+
+        if (grossMonth.signum() <= 0) return BigDecimal.ZERO;
+
+        // 1) annualize
+        BigDecimal grossYear = grossMonth.multiply(BD_12);
+
+        // 2) biaya jabatan
+        BigDecimal penghasilanNetoYear = grossYear;
+        if (isEligibleForBiayaJabatan(statusEmployee)) {
+
+            // sesuai requirement kamu: 5% x (grossYear)
+            BigDecimal biayaJabatanMonthly = grossYear
+                    .multiply(BigDecimal.valueOf(5))
+                    .divide(BD_100, 6, RoundingMode.HALF_UP);
+
+            // cap 500,000
+            BigDecimal cap = BigDecimal.valueOf(500_000);
+            if (biayaJabatanMonthly.compareTo(cap) > 0) {
+                biayaJabatanMonthly = cap;
+            }
+
+            BigDecimal fixedPotonganJabatanYear = biayaJabatanMonthly.multiply(BD_12);
+
+            penghasilanNetoYear = grossYear.subtract(fixedPotonganJabatanYear);
+            if (penghasilanNetoYear.signum() < 0) penghasilanNetoYear = BigDecimal.ZERO;
+        }
+
+        // 3) PKP
+        BigDecimal pkp = penghasilanNetoYear.subtract(ptkpMonth.multiply(BD_12));
+        if (pkp.signum() < 0) pkp = BigDecimal.ZERO;
+
+        // 4) PPh21 tahunan (progresif)
+        BigDecimal pphYear = calculatePph21YearlyProgressive(pkp);
+
+        // 5) bulanan untuk disimpan ke total_taxable
+        BigDecimal pphMonth = pphYear.divide(BD_12, 2, RoundingMode.HALF_UP);
+        if (pphMonth.signum() < 0) return BigDecimal.ZERO;
+
+        return pphMonth;
+    }
+
+    private BigDecimal calculatePph21YearlyProgressive(BigDecimal pkp) {
+        BigDecimal remaining = nvl(pkp);
+        if (remaining.signum() <= 0) return BigDecimal.ZERO;
+
+        BigDecimal tax = BigDecimal.ZERO;
+
+        tax = tax.add(taxLayer(remaining, 60_000_000L, 5));
+        remaining = remaining.subtract(BigDecimal.valueOf(60_000_000L));
+        if (remaining.signum() <= 0) return tax;
+
+        tax = tax.add(taxLayer(remaining, 190_000_000L, 15)); // 250-60 = 190
+        remaining = remaining.subtract(BigDecimal.valueOf(190_000_000L));
+        if (remaining.signum() <= 0) return tax;
+
+        tax = tax.add(taxLayer(remaining, 250_000_000L, 25)); // 500-250
+        remaining = remaining.subtract(BigDecimal.valueOf(250_000_000L));
+        if (remaining.signum() <= 0) return tax;
+
+        tax = tax.add(taxLayer(remaining, 4_500_000_000L, 30)); // 5M-500jt
+        remaining = remaining.subtract(BigDecimal.valueOf(4_500_000_000L));
+        if (remaining.signum() <= 0) return tax;
+
+        // > 5M
+        tax = tax.add(taxLayer(remaining, null, 35));
+        return tax;
+    }
+
+    private BigDecimal taxLayer(BigDecimal amount, Long layerCap, int ratePercent) {
+        if (amount == null || amount.signum() <= 0) return BigDecimal.ZERO;
+
+        BigDecimal taxable = amount;
+        if (layerCap != null) {
+            BigDecimal cap = BigDecimal.valueOf(layerCap);
+            if (taxable.compareTo(cap) > 0) taxable = cap;
+        }
+
+        return taxable
+                .multiply(BigDecimal.valueOf(ratePercent))
+                .divide(BD_100, 2, RoundingMode.HALF_UP);
+    }
+
+    private boolean isEligibleForBiayaJabatan(String statusEmployee) {
+        if (statusEmployee == null) return false;
+        return "PKWT".equalsIgnoreCase(statusEmployee) || "PKWTT".equalsIgnoreCase(statusEmployee);
     }
 
 }
