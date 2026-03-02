@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.employee;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.ConfirmationDialogUtil;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
@@ -380,12 +381,15 @@ public class AttendanceView extends Main {
                     "Hapus",
                     ev -> {
                         try {
-                            attendanceService.deleteAttendance(attendance);
-                            Notification.show("Berhasil dihapus", 3000, Notification.Position.MIDDLE);
-                            applyFilters();
-                        } catch (Exception ex) {
-                            Notification.show("Gagal: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
-                        }
+    attendanceService.deleteAttendance(attendance);
+
+    AppNotification.success("Berhasil dihapus");
+
+    applyFilters();
+
+} catch (Exception ex) {
+    AppNotification.error("Gagal: " + ex.getMessage());
+}
                     }
             );
         });
@@ -415,16 +419,18 @@ public class AttendanceView extends Main {
 
                         attendance.setCheckOut(now);
 
-                        try {
-                            attendanceService.saveAttendance(attendance, currentUser.require());
+                       try {
+    attendanceService.saveAttendance(attendance, currentUser.require());
 
-                            Notification.show("Clock-out berhasil", 3000, Notification.Position.MIDDLE);
-                            applyFilters();
+    AppNotification.success("Clock-out berhasil");
 
-                        } catch (Exception ex) {
-                            attendance.setCheckOut(null);
-                            Notification.show("Gagal clock-out: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
-                        }
+    applyFilters();
+
+} catch (Exception ex) {
+    attendance.setCheckOut(null);
+
+    AppNotification.error("Gagal clock-out: " + ex.getMessage());
+}
                     }
             );
 
@@ -595,42 +601,51 @@ public class AttendanceView extends Main {
         }
 
         private void saveAttendance() {
-            if (personField.getValue() == null || dateField.getValue() == null) {
-                Notification.show("Karyawan dan tanggal wajib diisi", 3000, Notification.Position.MIDDLE);
-                return;
-            }
 
-            try {
-                FwAppUser user = appUserRepository.findByPersonId(personField.getValue().getId()).orElse(null);
-                HrAttendance att = new HrAttendance();
-                att.setPerson(personField.getValue());
-                att.setAppUser(user); // ensure AppUserInfo is linked
-                att.setAttendanceDate(dateField.getValue());
+    if (personField.getValue() == null || dateField.getValue() == null) {
+        AppNotification.error("Karyawan dan tanggal wajib diisi");
+        return;
+    }
 
-                // Resolve Jadwal Kerja for this person on this date
-                HrWorkSchedule schedule = workScheduleService.getActiveScheduleForUser(
-                        user, dateField.getValue()
-                );
-                if (schedule == null) {
-                    Notification.show("Tidak ada jadwal kerja untuk karyawan ini pada tanggal tersebut", 4000, Notification.Position.MIDDLE);
-                    return;
-                }
-                att.setWorkSchedule(schedule);
+    try {
+        FwAppUser user = appUserRepository
+                .findByPersonId(personField.getValue().getId())
+                .orElse(null);
 
-                att.setCheckIn(checkInField.getValue());
-                att.setCheckOut(checkOutField.getValue());
-                att.setNotes(notesField.getValue());
+        HrAttendance att = new HrAttendance();
+        att.setPerson(personField.getValue());
+        att.setAppUser(user); // ensure AppUserInfo is linked
+        att.setAttendanceDate(dateField.getValue());
 
-                // Save — status will be auto-set in service
-                attendanceService.saveAttendance(att, currentUser.require());
-                Notification.show("Absensi berhasil ditambahkan", 3000, Notification.Position.MIDDLE);
-                close();
-                if (onSuccess != null) onSuccess.run();
-            } catch (Exception ex) {
-                Notification.show("Gagal: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
-                ex.printStackTrace();
-            }
+        // Resolve Jadwal Kerja for this person on this date
+        HrWorkSchedule schedule = workScheduleService
+                .getActiveScheduleForUser(user, dateField.getValue());
+
+        if (schedule == null) {
+            AppNotification.error(
+                "Tidak ada jadwal kerja untuk karyawan ini pada tanggal tersebut"
+            );
+            return;
         }
+
+        att.setWorkSchedule(schedule);
+        att.setCheckIn(checkInField.getValue());
+        att.setCheckOut(checkOutField.getValue());
+        att.setNotes(notesField.getValue());
+
+        // Save — status will be auto-set in service
+        attendanceService.saveAttendance(att, currentUser.require());
+
+        AppNotification.success("Absensi berhasil ditambahkan");
+
+        close();
+        if (onSuccess != null) onSuccess.run();
+
+    } catch (Exception ex) {
+        AppNotification.error("Gagal: " + ex.getMessage());
+        ex.printStackTrace();
+    }
+}
     }
 
     private String formatWorkDuration(Integer totalMinutes) {

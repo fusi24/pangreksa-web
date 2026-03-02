@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.taskmanagement.ui.view;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.taskmanagement.domain.Task;
 import com.fusi24.pangreksa.taskmanagement.service.TaskService;
 import com.vaadin.flow.component.button.Button;
@@ -78,8 +79,7 @@ public class TaskListView extends Main {
         taskGrid.getDataProvider().refreshAll();
         description.clear();
         dueDate.clear();
-        Notification.show("Task added", 3000, Notification.Position.BOTTOM_END)
-                .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+AppNotification.success("Task added");
     }
 
 }

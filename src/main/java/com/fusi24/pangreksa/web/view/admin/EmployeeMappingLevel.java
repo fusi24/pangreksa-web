@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.entity.HrSalaryBaseLevel;
 import com.fusi24.pangreksa.web.repo.HrSalaryEmployeeLevelRepository.UserLevelProjection;
@@ -200,16 +201,12 @@ public class EmployeeMappingLevel extends Main {
                 pendingSalaryByUserId.clear();
                 populateButton.click();
 
-                // <- notifikasi sukses
-                Notification n = Notification.show("Berhasil menyimpan level employee.");
-                n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                n.setPosition(Notification.Position.TOP_END);
-            } catch (Exception ex) {
-                // opsional: log & tampilkan notif error
-                log.error("Gagal menyimpan mapping level", ex);
-                Notification n = Notification.show("Gagal menyimpan. Silakan coba lagi.");
-                n.addThemeVariants(NotificationVariant.LUMO_ERROR);
-                n.setPosition(Notification.Position.TOP_END);
+        // <- notifikasi sukses
+AppNotification.success("Berhasil menyimpan level employee.");
+
+} catch (Exception ex) {
+    log.error("Gagal menyimpan mapping level", ex);
+    AppNotification.error("Gagal menyimpan. Silakan coba lagi.");
             }
         });
 

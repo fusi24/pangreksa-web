@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.*;
@@ -219,7 +220,7 @@ public class GlobalPersonDataView extends Main {
             if (this.auth.canCreate) {
                 UI.getCurrent().navigate(ROUTE_EDIT);
             } else {
-                Notification.show("Anda tidak memiliki izin untuk menambahkan person baru.");
+                AppNotification.error("Anda tidak memiliki izin untuk menambahkan person baru.");
             }
         });
     }
@@ -234,16 +235,21 @@ public class GlobalPersonDataView extends Main {
     }
 
     public void populateUnassignedPersons() {
-        List<HrPerson> personList = personService.findUnassignedPersons();
-        personList.sort((a, b) -> {
-            if (a.getCreatedAt() == null && b.getCreatedAt() == null) return 0;
-            if (a.getCreatedAt() == null) return 1;
-            if (b.getCreatedAt() == null) return -1;
-            return b.getCreatedAt().compareTo(a.getCreatedAt());
-        });
-        gridUnassignedPersons.setItems(Collections.emptyList());
-        if (!personList.isEmpty())
-            gridUnassignedPersons.setItems(personList);
+
+        gridUnassignedPersons.setItems(
+                query -> {
+                    int offset = query.getOffset();
+                    int limit = query.getLimit();
+                    int page = offset / limit;
+
+                    return personService
+                            .findUnassignedPersons(page, limit)
+                            .getContent()
+                            .stream();
+                },
+                query -> (int) personService.countUnassignedPersons()
+        );
+
     }
 }
 

@@ -4,6 +4,7 @@ import com.fusi24.pangreksa.web.service.PersonPtkpService;
 import com.fusi24.pangreksa.web.service.PersonTanggunganService;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.DatePickerUtil;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
@@ -207,7 +208,7 @@ public class MyProfileView extends Main {
         marriage.setReadOnly(true);
         Long pid = resolveCurrentPersonId();
         if (pid == null) {
-            Notification.show("Tidak menemukan personId untuk user saat ini.", 4000, Notification.Position.MIDDLE);
+            AppNotification.error("Tidak menemukan personId untuk user saat ini.");
             return;
         }
         // Load person and related lists
@@ -1073,7 +1074,7 @@ public class MyProfileView extends Main {
                     if (fullAddress.getValue() == null || fullAddress.getValue().trim().isEmpty()) {
                         fullAddress.setInvalid(true);
                         fullAddress.setErrorMessage("Alamat lengkap wajib diisi");
-                        Notification.show("Mohon lengkapi data Address.", 3000, Notification.Position.MIDDLE);
+                        AppNotification.error("Mohon lengkapi data Address.");
                         return;
                     }
 
@@ -1105,14 +1106,14 @@ public class MyProfileView extends Main {
 
                     // Validasi format khusus (Email/Angka) menggunakan method yang sudah ada
                     if (valid && !validateCurrentContactInputs()) {
-                        Notification.show("Format Kontak (Email/Angka) tidak valid.", 3000, Notification.Position.MIDDLE);
-                        return;
-                    }
+    AppNotification.error("Format Kontak (Email/Angka) tidak valid.");
+    return;
+}
 
-                    if (!valid) {
-                        Notification.show("Semua field Contact wajib diisi.", 3000, Notification.Position.MIDDLE);
-                        return;
-                    }
+if (!valid) {
+    AppNotification.error("Semua field Contact wajib diisi.");
+    return;
+}
 
                     // 2. Siapkan Action Simpan
                     actionToConfirm = () -> {
@@ -1149,10 +1150,9 @@ public class MyProfileView extends Main {
                     if (typeEducation.getValue() == null) { typeEducation.setInvalid(true); valid = false; }
 
                     if (!valid) {
-                        Notification.show("Semua field Education wajib diisi.", 3000, Notification.Position.MIDDLE);
-                        return;
-                    }
-
+    AppNotification.error("Semua field Education wajib diisi.");
+    return;
+}
                     // 2. Siapkan Action Simpan
                     actionToConfirm = () -> {
                         HrPersonEducation education = this.educationData != null ? this.educationData : new HrPersonEducation();
@@ -1190,9 +1190,9 @@ public class MyProfileView extends Main {
                     if (path.getValue() == null || path.getValue().trim().isEmpty()) { path.setInvalid(true); valid = false; }
 
                     if (!valid) {
-                        Notification.show("Semua field Document wajib diisi.", 3000, Notification.Position.MIDDLE);
-                        return;
-                    }
+    AppNotification.error("Semua field Document wajib diisi.");
+    return;
+}
 
                     // 2. Siapkan Action Simpan
                     actionToConfirm = () -> {
@@ -1220,9 +1220,9 @@ public class MyProfileView extends Main {
                 case 4 -> {
                     // Validasi
                     if (tgName.isEmpty() || tgRelation.isEmpty() || tgDob.isEmpty() || tgGender.isEmpty()) {
-                        Notification.show("Semua field Tanggungan wajib diisi.", 3000, Notification.Position.MIDDLE);
-                        return;
-                    }
+    AppNotification.error("Semua field Tanggungan wajib diisi.");
+    return;
+}
 
                     actionToConfirm = () -> {
                         HrPersonTanggungan t = new HrPersonTanggungan();
@@ -1432,11 +1432,12 @@ public class MyProfileView extends Main {
             // saveAllInformation(Lists only, no person arg)
             personService.saveAllInformation(addressList, contactList, educationList, documentList);
 
-            Notification.show("Profil berhasil disimpan.", 2500, Notification.Position.BOTTOM_CENTER);
-            updateSaveButtonState();
-        } catch (Exception ex) {
-            Notification.show("Gagal menyimpan profil: " + ex.getMessage(), 3000, Notification.Position.MIDDLE);
-        }
+            AppNotification.success("Profil berhasil disimpan.");
+updateSaveButtonState();
+
+} catch (Exception ex) {
+    AppNotification.error("Gagal menyimpan profil: " + ex.getMessage());
+}
     }
 
     private String mimeFromFilename(String name) {
@@ -1451,36 +1452,37 @@ public class MyProfileView extends Main {
     }
 
     private void reloadAddresses() {
-        try {
-            this.addressList = personService.getPersonAddresses();
-            gridAddress.setItems(addressList);
-        } catch (Exception ex) {
-            String __msg = "unknown";
-            if (ex != null && ex.getMessage() != null) __msg = ex.getMessage();
-            Notification.show("Gagal memuat alamat: " + __msg, 2500, Notification.Position.MIDDLE);
-        }
-    }
+    try {
+        this.addressList = personService.getPersonAddresses();
+        gridAddress.setItems(addressList);
+    } catch (Exception ex) {
+        String __msg = "unknown";
+        if (ex != null && ex.getMessage() != null) __msg = ex.getMessage();
 
-    private void reloadContacts() {
-        try {
-            this.contactList = personService.getPersonContacts();
-            gridContacts.setItems(contactList);
-        } catch (Exception ex) {
-            String __msg = "unknown";
-            if (ex != null && ex.getMessage() != null) __msg = ex.getMessage();
-            Notification.show("Gagal memuat kontak: " + __msg, 2500, Notification.Position.MIDDLE);
-        }
+        AppNotification.error("Gagal memuat alamat: " + __msg);
     }
+}
+private void reloadContacts() {
+    try {
+        this.contactList = personService.getPersonContacts();
+        gridContacts.setItems(contactList);
+    } catch (Exception ex) {
+        String __msg = "unknown";
+        if (ex != null && ex.getMessage() != null) __msg = ex.getMessage();
 
-    private void reloadEducations() {
-        try {
-            this.educationList = personService.getPersonEducations();
-            gridEducation.setItems(educationList);
-        } catch (Exception ex) {
-            String __msg = "unknown";
-            if (ex != null && ex.getMessage() != null) __msg = ex.getMessage();
-            Notification.show("Gagal memuat pendidikan: " + __msg, 2500, Notification.Position.MIDDLE);
-        }
+        AppNotification.error("Gagal memuat kontak: " + __msg);
     }
+}
+private void reloadEducations() {
+    try {
+        this.educationList = personService.getPersonEducations();
+        gridEducation.setItems(educationList);
+    } catch (Exception ex) {
+        String __msg = "unknown";
+        if (ex != null && ex.getMessage() != null) __msg = ex.getMessage();
+
+        AppNotification.error("Gagal memuat pendidikan: " + __msg);
+    }
+}
 
 }

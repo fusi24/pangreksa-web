@@ -1,8 +1,7 @@
 package com.fusi24.pangreksa.base.ui.view;
 
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.server.VaadinServiceInitListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,15 +17,16 @@ class MainErrorHandler {
     public VaadinServiceInitListener errorHandlerInitializer() {
         return (event) -> event.getSource().addSessionInitListener(
                 sessionInitEvent -> sessionInitEvent.getSession().setErrorHandler(errorEvent -> {
-                    log.error("An unexpected error occurred", errorEvent.getThrowable());
-                    errorEvent.getComponent().flatMap(Component::getUI).ifPresent(ui -> {
-                        var notification = new Notification(
-                                "An unexpected error has occurred. Please try again later.");
-                        notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-                        notification.setPosition(Notification.Position.TOP_CENTER);
-                        notification.setDuration(3000);
-                        ui.access(notification::open);
-                    });
+
+                    log.error("Terjadi kesalahan yang tidak terduga", errorEvent.getThrowable());
+
+                    errorEvent.getComponent()
+                            .flatMap(Component::getUI)
+                            .ifPresent(ui -> ui.access(() ->
+                                    AppNotification.error(
+                                            "Terjadi kesalahan sistem. Silakan coba beberapa saat lagi."
+                                    )
+                            ));
                 }));
     }
 }

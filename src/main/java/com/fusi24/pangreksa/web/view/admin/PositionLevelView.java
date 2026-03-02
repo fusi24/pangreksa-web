@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrPosition; // [Ubah] Gunakan HrPosition
@@ -383,21 +384,15 @@ public class PositionLevelView extends Main {
         }
     }
 
-    private void notifySuccess(String msg) {
-        Notification n = Notification.show(msg);
-        n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-        n.setPosition(Notification.Position.TOP_END);
-    }
+   private void notifySuccess(String msg) {
+    AppNotification.success(msg);
+}
 
-    private void notifyWarn(String msg) {
-        Notification n = Notification.show(msg);
-        n.addThemeVariants(NotificationVariant.LUMO_WARNING);
-        n.setPosition(Notification.Position.TOP_END);
-    }
+private void notifyWarn(String msg) {
+    AppNotification.warning(msg);
+}
 
-    private void notifyError(String msg) {
-        Notification n = Notification.show(msg);
-        n.addThemeVariants(NotificationVariant.LUMO_ERROR);
-        n.setPosition(Notification.Position.TOP_END);
-    }
+private void notifyError(String msg) {
+    AppNotification.error(msg);
+}
 }

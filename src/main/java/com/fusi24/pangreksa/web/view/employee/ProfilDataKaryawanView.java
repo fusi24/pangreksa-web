@@ -168,7 +168,7 @@ public class ProfilDataKaryawanView extends Main {
         body.add(toolbarLayout);
 
         createTabSheet();
-
+        gridUnassignedPersons.setPageSize(10);
         add(body);
     }
 
@@ -594,16 +594,26 @@ public class ProfilDataKaryawanView extends Main {
     }
 
     public void populateUnassignedPersons() {
-        List<HrPerson> personList = personService.findUnassignedPersons();
-        personList.sort((a, b) -> {
-            if (a.getCreatedAt() == null && b.getCreatedAt() == null) return 0;
-            if (a.getCreatedAt() == null) return 1;
-            if (b.getCreatedAt() == null) return -1;
-            return b.getCreatedAt().compareTo(a.getCreatedAt());
-        });
-        gridUnassignedPersons.setItems(Collections.emptyList());
-        if (!personList.isEmpty())
-            gridUnassignedPersons.setItems(personList);
+
+        gridUnassignedPersons.setItems(
+                // FETCH CALLBACK
+                query -> {
+                    int offset = query.getOffset();
+                    int limit = query.getLimit();
+                    int page = offset / limit;
+
+                    return personService
+                            .findUnassignedPersons(page, limit)
+                            .getContent()
+                            .stream();
+                },
+
+                // COUNT CALLBACK (INI YANG KAMU BELUM PAKAI)
+                query -> (int) personService
+                        .findUnassignedPersons(0, 1)
+                        .getTotalElements()
+        );
+
     }
 
     private void setListener() {

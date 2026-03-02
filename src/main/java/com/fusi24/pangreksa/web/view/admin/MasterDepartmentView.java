@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.ConfirmationDialogUtil;
 import com.fusi24.pangreksa.web.model.entity.HrDepartment;
 import com.fusi24.pangreksa.web.repo.HrDepartmentRepo;
@@ -163,26 +164,32 @@ public class MasterDepartmentView extends Main {
             );
 
             if (isDuplicateCode) {
-                Notification.show("Department code must be unique. Another department already uses this code.",
-                        5000, Notification.Position.MIDDLE);
-                return;
-            }
+    AppNotification.error(
+        "Department code must be unique. Another department already uses this code."
+    );
+    return;
+}
 
-            // Optional: Also check for duplicate name, if needed
-            boolean isDuplicateName = departmentRepo.existsByNameAndIdNot(currentDepartment.getName(), currentDepartment.getId());
-            if (isDuplicateName) {
-                Notification.show("Department Name must be unique. Another department already uses this Name.",
-                        5000, Notification.Position.MIDDLE);
-                return;
-            }
+// Optional: Also check for duplicate name, if needed
+boolean isDuplicateName = departmentRepo
+        .existsByNameAndIdNot(currentDepartment.getName(), currentDepartment.getId());
 
-            departmentRepo.save(currentDepartment);
-            dialog.close();
-            refreshGrid();
-            Notification.show("Data berhasil disimpan.");
-        } catch (Exception e) {
-            Notification.show("Error saving department: " + e.getMessage());
-        }
+if (isDuplicateName) {
+    AppNotification.error(
+        "Department Name must be unique. Another department already uses this Name."
+    );
+    return;
+}
+
+departmentRepo.save(currentDepartment);
+dialog.close();
+refreshGrid();
+
+AppNotification.success("Data berhasil disimpan.");
+
+} catch (Exception e) {
+    AppNotification.error("Error saving department: " + e.getMessage());
+}
     }
 
     private void deleteDepartment(HrDepartment department) {
@@ -195,13 +202,15 @@ public class MasterDepartmentView extends Main {
                 // The action to perform on confirmation
                 event -> {
                     try {
-                        departmentRepo.delete(department);
-                        refreshGrid();
-                        Notification.show("Data berhasi dihapus.");
-                    } catch (Exception ex) {
-                        Notification.show("Deletion failed: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
-                        ex.printStackTrace();
-                    }
+    departmentRepo.delete(department);
+    refreshGrid();
+
+    AppNotification.success("Data berhasil dihapus.");
+
+} catch (Exception ex) {
+    AppNotification.error("Deletion failed: " + ex.getMessage());
+    ex.printStackTrace();
+}
                 }
         );
     }

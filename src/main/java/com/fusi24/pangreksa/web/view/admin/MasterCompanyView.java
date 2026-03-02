@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.ConfirmationDialogUtil;
 import com.fusi24.pangreksa.web.model.entity.HrCompany;
 import com.fusi24.pangreksa.web.model.entity.HrCompanyBranch;
@@ -453,23 +454,23 @@ public class MasterCompanyView extends Main {
                                     c.getName().equalsIgnoreCase(currentCompany.getName())
                     );
 
-            if (duplicateName) {
-                Notification.show(
-                        "Perusahaan name must be unique. Another company already uses this name.",
-                        5000,
-                        Notification.Position.MIDDLE
-                );
-                return;
-            }
+         if (duplicateName) {
+    AppNotification.error(
+        "Perusahaan name must be unique. Another company already uses this name."
+    );
+    return;
+}
 
-            companyRepo.save(currentCompany);
-            companyDialog.close();
-            refreshCompanyGrid();
-            refreshBranchGrid();
-            Notification.show("Data berhasil disimpan.");
-        } catch (Exception e) {
-            Notification.show("Error saving company: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
-        }
+companyRepo.save(currentCompany);
+companyDialog.close();
+refreshCompanyGrid();
+refreshBranchGrid();
+
+AppNotification.success("Data berhasil disimpan.");
+
+} catch (Exception e) {
+    AppNotification.error("Error saving company: " + e.getMessage());
+}
     }
 
     private void deleteCompany(HrCompany company) {
@@ -482,15 +483,16 @@ public class MasterCompanyView extends Main {
                 "Hapus",
                 event -> {
                     try {
-                        companyRepo.delete(company);
-                        refreshCompanyGrid();
-                        refreshBranchGrid();
-                        Notification.show("Data berhasi dihapus.");
-                    } catch (Exception ex) {
-                        Notification.show("Deletion failed: " + ex.getMessage(),
-                                5000, Notification.Position.MIDDLE);
-                        ex.printStackTrace();
-                    }
+    companyRepo.delete(company);
+    refreshCompanyGrid();
+    refreshBranchGrid();
+
+    AppNotification.success("Data berhasil dihapus.");
+
+} catch (Exception ex) {
+    AppNotification.error("Deletion failed: " + ex.getMessage());
+    ex.printStackTrace();
+}
                 }
         );
     }
@@ -664,40 +666,40 @@ public class MasterCompanyView extends Main {
             currentBranch.setBranchLongitude(parseDecimalOrNull(branchLongitudeField.getValue()));
 
             // Validasi ringan range lat/long
-            if (currentBranch.getBranchLatitude() != null) {
-                double lat = currentBranch.getBranchLatitude().doubleValue();
-                if (lat < -90 || lat > 90) {
-                    Notification.show("Latitude harus di antara -90 sampai 90.",
-                            4000, Notification.Position.MIDDLE);
-                    return;
-                }
-            }
-            if (currentBranch.getBranchLongitude() != null) {
-                double lon = currentBranch.getBranchLongitude().doubleValue();
-                if (lon < -180 || lon > 180) {
-                    Notification.show("Longitude harus di antara -180 sampai 180.",
-                            4000, Notification.Position.MIDDLE);
-                    return;
-                }
-            }
+           if (currentBranch.getBranchLatitude() != null) {
+    double lat = currentBranch.getBranchLatitude().doubleValue();
+    if (lat < -90 || lat > 90) {
+        AppNotification.error("Latitude harus di antara -90 sampai 90.");
+        return;
+    }
+}
 
-            // Unique code per company
-            if (currentBranch.getCompany() != null && currentBranch.getBranchCode() != null) {
-                boolean duplicate = branchService.isDuplicateCode(currentBranch.getCompany(), currentBranch);
-                if (duplicate) {
-                    Notification.show("Kode cabang sudah dipakai di perusahaan yang sama.",
-                            4000, Notification.Position.MIDDLE);
-                    return;
-                }
-            }
+if (currentBranch.getBranchLongitude() != null) {
+    double lon = currentBranch.getBranchLongitude().doubleValue();
+    if (lon < -180 || lon > 180) {
+        AppNotification.error("Longitude harus di antara -180 sampai 180.");
+        return;
+    }
+}
+
+// Unique code per company
+if (currentBranch.getCompany() != null && currentBranch.getBranchCode() != null) {
+    boolean duplicate = branchService.isDuplicateCode(currentBranch.getCompany(), currentBranch);
+    if (duplicate) {
+        AppNotification.error("Kode cabang sudah dipakai di perusahaan yang sama.");
+        return;
+    }
+}
 
             branchService.save(currentBranch);
-            branchDialog.close();
-            refreshBranchGrid();
-            Notification.show("Cabang berhasil tersimpan!");
-        } catch (Exception e) {
-            Notification.show("Error saving branch: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
-        }
+branchDialog.close();
+refreshBranchGrid();
+
+AppNotification.success("Cabang berhasil tersimpan!");
+
+} catch (Exception e) {
+    AppNotification.error("Error saving branch: " + e.getMessage());
+}
     }
 
     private void deleteBranch(HrCompanyBranch branch) {
@@ -709,15 +711,16 @@ public class MasterCompanyView extends Main {
                 message,
                 "Hapus",
                 event -> {
-                    try {
-                        branchService.delete(branch);
-                        refreshBranchGrid();
-                        Notification.show("Data berhasi dihapus.");
-                    } catch (Exception ex) {
-                        Notification.show("Deletion failed: " + ex.getMessage(),
-                                5000, Notification.Position.MIDDLE);
-                        ex.printStackTrace();
-                    }
+                   try {
+    branchService.delete(branch);
+    refreshBranchGrid();
+
+    AppNotification.success("Data berhasil dihapus.");
+
+} catch (Exception ex) {
+    AppNotification.error("Deletion failed: " + ex.getMessage());
+    ex.printStackTrace();
+}
                 }
         );
     }
@@ -815,29 +818,24 @@ public class MasterCompanyView extends Main {
 
         switchBranchButton.addClickListener(e -> {
             if (toCompanyField.isEmpty() || toBranchField.isEmpty()) {
-                Notification.show("Perusahaan dan cabang tujuan wajib dipilih.",
-                        4000, Notification.Position.MIDDLE);
-                return;
-            }
+    AppNotification.error("Perusahaan dan cabang tujuan wajib dipilih.");
+    return;
+}
 
-            HrCompanyBranch targetBranch = toBranchField.getValue();
-            if (targetBranch == null || targetBranch.getId() == null) {
-                Notification.show("Cabang tujuan tidak valid.",
-                        4000, Notification.Position.MIDDLE);
-                return;
-            }
+HrCompanyBranch targetBranch = toBranchField.getValue();
+if (targetBranch == null || targetBranch.getId() == null) {
+    AppNotification.error("Cabang tujuan tidak valid.");
+    return;
+}
 
-            // Simpan cabang aktif di session.
-            VaadinSession.getCurrent().setAttribute("ACTIVE_BRANCH_ID", targetBranch.getId());
+// Simpan cabang aktif di session.
+VaadinSession.getCurrent().setAttribute("ACTIVE_BRANCH_ID", targetBranch.getId());
 
-            // TODO: di sini nanti bisa panggil service untuk sync ke hr_person_position.branch_id
-            // misalnya: userBranchService.setActiveBranchForCurrentUser(targetBranch);
+// TODO: nanti bisa sync ke service
 
-            Notification.show(
-                    "Cabang aktif dipindah ke: " + targetBranch.getBranchName(),
-                    4000,
-                    Notification.Position.MIDDLE
-            );
+AppNotification.success(
+    "Cabang aktif dipindah ke: " + targetBranch.getBranchName()
+);
         });
 
         FormLayout form = new FormLayout();

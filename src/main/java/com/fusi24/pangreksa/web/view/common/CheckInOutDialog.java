@@ -1,6 +1,7 @@
 // src/main/java/com/fusi24/pangreksa/web/component/attendance/CheckInOutDialog.java
 package com.fusi24.pangreksa.web.view.common;
 
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.entity.HrAttendance;
 import com.fusi24.pangreksa.web.model.entity.HrCompanyBranch;
@@ -78,7 +79,7 @@ public class CheckInOutDialog extends Dialog {
             branchField.setItems(attendanceService.getBranchesForCurrentUserCompany());
         } catch (Exception ex) {
             // kalau belum setUser, atau error lain, supaya ketahuan cepat
-            Notification.show("Gagal load branch: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
+            AppNotification.error("Gagal load branch: " + ex.getMessage());
         }
 
         // Jika sudah ada branch tersimpan di attendance (misal record existing),
@@ -135,43 +136,51 @@ public class CheckInOutDialog extends Dialog {
 
     private void handleCheckIn() {
         try {
-            // validasi branch wajib
-            HrCompanyBranch selected = branchField.getValue();
-            if (selected == null) {
-                Notification.show("Branch wajib dipilih sebelum Clock-In", 3000, Notification.Position.MIDDLE);
-                return;
-            }
+    // validasi branch wajib
+    HrCompanyBranch selected = branchField.getValue();
+    if (selected == null) {
+        AppNotification.error("Branch wajib dipilih sebelum Clock-In");
+        return;
+    }
 
-            attendance.setCheckIn(ZonedDateTime.now(ZoneId.of("Asia/Jakarta")).toLocalDateTime());
-            attendance.setNotes(notesField.getValue());
+    attendance.setCheckIn(
+        ZonedDateTime.now(ZoneId.of("Asia/Jakarta")).toLocalDateTime()
+    );
+    attendance.setNotes(notesField.getValue());
 
-            // snapshot branch -> attendance
-            attendance.setBranchCode(selected.getBranchCode());
-            attendance.setBranchName(selected.getBranchName());
-            attendance.setBranchAddress(selected.getBranchAddress());
+    // snapshot branch -> attendance
+    attendance.setBranchCode(selected.getBranchCode());
+    attendance.setBranchName(selected.getBranchName());
+    attendance.setBranchAddress(selected.getBranchAddress());
 
-            attendanceService.saveAttendance(attendance, currentUser.require());
+    attendanceService.saveAttendance(attendance, currentUser.require());
 
-            Notification.show("Clock-In berhasil", 3000, Notification.Position.MIDDLE);
-            closeAndNotify();
-        } catch (Exception ex) {
-            Notification.show("Gagal Clock-In: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
-        }
+    AppNotification.success("Clock-In berhasil");
+
+    closeAndNotify();
+
+} catch (Exception ex) {
+    AppNotification.error("Gagal Clock-In: " + ex.getMessage());
+}
     }
 
     private void handleCheckOut() {
-        try {
-            attendance.setCheckOut(ZonedDateTime.now(ZoneId.of("Asia/Jakarta")).toLocalDateTime());
-            attendance.setNotes(notesField.getValue());
+      try {
+    attendance.setCheckOut(
+        ZonedDateTime.now(ZoneId.of("Asia/Jakarta")).toLocalDateTime()
+    );
+    attendance.setNotes(notesField.getValue());
 
-            // Branch tidak diubah saat clock-out (biar snapshot tetap sesuai saat check-in)
-            attendanceService.saveAttendance(attendance, currentUser.require());
+    // Branch tidak diubah saat clock-out
+    attendanceService.saveAttendance(attendance, currentUser.require());
 
-            Notification.show("Clock-Out berhasil", 3000, Notification.Position.MIDDLE);
-            closeAndNotify();
-        } catch (Exception ex) {
-            Notification.show("Gagal Clock-Out: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
-        }
+    AppNotification.success("Clock-Out berhasil");
+
+    closeAndNotify();
+
+} catch (Exception ex) {
+    AppNotification.error("Gagal Clock-Out: " + ex.getMessage());
+}
     }
 
     private void closeAndNotify() {

@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrLeaveAbsenceTypes;
@@ -314,7 +315,7 @@ public class GlobalLeaveAbsenceManagementView extends Main {
                     log.debug("Deleted Leave Absence Type: {}", deleted.getLabel());
                 } catch (Exception ex) {
                     log.error("Failed to delete Leave Absence Type: " + deleted.getLabel(), ex);
-                    Notification.show("Failed to delete: " + deleted.getLabel(), 5000, Notification.Position.MIDDLE);
+                    AppNotification.error("Failed to delete: " + deleted.getLabel());
                 }
             }
             deletedItems.clear(); // Clear after processing
@@ -340,7 +341,7 @@ public class GlobalLeaveAbsenceManagementView extends Main {
 
                 this.isGridEdit = false;
 
-                Notification.show("Leave Absence Type List saved successfully.");
+                AppNotification.success("Leave Absence Type List saved successfully.");
 
                 if (this.auth.canView)
                     populateGrid();

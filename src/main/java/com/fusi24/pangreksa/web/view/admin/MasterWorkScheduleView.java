@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.ConfirmationDialogUtil;
 import com.fusi24.pangreksa.web.model.entity.HrOrgStructure;
 import com.fusi24.pangreksa.web.model.entity.HrWorkSchedule;
@@ -340,22 +341,25 @@ public class MasterWorkScheduleView extends Main {
             }
 
             // Validate: if "Selected", must have at least one assignment
-            if ("Selected".equals(currentSchedule.getAssignmentScope()) && currentSchedule.getAssignments().isEmpty()) {
-                Notification.show("Please select at least one Struktur Organisasi.");
-                return;
-            }
+           if ("Selected".equals(currentSchedule.getAssignmentScope()) 
+        && currentSchedule.getAssignments().isEmpty()) {
+    AppNotification.error("Please select at least one Struktur Organisasi.");
+    return;
+}
 
-            currentSchedule.setEffectiveDate(LocalDate.now());
+currentSchedule.setEffectiveDate(LocalDate.now());
 
-            // Save
-            scheduleRepo.save(currentSchedule);
-            dialog.close();
-            refreshGrid();
-            Notification.show("Jadwal Kerja berhasil tersimpan!");
-        } catch (Exception e) {
-            Notification.show("Error: " + e.getMessage());
-            e.printStackTrace();
-        }
+// Save
+scheduleRepo.save(currentSchedule);
+dialog.close();
+refreshGrid();
+
+AppNotification.success("Jadwal Kerja berhasil tersimpan!");
+
+} catch (Exception e) {
+    AppNotification.error("Error: " + e.getMessage());
+    e.printStackTrace();
+}
     }
 
     private void deleteSchedule(HrWorkSchedule schedule) {
@@ -366,13 +370,15 @@ public class MasterWorkScheduleView extends Main {
                 message,
                 "Hapus",
                 event -> {
-                    try {
-                        scheduleRepo.delete(schedule);
-                        refreshGrid();
-                        Notification.show("Data berhasi dihapus.");
-                    } catch (Exception ex) {
-                        Notification.show("Deletion failed: " + ex.getMessage());
-                    }
+                   try {
+    scheduleRepo.delete(schedule);
+    refreshGrid();
+
+    AppNotification.success("Data berhasil dihapus.");
+
+} catch (Exception ex) {
+    AppNotification.error("Deletion failed: " + ex.getMessage());
+}
                 }
         );
     }

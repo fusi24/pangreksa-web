@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.FwAppUser;
@@ -369,7 +370,9 @@ public class UserManagementView extends Main {
 
             FwAppUser hasNoPassword = usersToSave.stream().filter(p -> p.getPassword() == null && p.getPasswordHash() == null).findFirst().orElse(null);
             if(hasNoPassword != null) {
-                Notification.show("Password wajib diisi for User: "+hasNoPassword.getUsername(), 500, Notification.Position.MIDDLE);
+                AppNotification.error(
+    "Password wajib diisi for User: " + hasNoPassword.getUsername()
+);
                 return;
             }
 

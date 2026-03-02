@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.employee;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.DatePickerUtil;
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
@@ -343,38 +344,35 @@ public class LeaveRequestView extends Main {
             HrPerson approver = submittedToCombo.getValue();
 
             // VALIDASI WAJIB
-            if (approver == null) {
-                Notification.show("Pilih penyetuju sebelum mengirim pengajuan.",
-                        3000, Notification.Position.MIDDLE);
-                return;
-            }
+if (approver == null) {
+    AppNotification.error("Pilih penyetuju sebelum mengirim pengajuan.");
+    return;
+}
 
-            if (selectedType == null || selectedStartDate == null || selectedEndDate == null) {
-                Notification.show("Semua field wajib diisi.",
-                        3000, Notification.Position.MIDDLE);
-                return;
-            }
+if (selectedType == null || selectedStartDate == null || selectedEndDate == null) {
+    AppNotification.error("Semua field wajib diisi.");
+    return;
+}
 
-            // VALIDASI CUTI TAHUNAN
-            if (selectedType.getId() == 1) {
+// VALIDASI CUTI TAHUNAN
+if (selectedType.getId() == 1) {
 
-                LocalDate minimalDate = LocalDate.now().plusDays(7);
+    LocalDate minimalDate = LocalDate.now().plusDays(7);
 
-                if (selectedStartDate.isBefore(minimalDate)) {
-                    Notification.show(
-                            "Tanggal mulai minimal 7 hari dari hari ini.\nMinimal: " + minimalDate,
-                            4000, Notification.Position.MIDDLE);
-                    return;
-                }
+    if (selectedStartDate.isBefore(minimalDate)) {
+        AppNotification.error(
+            "Tanggal mulai minimal 7 hari dari hari ini.\nMinimal: " + minimalDate
+        );
+        return;
+    }
 
-                if (selectedEndDate.isBefore(minimalDate)) {
-                    Notification.show(
-                            "Tanggal selesai minimal 7 hari dari hari ini.\nMinimal: " + minimalDate,
-                            4000, Notification.Position.MIDDLE);
-                    return;
-                }
-            }
-
+    if (selectedEndDate.isBefore(minimalDate)) {
+        AppNotification.error(
+            "Tanggal selesai minimal 7 hari dari hari ini.\nMinimal: " + minimalDate
+        );
+        return;
+    }
+}
             // ================================
             // BARU SAVE SETELAH VALIDASI LOLOS
             // ================================
@@ -393,7 +391,7 @@ public class LeaveRequestView extends Main {
                 request = leaveService.saveApplication(request, currentUser.require());
 
                 if (request.getId() != null) {
-                    Notification.show("Pengajuan cuti berhasil dikirim.");
+                    AppNotification.success("Pengajuan cuti berhasil dikirim.");
                     populateGrid();
                 }
 
@@ -475,7 +473,7 @@ public class LeaveRequestView extends Main {
 
 
 
-        Notification.show("Pengajuan cuti berhasil dikirim.");
+        AppNotification.success("Pengajuan cuti berhasil dikirim.");
     }
 
     private Card createDashboardCard(String stringTitle, String stringValue) {

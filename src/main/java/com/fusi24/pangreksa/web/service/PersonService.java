@@ -5,11 +5,12 @@ import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.repo.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.fusi24.pangreksa.web.repo.HrPersonRepository;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -27,7 +28,7 @@ public class PersonService {
     private static final Logger log = LoggerFactory.getLogger(PersonService.class);
 
 
-    private final HrPersonRespository hrPersonRespository;
+    private final HrPersonRepository hrPersonRepository;
     private final HrPersonContactRepository hrPersonContactRepository;
     private final HrPersonAddressRepository hrPersonAddressRepository;
     private final HrPersonEducationRepository hrPersonEducationRepository;
@@ -47,7 +48,7 @@ public class PersonService {
     private String PERSON_PHOTO_PATH;
     private final HrPersonTanggunganRepository hrPersonTanggunganRepository;
     public PersonService(
-            HrPersonRespository personRepository,
+            HrPersonRepository personRepository,
             HrPersonContactRepository contactRepository,
             HrPersonAddressRepository addressRepository,
             HrPersonEducationRepository educationRepository,
@@ -58,7 +59,7 @@ public class PersonService {
             FwAppUserRepository appUserRepository,
             FwSystemRepository systemRepository
     ) {
-        this.hrPersonRespository = personRepository;
+        this.hrPersonRepository = personRepository;
         this.hrPersonContactRepository = contactRepository;
         this.hrPersonAddressRepository = addressRepository;
         this.hrPersonEducationRepository = educationRepository;
@@ -155,7 +156,7 @@ public class PersonService {
 
             hrPerson.setCreatedBy( hrPerson.getCreatedBy() != null ? hrPerson.getCreatedBy() : user);
             hrPerson.setUpdatedBy(user);
-            this.hrPerson = hrPersonRespository.save(hrPerson);
+            this.hrPerson = hrPersonRepository.save(hrPerson);
         } else {
             throw new IllegalStateException("No person to save");
         }
@@ -225,7 +226,7 @@ public class PersonService {
     }
 
     public HrPerson getPerson(Long id) {
-        HrPerson person = hrPersonRespository.findById(id).orElse(this.hrPerson);
+        HrPerson person = hrPersonRepository.findById(id).orElse(this.hrPerson);
         this.hrPerson = person;
         return person;
     }
@@ -247,11 +248,13 @@ public class PersonService {
     }
 
     public List<HrPerson> findAllPerson() {
-        return hrPersonRespository.findAll();
+        return hrPersonRepository.findAll();
     }
 
-    public List<HrPerson> findUnassignedPersons() {
-        return hrPersonRespository.findUnassignedPersons();
+
+    public Page<HrPerson> findUnassignedPersons(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return hrPersonRepository.findUnassignedPersons(pageable);
     }
 
 //    public List<HrPerson> findallPersonByCompany() {
@@ -259,7 +262,7 @@ public class PersonService {
 //            throw new IllegalStateException("No company selected");
 //        }
 //
-//        List<HrPerson> personList =  hrPersonRespository.findAll();
+//        List<HrPerson> personList =  hrPersonRepository.findAll();
 //
 //        return personList.stream()
 //                .filter(person -> person.getUpdatedBy().getPerson().))
@@ -324,7 +327,7 @@ public class PersonService {
     ) {
 
         // pastikan person tersimpan
-        this.hrPerson = hrPersonRespository.save(hrPerson);
+        this.hrPerson = hrPersonRepository.save(hrPerson);
 
         // ===== ADDRESS =====
         for (HrPersonAddress address : addresses) {
@@ -419,10 +422,18 @@ public class PersonService {
 
     public List<HrPerson> findPersonByKeyword(String keyword) {
         Pageable pageable = PageRequest.of(0, NO_RETRIEVE);
+
         if (keyword == null || keyword.isBlank()) {
-            return new ArrayList<HrPerson>();
+            return new ArrayList<>();
         }
-        return hrPersonRespository.findByKeyword(keyword, pageable);
+
+        return hrPersonRepository
+                .findByKeyword(keyword, pageable)
+                .getContent();
+    }
+
+    public long countUnassignedPersons() {
+        return hrPersonRepository.countUnassignedPersons();
     }
 
     public List<HrCompany> findCompanyByKeyword(String keyword) {

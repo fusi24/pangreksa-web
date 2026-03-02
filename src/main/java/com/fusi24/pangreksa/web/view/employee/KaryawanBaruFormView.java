@@ -3,6 +3,7 @@ package com.fusi24.pangreksa.web.view.employee;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.DatePickerUtil;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
@@ -212,34 +213,27 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
         demoButton.addClickListener(e -> {
             try {
-                populateDemoDate();
-                Notification.show(
-                        "Dummy data berhasil diisi",
-                        2000,
-                        Notification.Position.MIDDLE
-                );
-            } catch (Exception ex) {
-                Notification.show(
-                        "Gagal mengisi dummy data",
-                        3000,
-                        Notification.Position.MIDDLE
-                );
-                log.error("Error populate demo data", ex);
-            }
+    populateDemoDate();
+
+    AppNotification.success("Dummy data berhasil diisi");
+
+} catch (Exception ex) {
+
+    AppNotification.error("Gagal mengisi dummy data");
+    log.error("Error populate demo data", ex);
+}
         });
 
 
         saveButton.addClickListener(e -> {
-            if (this.auth != null && !this.auth.canCreate) {
-                Notification.show(
-                        "Anda tidak memiliki izin menyimpan data",
-                        3000,
-                        Notification.Position.MIDDLE
-                );
-                return;
-            }
-            save();
-        });
+
+    if (this.auth != null && !this.auth.canCreate) {
+        AppNotification.error("Anda tidak memiliki izin menyimpan data");
+        return;
+    }
+
+    save();
+});
         // ================= LISTENERS =================
 
 // CLEAR GLOBAL
@@ -264,24 +258,20 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
         saveButtonOnTab.addClickListener(e -> {
 
             if (this.auth != null && !this.auth.canCreate) {
-                Notification.show(
-                        "Anda tidak memiliki izin untuk menambah data.",
-                        3000,
-                        Notification.Position.MIDDLE
-                );
-                return;
-            }
+    AppNotification.error("Anda tidak memiliki izin untuk menambah data.");
+    return;
+}
 
-            int tabNo = tabSheet.getSelectedIndex();
+int tabNo = tabSheet.getSelectedIndex();
 
-            switch (tabNo) {
+switch (tabNo) {
 
-                // ================= ADDRESS =================
-                case 0 -> {
-                    if (fullAddress.isEmpty()) {
-                        Notification.show("Alamat wajib diisi");
-                        return;
-                    }
+    // ================= ADDRESS =================
+    case 0 -> {
+        if (fullAddress.isEmpty()) {
+            AppNotification.error("Alamat wajib diisi");
+            return;
+        }
 
                     HrPersonAddress address =
                             addressData != null ? addressData : new HrPersonAddress();
@@ -310,13 +300,11 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                     }
 
                     if (!valid) {
-                        Notification.show(
-                                "Field wajib belum lengkap (Relationship & Description wajib untuk Emergency)",
-                                3000,
-                                Notification.Position.MIDDLE
-                        );
-                        return;
-                    }
+    AppNotification.error(
+        "Field wajib belum lengkap (Relationship & Description wajib untuk Emergency)"
+    );
+    return;
+}
 
                     HrPersonContact contact =
                             contactData != null ? contactData : new HrPersonContact();
@@ -345,7 +333,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                             || certificateTitle.isEmpty()
                             || typeEducation.isEmpty()) {
 
-                        Notification.show("Semua field Education wajib diisi");
+                        AppNotification.error("Semua field Education wajib diisi");
                         return;
                     }
 
@@ -380,7 +368,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                             || filename.isEmpty()
                             || path.isEmpty()) {
 
-                        Notification.show("Semua field Document wajib diisi");
+                        AppNotification.error("Semua field Document wajib diisi");
                         return;
                     }
 
@@ -410,7 +398,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                             || tgRelation.isEmpty()
                             || tgDob.isEmpty()
                             || tgGender.isEmpty()) {
-                        Notification.show("Semua field tanggungan wajib diisi");
+                        AppNotification.error("Semua field tanggungan wajib diisi");
                         return;
                     }
 
@@ -1494,7 +1482,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                 Boolean.TRUE.equals(jointIncomeField.getValue())
         );
 
-        Notification.show("Data saved successfully");
+        AppNotification.error("Data saved successfully");
 
         // ================= RESET UI SETELAH SAVE =================
 
@@ -1609,7 +1597,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
     @Override
     public void setParameter(BeforeEvent beforeEvent, @OptionalParameter Long iddb) {
         if(!this.auth.canEdit) {
-            Notification.show("You do not have permission to edit this person.");
+            AppNotification.error("You do not have permission to edit this person.");
         }
 
         if (iddb != null && this.auth.canEdit) {

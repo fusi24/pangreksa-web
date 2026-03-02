@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.*;
@@ -339,9 +340,9 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
 
     @Override
     public void setParameter(BeforeEvent beforeEvent, @OptionalParameter Long iddb) {
-        if(!this.auth.canEdit) {
-            Notification.show("You do not have permission to edit this person.");
-        }
+       if (!this.auth.canEdit) {
+    AppNotification.error("You do not have permission to edit this person.");
+}
 
         if (iddb != null && this.auth.canEdit) {
             log.debug("Loading person with ID: {}", iddb);
@@ -377,17 +378,20 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
             this.appUser = this.appUser != null ? this.appUser : new FwAppUser();
 
             if (this.appUser.getPasswordHash() == null) {
-                if (passwordConfirmation.isEmpty()){
-                    Notification.show("You need to set a password");
-                    return;
-                } else if (username.isEmpty() || password.isEmpty() || passwordConfirmation.isEmpty()) {
-                    Notification.show("Username, Password and Password Confirmation are required");
-                    return;
-                } else if ( !password.getValue().equals(passwordConfirmation.getValue()) ) {
-                    Notification.show("Password and Password Confirmation do not match");
-                    return;
-                }
-            }
+
+    if (passwordConfirmation.isEmpty()) {
+        AppNotification.error("You need to set a password");
+        return;
+
+    } else if (username.isEmpty() || password.isEmpty() || passwordConfirmation.isEmpty()) {
+        AppNotification.error("Username, Password and Password Confirmation are required");
+        return;
+
+    } else if (!password.getValue().equals(passwordConfirmation.getValue())) {
+        AppNotification.error("Password and Password Confirmation do not match");
+        return;
+    }
+}
 
             // Save the user
             appUser.setUsername(username.getValue());
@@ -416,7 +420,7 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
                 adminService.saveAppUserResp(resp, currentUser.require());
             }
 
-            Notification.show("User and Responsibilities saved successfully");
+            AppNotification.success("User and Responsibilities saved successfully");
             clearGrid(true, true);
             clearForm(true, true);
         });
@@ -440,7 +444,7 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
 
                     //find in gridAppUserResp, if there is already a responsibility with the same id, do not add it again
                     if (appUserRespList.stream().anyMatch(resp -> resp.getResponsibility().getId().equals(responsibilityDropdown.getValue().getId()))) {
-                        Notification.show("Responsibility already exists in the list");
+                        AppNotification.error("Responsibility already exists in the list");
                         return;
                     }
 

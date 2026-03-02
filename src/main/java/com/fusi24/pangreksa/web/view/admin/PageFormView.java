@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.web.model.entity.FwPages;
 import com.fusi24.pangreksa.web.repo.FwPagesRepository;
 import com.vaadin.flow.component.Text;
@@ -173,21 +174,20 @@ public class PageFormView extends Main implements HasUrlParameter<String> {
     private void savePage() {
         try {
             // Validate and save
-            if (binder.writeBeanIfValid(currentPage)) {
-                // Save the page and navigate back to list
-                pagesRepository.save(currentPage);
-                
-                // Show success message
-                Notification.show("Page saved successfully")
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                    
-                // Navigate back to list after successful save
-                UI.getCurrent().navigate(PagesView.class);
-            }
-        } catch (Exception e) {
-            Notification.show("Error saving page: " + e.getMessage())
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-        }
+           if (binder.writeBeanIfValid(currentPage)) {
+
+    // Save the page
+    pagesRepository.save(currentPage);
+
+    AppNotification.success("Page saved successfully");
+
+    // Navigate back to list
+    UI.getCurrent().navigate(PagesView.class);
+}
+
+} catch (Exception e) {
+    AppNotification.error("Error saving page: " + e.getMessage());
+}
     }
         
     private void addError(String message) {

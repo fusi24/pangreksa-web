@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.FwPages;
@@ -177,8 +178,8 @@ public class PagesView extends Main {
         
         // If no pages found, show a notification
         if (filteredPages.isEmpty()) {
-            Notification.show("No pages found");
-        }
+    AppNotification.info("No pages found");
+}
     }
 
     public class PageFilter extends VerticalLayout {

@@ -1,30 +1,45 @@
 package com.fusi24.pangreksa.web.repo;
 
-import com.fusi24.pangreksa.web.model.entity.HrCompany;
 import com.fusi24.pangreksa.web.model.entity.HrPerson;
-import com.fusi24.pangreksa.web.model.entity.HrPersonPosition;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-
-import java.time.LocalDate;
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface HrPersonRepository extends JpaRepository<HrPerson, Long> {
 
     @Query("""
-        select distinct p
-        from HrPerson p
-        where exists (
-            select 1
-            from HrPersonPosition pp
-            where pp.person = p
-              and pp.company = :company
-              and pp.startDate <= :today
-              and (pp.endDate is null or pp.endDate >= :today)
-        )
-        order by p.firstName asc, p.lastName asc
-    """)
-    List<HrPerson> findActiveByCompanyViaPosition(@Param("company") HrCompany company,
-                                                  @Param("today") LocalDate today);
+    select p
+    from HrPerson p
+    where not exists (
+        select 1    
+        from HrPersonPosition pp
+        where pp.person = p
+    )
+    order by p.createdAt desc
+""")
+
+    Page<HrPerson> findUnassignedPersons(Pageable pageable);
+
+    @Query("""
+    select p
+    from HrPerson p
+    where
+        lower(p.firstName) like lower(concat('%', :keyword, '%'))
+        or lower(p.middleName) like lower(concat('%', :keyword, '%'))
+        or lower(p.lastName) like lower(concat('%', :keyword, '%'))
+        or p.ktpNumber like concat('%', :keyword, '%')
+""")
+    Page<HrPerson> findByKeyword(String keyword, Pageable pageable);
+
+    @Query("""
+    select count(p)
+    from HrPerson p
+    where not exists (
+        select 1
+        from HrPersonPosition pp
+        where pp.person = p
+    )
+""")
+    long countUnassignedPersons();
 }

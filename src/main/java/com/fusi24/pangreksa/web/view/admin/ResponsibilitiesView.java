@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.*;
@@ -425,7 +426,7 @@ public class ResponsibilitiesView extends Main {
                 menuGrid.setItems(new ArrayList<>(fwResponsibilitiesMenu));
                 this.isMenuEdit = false;
             } else {
-                Notification.show("Silakan pilih hak akses terlebih dahulu.");
+                AppNotification.error("Silakan pilih hak akses terlebih dahulu.");
             }
         });
 
@@ -463,7 +464,7 @@ public class ResponsibilitiesView extends Main {
 
                 this.isMenuEdit = false;
 
-                Notification.show("Perubahan berhasil disimpan.");
+                AppNotification.success("Perubahan berhasil disimpan.");
             }
         });
 
@@ -499,7 +500,7 @@ public class ResponsibilitiesView extends Main {
 
                 this.isRespEdit = false;
 
-                Notification.show("Daftar hak akses berhasil disimpan.");
+                AppNotification.success("Daftar hak akses berhasil disimpan.");
 
                 this.responsibilityDropdown.setItems(adminService.findActiveResponsibilities());
                 this.menuGrid.setItems(Collections.emptyList());

@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.ConfirmationDialogUtil;
 import com.fusi24.pangreksa.web.model.entity.HrCompany;
 import com.fusi24.pangreksa.web.model.entity.HrOrgStructure;
@@ -246,41 +247,48 @@ public class MasterOrgStructureView extends Main {
                     currentOrgStructure.getId()
             );
 
-            if (isDuplicateCode) {
-                Notification.show("Kode struktur organisasi harus unik. Kode tersebut sudah digunakan.. Another structure already uses this code.",
-                        5000, Notification.Position.MIDDLE);
-                return;
-            }
+           if (isDuplicateCode) {
+    AppNotification.error(
+        "Kode struktur organisasi harus unik. Kode tersebut sudah digunakan."
+    );
+    return;
+}
 
-            // Check for duplicate name within same company
-            boolean isDuplicateName = orgStructureRepo.existsByNameAndCompanyIdAndIdNot(
-                    currentOrgStructure.getName(),
-                    currentOrgStructure.getCompany().getId(),
-                    currentOrgStructure.getId()
-            );
+// Check for duplicate name within same company
+boolean isDuplicateName = orgStructureRepo.existsByNameAndCompanyIdAndIdNot(
+        currentOrgStructure.getName(),
+        currentOrgStructure.getCompany().getId(),
+        currentOrgStructure.getId()
+);
 
-            if (isDuplicateName) {
-                Notification.show("Struktur Organisasi name must be unique within the company. Another structure already uses this name.",
-                        5000, Notification.Position.MIDDLE);
-                return;
-            }
+if (isDuplicateName) {
+    AppNotification.error(
+        "Struktur Organisasi name must be unique within the company."
+    );
+    return;
+}
 
-            // Check for circular reference if parent is set
-            if (currentOrgStructure.getParent() != null) {
-                if (hasCircularReference(currentOrgStructure, currentOrgStructure.getParent())) {
-                    Notification.show("Struktur induk yang dipilih menyebabkan hierarki melingkar. The selected parent creates a circular hierarchy.",
-                            5000, Notification.Position.MIDDLE);
-                    return;
-                }
-            }
+// Check for circular reference if parent is set
+if (currentOrgStructure.getParent() != null) {
+    if (hasCircularReference(currentOrgStructure, currentOrgStructure.getParent())) {
+        AppNotification.error(
+            "Struktur induk yang dipilih menyebabkan hierarki melingkar."
+        );
+        return;
+    }
+}
 
-            orgStructureRepo.save(currentOrgStructure);
-            dialog.close();
-            refreshGrid();
-            Notification.show("Data berhasil disimpan.");
-        } catch (Exception e) {
-            Notification.show("Gagal menyimpan struktur organisasi: " + e.getMessage());
-        }
+orgStructureRepo.save(currentOrgStructure);
+dialog.close();
+refreshGrid();
+
+AppNotification.success("Data berhasil disimpan.");
+
+} catch (Exception e) {
+    AppNotification.error(
+        "Gagal menyimpan struktur organisasi: " + e.getMessage()
+    );
+}
     }
 
     private boolean hasCircularReference(HrOrgStructure child, HrOrgStructure potentialParent) {
@@ -297,29 +305,33 @@ public class MasterOrgStructureView extends Main {
     private void deleteOrgStructure(HrOrgStructure orgStructure) {
         // Check if this structure has children
         List<HrOrgStructure> children = orgStructureRepo.findByParentId(orgStructure.getId());
-        if (!children.isEmpty()) {
-            Notification.show("Cannot delete Struktur Organisasi. It has " + children.size() + 
-                    " child structure(s). Please remove or reassign children first.",
-                    5000, Notification.Position.MIDDLE);
-            return;
-        }
+       if (!children.isEmpty()) {
+    AppNotification.error(
+        "Cannot delete Struktur Organisasi. It has " + children.size() +
+        " child structure(s). Please remove or reassign children first."
+    );
+    return;
+}
 
-        String header = "Delete Struktur Organisasi for " + orgStructure.getName() + "?";
-        String message = "Are you sure you want to permanently delete this record? This action cannot be undone.";
-        ConfirmationDialogUtil.showConfirmation(
-                header,
-                message,
-                "Hapus",
-                event -> {
-                    try {
-                        orgStructureRepo.delete(orgStructure);
-                        refreshGrid();
-                        Notification.show("Data berhasi dihapus.");
-                    } catch (Exception ex) {
-                        Notification.show("Deletion failed: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
-                        ex.printStackTrace();
-                    }
-                }
-        );
+String header = "Delete Struktur Organisasi for " + orgStructure.getName() + "?";
+String message = "Are you sure you want to permanently delete this record? This action cannot be undone.";
+
+ConfirmationDialogUtil.showConfirmation(
+        header,
+        message,
+        "Hapus",
+        event -> {
+            try {
+                orgStructureRepo.delete(orgStructure);
+                refreshGrid();
+
+                AppNotification.success("Data berhasil dihapus.");
+
+            } catch (Exception ex) {
+                AppNotification.error("Deletion failed: " + ex.getMessage());
+                ex.printStackTrace();
+            }
+        }
+);
     }
 }
