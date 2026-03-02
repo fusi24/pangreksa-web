@@ -1178,6 +1178,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
     }
 
     private void createTanggunganForm() {
+
         tgRelation.setItems("Suami", "Istri", "Anak Kandung");
         tgGender.setItems(GenderEnum.values());
         tgDob.setI18n(DatePickerUtil.getIndonesianI18n());
@@ -1190,7 +1191,11 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
                 tgName, tgRelation, tgDob, tgGender, tgStillDependent
         );
 
+        tanggunganForm.setWidthFull();
+        tanggunganForm.getStyle().set("padding", "10px");
+
         gridTanggungan = new Grid<>(HrPersonTanggungan.class, false);
+
         gridTanggungan.addColumn(HrPersonTanggungan::getName).setHeader("Nama");
         gridTanggungan.addColumn(HrPersonTanggungan::getRelation).setHeader("Hubungan");
         gridTanggungan.addColumn(HrPersonTanggungan::getDob).setHeader("Tanggal Lahir");
@@ -1212,9 +1217,21 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
         gridTanggungan.setItems(tanggunganList);
         gridTanggungan.setHeight("250px");
+        gridTanggungan.setWidthFull();
+
+        // ===== LAYOUT 50% - 50% =====
+        tanggunganLayout.setWidthFull();
+        tanggunganLayout.setSpacing(true);
 
         tanggunganLayout.add(gridTanggungan, tanggunganForm);
+
+        tanggunganLayout.setFlexGrow(1, gridTanggungan);
+        tanggunganLayout.setFlexGrow(1, tanggunganForm);
+
+        gridTanggungan.setWidth("50%");
+        tanggunganForm.setWidth("50%");
     }
+
     private void updateDependentStatus() {
         if (tgDob.getValue() == null) {
             tgStillDependent.setValue(false);
