@@ -45,8 +45,11 @@ public class HrPayrollCalculation {
     @Column(name = "health_deduction")
     private BigDecimal healthDeduction;
 
-    @Column(name = "real_gross_salary")
-    private BigDecimal realGrossSalary;
+    @Column(name = "attendance_allowance_deduction", precision = 19, scale = 2, nullable = false)
+    private BigDecimal attendanceAllowanceDeduction;
+
+    @Column(name = "base_salary", precision = 19, scale = 2)
+    private BigDecimal baseSalary;
 
     @Column(name = "net_take_home_pay", precision = 15, scale = 2)
     private BigDecimal netTakeHomePay;
