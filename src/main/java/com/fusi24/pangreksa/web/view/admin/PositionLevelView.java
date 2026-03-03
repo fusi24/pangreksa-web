@@ -47,7 +47,7 @@ import java.util.Objects;
 @RolesAllowed("POSITION_MGT")
 public class PositionLevelView extends Main {
 
-    private static final long serialVersionUID = 33L;
+    private static final long MENU_ID = 41L;
     private static final Logger log = LoggerFactory.getLogger(PositionLevelView.class);
 
     private final CurrentUser currentUser;
@@ -94,8 +94,17 @@ public class PositionLevelView extends Main {
         this.auth = commonService.getAuthorization(
                 currentUser.require(),
                 (String) UI.getCurrent().getSession().getAttribute("responsibility"),
-                this.serialVersionUID
+                MENU_ID
         );
+
+        log.info("RESP => {}",
+                UI.getCurrent().getSession().getAttribute("responsibility"));
+
+        log.info("AUTH => view: {}, create: {}, edit: {}, delete: {}",
+                auth.canView,
+                auth.canCreate,
+                auth.canEdit,
+                auth.canDelete);
 
         addClassNames(
                 LumoUtility.BoxSizing.BORDER,
