@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.employee;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.*;
@@ -377,18 +378,23 @@ public class ProfilDataKaryawanView extends Main {
                 }
 
                 saveButton.addClickListener(ev -> {
-                    if (companyDropdown.isEmpty()) {
-                        Notification.show("Perusahaan wajib diisi.");
-                        return;
-                    }
-                    if (branchDropdown.isEmpty()) {
-                        Notification.show("Cabang wajib diisi.");
-                        return;
-                    }
-                    if (orgStructureDropdown.isEmpty() || positionDropdown.isEmpty()) {
-                        Notification.show("Perusahaan, Cabang, Struktur organisasi dan posisi wajib diisi.");
-                        return;
-                    }
+
+    if (companyDropdown.isEmpty()) {
+        AppNotification.error("Perusahaan wajib diisi.");
+        return;
+    }
+
+    if (branchDropdown.isEmpty()) {
+        AppNotification.error("Cabang wajib diisi.");
+        return;
+    }
+
+    if (orgStructureDropdown.isEmpty() || positionDropdown.isEmpty()) {
+        AppNotification.error(
+            "Perusahaan, Cabang, Struktur organisasi dan posisi wajib diisi."
+        );
+        return;
+    }
 
                     HrCompany selectedCompany = companyDropdown.getValue();
                     HrCompanyBranch selectedBranch = branchDropdown.getValue();
@@ -635,7 +641,7 @@ public class ProfilDataKaryawanView extends Main {
             if (this.auth.canCreate) {
                 UI.getCurrent().navigate(ROUTE_EDIT);
             } else {
-                Notification.show("You do not have permission to add a new person.");
+                AppNotification.error("You do not have permission to add a new person.");
             }
         });
 

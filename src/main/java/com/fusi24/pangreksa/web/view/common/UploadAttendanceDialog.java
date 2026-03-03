@@ -1,5 +1,6 @@
 package com.fusi24.pangreksa.web.view.common;
 
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.entity.HrCompanyBranch;
 import com.fusi24.pangreksa.web.service.AttendanceImportService;
@@ -93,7 +94,9 @@ public class UploadAttendanceDialog extends Dialog {
 
             UI ui = UI.getCurrent();
             if (ui != null) {
-                ui.access(() -> Notification.show("File siap: " + uploadedFileName, 2500, Notification.Position.MIDDLE));
+                ui.access(() ->
+    AppNotification.success("File siap: " + uploadedFileName)
+);
             }
         };
 
@@ -118,7 +121,7 @@ public class UploadAttendanceDialog extends Dialog {
         upload.setAcceptedFileTypes(".csv", ".xls", ".xlsx");
 
         upload.addFileRejectedListener(e ->
-                Notification.show("File ditolak: " + e.getErrorMessage(), 4000, Notification.Position.MIDDLE)
+                AppNotification.error("File ditolak: " + e.getErrorMessage())
         );
 
         submitButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -142,33 +145,34 @@ public class UploadAttendanceDialog extends Dialog {
         cancelButton.addClickListener(e -> close());
 
         submitButton.addClickListener(e -> {
-            if (uploadedPath == null || uploadedFileName == null) {
-                Notification.show("Silakan upload file terlebih dahulu", 3000, Notification.Position.MIDDLE);
-                return;
-            }
-            if (branchField.getValue() == null) {
-                Notification.show("Silakan pilih branch", 3000, Notification.Position.MIDDLE);
-                return;
-            }
+           if (uploadedPath == null || uploadedFileName == null) {
+    AppNotification.error("Silakan upload file terlebih dahulu");
+    return;
+}
 
-            try {
-                var result = importService.importAttendance(
-                        uploadedPath,
-                        uploadedFileName,
-                        notesField.getValue(),
-                        branchField.getValue().getId(),
-                        currentUser.require()
-                );
+if (branchField.getValue() == null) {
+    AppNotification.error("Silakan pilih branch");
+    return;
+}
 
-                showImportResultNotification(result);
+try {
+    var result = importService.importAttendance(
+            uploadedPath,
+            uploadedFileName,
+            notesField.getValue(),
+            branchField.getValue().getId(),
+            currentUser.require()
+    );
 
-                close();
-                if (onSuccess != null) onSuccess.run();
+    showImportResultNotification(result);
 
-            } catch (Exception ex) {
-                Notification.show("Import gagal: " + ex.getMessage(), 7000, Notification.Position.MIDDLE);
-                ex.printStackTrace();
-            } finally {
+    close();
+    if (onSuccess != null) onSuccess.run();
+
+} catch (Exception ex) {
+    AppNotification.error("Import gagal: " + ex.getMessage());
+    ex.printStackTrace();
+} finally {
                 // optional: hapus file temp setelah proses
                 try {
                     if (uploadedPath != null) Files.deleteIfExists(uploadedPath);

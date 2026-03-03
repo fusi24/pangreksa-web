@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.manager;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrCompanyCalendar;
@@ -302,7 +303,7 @@ public class CompanyCalendarManagementView extends Main {
                 populateGrid();
 
                 // Notify user of success
-                Notification.show("Successfully saved company calendar data.");
+                AppNotification.success("Successfully saved company calendar data.");
                 saveButton.setEnabled(true);
                 this.isEdit = false;
             }

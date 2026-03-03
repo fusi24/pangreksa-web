@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.manager;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.DatePickerUtil;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
@@ -383,7 +384,7 @@ public class KomponenGajiView extends Main {
                         payrollService.deleteSalaryAllowance(item);
                     }
                     salaryAllowanceGrid.getListDataView().removeItem(item);
-                    Notification.show("Tunjangan berhasil dihapus");
+                    AppNotification.success("Tunjangan berhasil dihapus");
                     confirm.close();
                 });
                 confirm.getFooter().add(cancel, yes);
@@ -711,7 +712,7 @@ public class KomponenGajiView extends Main {
         // ✅ Refresh Gaji Pokok
         sblSaveButton.addClickListener(e -> {
             populateSalaryBaseLevelGrid(withInactiveBasicSalary.getValue());
-            Notification.show("Data berhasil diperbarui");
+            AppNotification.success("Data berhasil diperbarui");
         });
 
         withInactiveBasicSalary.addValueChangeListener(e -> {
@@ -739,7 +740,7 @@ public class KomponenGajiView extends Main {
                 }
                 populateAllowanceGrid(withInactiveAllowance.getValue());
                 this.isAllowanceEdit = false;
-                Notification.show("Data tunjangan berhasil disimpan");
+                AppNotification.success("Data tunjangan berhasil disimpan");
             }
         });
 
@@ -823,7 +824,7 @@ public class KomponenGajiView extends Main {
                         positionAllowanceGrid.getListDataView().addItem(newPA);
                         isPositionallowanceEdit = true;
                     } else {
-                        Notification.show("Silakan pilih tunjangan dan posisi");
+                        AppNotification.error("Silakan pilih tunjangan dan posisi");
                     }
 
                     calculateTotalAllowance();
@@ -854,7 +855,7 @@ public class KomponenGajiView extends Main {
                 );
 
                 this.isPositionallowanceEdit = false;
-                Notification.show("Data tunjangan posisi berhasil disimpan");
+                AppNotification.success("Data tunjangan posisi berhasil disimpan");
             }
         });
 

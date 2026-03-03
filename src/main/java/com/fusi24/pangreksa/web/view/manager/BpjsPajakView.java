@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.manager;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.FwSystem;
@@ -251,7 +252,7 @@ public class BpjsPajakView extends Main {
                 log.debug("Saving Key: {}, Value: {}", system.getKey(), system.getStringVal());
                 systemService.saveSystem(system);
             }
-            Notification.show("Pengaturan Sistem berhasil disimpan");
+            AppNotification.success("Pengaturan Sistem berhasil disimpan");
         });
 
         systemSection.add(systemTitle, virtualList, saveSystemButton);
@@ -275,7 +276,7 @@ public class BpjsPajakView extends Main {
                 systemService.saveSystem(system);
             }
 
-            Notification.show("Settings berhasil tersimpan!");
+            AppNotification.success("Settings berhasil tersimpan!");
         });
     }
 

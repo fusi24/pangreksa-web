@@ -1,5 +1,6 @@
 package com.fusi24.pangreksa.web.view.manager;
 
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.web.model.entity.FwAppUser;
 import com.fusi24.pangreksa.web.model.entity.HrCompany;
 import com.fusi24.pangreksa.web.model.entity.HrSalaryBaseLevel;
@@ -142,25 +143,27 @@ public class SalaryBaseLevelDialog extends Dialog {
             String reason = reasonCB.getValue();
 
             if (start == null) {
-                Notification.show("Tanggal Mulai wajib diisi");
-                return;
-            }
-            if (amountTF.getValue() == null || amountTF.getValue().isBlank()) {
-                Notification.show("Nominal wajib diisi");
-                return;
-            }
-            if (reason == null || reason.isBlank()) {
-                Notification.show("Keterangan wajib diisi");
-                return;
-            }
+    AppNotification.error("Tanggal Mulai wajib diisi");
+    return;
+}
 
-            BigDecimal amount;
-            try {
-                amount = new BigDecimal(amountTF.getValue());
-            } catch (Exception ex) {
-                Notification.show("Nominaltidak valid");
-                return;
-            }
+if (amountTF.getValue() == null || amountTF.getValue().isBlank()) {
+    AppNotification.error("Nominal wajib diisi");
+    return;
+}
+
+if (reason == null || reason.isBlank()) {
+    AppNotification.error("Keterangan wajib diisi");
+    return;
+}
+
+BigDecimal amount;
+try {
+    amount = new BigDecimal(amountTF.getValue());
+} catch (Exception ex) {
+    AppNotification.error("Nominal tidak valid");
+    return;
+}
 
             // ===== Level Code rules =====
             // EDIT: pakai kode lama

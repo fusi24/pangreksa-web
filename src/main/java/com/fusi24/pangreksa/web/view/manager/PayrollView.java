@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.manager;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.FormattingUtils;
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
@@ -275,18 +276,19 @@ public class PayrollView extends Main {
                     .toList();
 
             if (ids.isEmpty()) {
-                Notification.show("No data selected", 2500, Notification.Position.MIDDLE);
-                return;
-            }
+    AppNotification.error("Tidak ada data yang dipilih.");
+    return;
+}
 
-            runWithPreloading("Deleting payroll...", () -> {
-                payrollService.deletePayrolls(ids);
-            }, () -> {
-                grid.deselectAll();
-                applyFilters();
-                deleteButton.setVisible(false);
-                Notification.show("Deleted " + ids.size() + " payroll(s)", 3000, Notification.Position.MIDDLE);
-            });
+runWithPreloading("Menghapus data payroll...", () -> {
+    payrollService.deletePayrolls(ids);
+}, () -> {
+    grid.deselectAll();
+    applyFilters();
+    deleteButton.setVisible(false);
+
+    AppNotification.success("Berhasil menghapus " + ids.size() + " data payroll.");
+});
         });
 
         add(layout);
@@ -700,7 +702,7 @@ public class PayrollView extends Main {
                 PayrollService.AddPayrollRequest bean = binder.getBean();
 
                 if (!binder.writeBeanIfValid(bean)) {
-                    Notification.show("Form belum valid", 3000, Notification.Position.MIDDLE);
+                    AppNotification.error("Form belum valid");
                     return;
                 }
 
@@ -728,7 +730,7 @@ public class PayrollView extends Main {
                             userInfo   // <-- pakai userInfo yang sudah diambil di UI thread
                     );
                 }, () -> {
-                    Notification.show("Recalculated successfully", 3000, Notification.Position.MIDDLE);
+                    AppNotification.success("Perhitungan ulang berhasil.");
                     onSaveSuccess.run();
                 });
             });
@@ -1044,7 +1046,7 @@ public class PayrollView extends Main {
 
                 // 1) Validasi binder dulu (ini akan copy year/month/attendance/overtime/allowanceMode ke bean)
                 if (!binder.writeBeanIfValid(bean)) {
-                    Notification.show("Form belum valid", 3000, Notification.Position.MIDDLE);
+                    AppNotification.error("Form belum valid");
                     return;
                 }
 
@@ -1058,7 +1060,7 @@ public class PayrollView extends Main {
 
                 // 3) Optional: guard supaya user tidak merasa “sudah pilih” tapi kosong
                 if ("SELECT ALLOWANCE".equalsIgnoreCase(mode) && bean.getSelectedAllowances().isEmpty()) {
-                    Notification.show("Silakan pilih allowance minimal 1 item", 3500, Notification.Position.MIDDLE);
+                    AppNotification.error("Silakan pilih allowance minimal 1 item");
                     return;
                 }
 
@@ -1070,7 +1072,7 @@ public class PayrollView extends Main {
                         "Creating payroll...",
                         () -> payrollService.createPayrollBulk(bean, userInfo),
                         () -> {
-                            Notification.show("Payroll created successfully", 3000, Notification.Position.MIDDLE);
+                            AppNotification.error("Payroll created successfully");
                             onSaveSuccess.run();
                         }
                 );
@@ -1122,8 +1124,7 @@ public class PayrollView extends Main {
                                     ? ex.getCause()
                                     : ex;
 
-                            Notification.show("Process failed: " + root.getMessage(),
-                                    6000, Notification.Position.MIDDLE);
+                            AppNotification.error("Proses gagal: " + root.getMessage());
                             root.printStackTrace();
                         } else {
                             if (onDoneUi != null) onDoneUi.run();
