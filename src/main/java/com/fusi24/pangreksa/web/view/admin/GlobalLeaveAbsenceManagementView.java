@@ -310,14 +310,14 @@ public class GlobalLeaveAbsenceManagementView extends Main {
 
             // 🔴 FIRST: Delete marked items
             for (HrLeaveAbsenceTypes deleted : deletedItems) {
-                try {
-                    leaveService.deleteLeaveAbsenceType(deleted.getId(), user);
-                    log.debug("Deleted Leave Absence Type: {}", deleted.getLabel());
-                } catch (Exception ex) {
-                    log.error("Failed to delete Leave Absence Type: " + deleted.getLabel(), ex);
-                    AppNotification.error("Failed to delete: " + deleted.getLabel());
-                }
-            }
+    try {
+        leaveService.deleteLeaveAbsenceType(deleted.getId(), user);
+        log.debug("Berhasil menghapus Leave Absence Type: {}", deleted.getLabel());
+    } catch (Exception ex) {
+        log.error("Gagal menghapus Leave Absence Type: " + deleted.getLabel(), ex);
+        AppNotification.error("Gagal menghapus: " + deleted.getLabel());
+    }
+}
             deletedItems.clear(); // Clear after processing
 
             // 🟢 Then: Save all remaining items (new + updated)
@@ -336,12 +336,13 @@ public class GlobalLeaveAbsenceManagementView extends Main {
                     }
 
                     leaveService.saveLeaveAbsenceType(i, user);
-                    log.debug("Saving Leave Absence Type: {} with Sort Order: {}", i.getLabel(), i.getSortOrder());
-                });
+                    log.debug("Menyimpan Leave Absence Type: {} dengan Urutan: {}", 
+        i.getLabel(), i.getSortOrder());
+});
 
-                this.isGridEdit = false;
+this.isGridEdit = false;
 
-                AppNotification.success("Leave Absence Type List saved successfully.");
+AppNotification.success("Daftar Jenis Ketidakhadiran berhasil disimpan.");
 
                 if (this.auth.canView)
                     populateGrid();

@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.GeometryUtil;
 import com.fusi24.pangreksa.web.model.entity.HrOfficeLocation;
 import com.fusi24.pangreksa.web.repo.HrOfficeLocationRepo;
@@ -206,21 +207,23 @@ public class MasterOfficeLocation extends Main {
         String input = geoJsonArea.getValue();
         try {
             if (input == null || input.trim().isEmpty()) {
-                currentEntity.setGeometry(null);
-                Notification.show("Geometry cleared.", 3000, Notification.Position.MIDDLE);
-            } else {
-                var geom = GeometryUtil.geoJsonToGeometry(input.trim());
-                if (geom == null) {
-                    throw new IllegalArgumentException("Parsed geometry is null.");
-                }
-                currentEntity.setGeometry(geom);
-                Notification.show("Geometry updated successfully.", 3000, Notification.Position.MIDDLE);
-            }
-            updateMapFromEntity();
-            geoJsonDialog.close();
-        } catch (Exception ex) {
-            Notification.show("Invalid GeoJSON: " + ex.getMessage(), 3000, Notification.Position.MIDDLE);
-        }
+    currentEntity.setGeometry(null);
+    AppNotification.info("Geometri berhasil dikosongkan.");
+} else {
+    var geom = GeometryUtil.geoJsonToGeometry(input.trim());
+    if (geom == null) {
+        throw new IllegalArgumentException("Parsed geometry is null.");
+    }
+    currentEntity.setGeometry(geom);
+    AppNotification.success("Geometri berhasil diperbarui.");
+}
+
+updateMapFromEntity();
+geoJsonDialog.close();
+
+} catch (Exception ex) {
+    AppNotification.error("GeoJSON tidak valid: " + ex.getMessage());
+}
     }
 
     private void updateMapFromEntity() {
@@ -246,7 +249,7 @@ public class MasterOfficeLocation extends Main {
                     map.addLayer(new LGeoJSONLayer(reg, geoJson));
                     map.setView(new LLatLng(reg, center.getY(), center.getX()), 17);
                 } catch (Exception e) {
-                    Notification.show("Warning: Could not render geometry on map.", 3000, Notification.Position.MIDDLE);
+                    AppNotification.warning("Peringatan: Tidak dapat menampilkan geometri pada peta.");
                 }
             }
         } else {
@@ -260,7 +263,7 @@ public class MasterOfficeLocation extends Main {
             refreshGrid();
             editorDialog.close();
         } else {
-            Notification.show("Please fill required fields correctly.", 3000, Notification.Position.MIDDLE);
+            AppNotification.error("Silakan isi semua field wajib dengan benar.");
         }
     }
 

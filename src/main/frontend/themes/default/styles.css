@@ -71,8 +71,14 @@ vaadin-grid {
 vaadin-grid::part(header-cell) {
     font-weight: 600;
     font-size: 0.78rem;
-    background-color: var(--lumo-contrast-5pct);
     padding: 6px 8px;
+
+    background-color: var(--lumo-base-color); /* solid */
+    position: sticky;
+    top: 0;
+    z-index: 5;
+
+    border-bottom: 1px solid var(--lumo-contrast-10pct);
 }
 
 vaadin-grid::part(cell) {
@@ -210,3 +216,4 @@ vaadin-side-nav-item vaadin-side-nav-item::part(link) {
 vaadin-combo-box {
     font-size: 0.8rem;
 }
+
