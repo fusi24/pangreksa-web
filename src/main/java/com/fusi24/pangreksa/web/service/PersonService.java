@@ -508,4 +508,9 @@ public class PersonService {
         }
     }
 
+    public Page<HrPerson> findUnassignedPersonsByKeyword(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return hrPersonRepository.findUnassignedPersonsByKeyword(keyword, pageable);
+    }
+
 }

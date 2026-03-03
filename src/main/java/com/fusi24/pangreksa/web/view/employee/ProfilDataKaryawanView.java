@@ -601,12 +601,24 @@ public class ProfilDataKaryawanView extends Main {
 
     public void populateUnassignedPersons() {
 
+        String keyword = searchField.getValue() != null
+                ? searchField.getValue().trim()
+                : "";
+
         gridUnassignedPersons.setItems(
-                // FETCH CALLBACK
+
+                // FETCH
                 query -> {
                     int offset = query.getOffset();
                     int limit = query.getLimit();
                     int page = offset / limit;
+
+                    if (!keyword.isEmpty() && keyword.length() >= MIN_SEARCH_LENGTH) {
+                        return personService
+                                .findUnassignedPersonsByKeyword(keyword, page, limit)
+                                .getContent()
+                                .stream();
+                    }
 
                     return personService
                             .findUnassignedPersons(page, limit)
@@ -614,12 +626,19 @@ public class ProfilDataKaryawanView extends Main {
                             .stream();
                 },
 
-                // COUNT CALLBACK (INI YANG KAMU BELUM PAKAI)
-                query -> (int) personService
-                        .findUnassignedPersons(0, 1)
-                        .getTotalElements()
-        );
+                // COUNT
+                query -> {
+                    if (!keyword.isEmpty() && keyword.length() >= MIN_SEARCH_LENGTH) {
+                        return (int) personService
+                                .findUnassignedPersonsByKeyword(keyword, 0, 1)
+                                .getTotalElements();
+                    }
 
+                    return (int) personService
+                            .findUnassignedPersons(0, 1)
+                            .getTotalElements();
+                }
+        );
     }
 
     private void setListener() {
