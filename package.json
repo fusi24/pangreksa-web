@@ -3,7 +3,14 @@
   "license": "UNLICENSED",
   "type": "module",
   "dependencies": {
-    "@geoman-io/leaflet-geoman-free": "2.18.3",
+    "@fullcalendar/core": "6.1.9",
+    "@fullcalendar/daygrid": "6.1.9",
+    "@fullcalendar/interaction": "6.1.9",
+    "@fullcalendar/list": "6.1.9",
+    "@fullcalendar/moment": "6.1.9",
+    "@fullcalendar/moment-timezone": "6.1.9",
+    "@fullcalendar/multimonth": "6.1.9",
+    "@fullcalendar/timegrid": "6.1.9",
     "@polymer/polymer": "3.5.2",
     "@vaadin/bundles": "24.8.3",
     "@vaadin/common-frontend": "0.0.19",
@@ -17,8 +24,9 @@
     "@vaadin/vaadin-usage-statistics": "2.1.3",
     "construct-style-sheets-polyfill": "3.1.0",
     "date-fns": "2.29.3",
-    "leaflet": "1.9.4",
     "lit": "3.3.0",
+    "moment": "2.29.4",
+    "moment-timezone": "0.5.40",
     "proj4": "2.15.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
@@ -48,7 +56,14 @@
   },
   "vaadin": {
     "dependencies": {
-      "@geoman-io/leaflet-geoman-free": "2.18.3",
+      "@fullcalendar/core": "6.1.9",
+      "@fullcalendar/daygrid": "6.1.9",
+      "@fullcalendar/interaction": "6.1.9",
+      "@fullcalendar/list": "6.1.9",
+      "@fullcalendar/moment": "6.1.9",
+      "@fullcalendar/moment-timezone": "6.1.9",
+      "@fullcalendar/multimonth": "6.1.9",
+      "@fullcalendar/timegrid": "6.1.9",
       "@polymer/polymer": "3.5.2",
       "@vaadin/bundles": "24.8.3",
       "@vaadin/common-frontend": "0.0.19",
@@ -62,8 +77,9 @@
       "@vaadin/vaadin-usage-statistics": "2.1.3",
       "construct-style-sheets-polyfill": "3.1.0",
       "date-fns": "2.29.3",
-      "leaflet": "1.9.4",
       "lit": "3.3.0",
+      "moment": "2.29.4",
+      "moment-timezone": "0.5.40",
       "proj4": "2.15.0",
       "react": "18.3.1",
       "react-dom": "18.3.1",
@@ -91,7 +107,7 @@
       "workbox-core": "7.3.0",
       "workbox-precaching": "7.3.0"
     },
-    "hash": "256375b40aa322c1cbe2201e550432de5628858e7a270c074a27b554ffdf47ba"
+    "hash": "5b1f272cc319d070e10af7eaa1b7d2b9145c3ec8b07d640f9a1572026c7e782e"
   },
   "overrides": {
     "@vaadin/bundles": "$@vaadin/bundles",
@@ -179,7 +195,15 @@
     "@vaadin/grid-pro": "24.8.3",
     "@vaadin/map": "24.8.3",
     "@vaadin/rich-text-editor": "24.8.3",
-    "leaflet": "$leaflet",
-    "@geoman-io/leaflet-geoman-free": "$@geoman-io/leaflet-geoman-free"
+    "@fullcalendar/interaction": "$@fullcalendar/interaction",
+    "@fullcalendar/timegrid": "$@fullcalendar/timegrid",
+    "@fullcalendar/core": "$@fullcalendar/core",
+    "@fullcalendar/list": "$@fullcalendar/list",
+    "moment": "$moment",
+    "moment-timezone": "$moment-timezone",
+    "@fullcalendar/multimonth": "$@fullcalendar/multimonth",
+    "@fullcalendar/moment": "$@fullcalendar/moment",
+    "@fullcalendar/moment-timezone": "$@fullcalendar/moment-timezone",
+    "@fullcalendar/daygrid": "$@fullcalendar/daygrid"
   }
 }

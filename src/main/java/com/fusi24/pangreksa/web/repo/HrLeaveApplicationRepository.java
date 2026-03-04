@@ -53,4 +53,11 @@ public interface HrLeaveApplicationRepository extends JpaRepository<HrLeaveAppli
                                                   @Param("endDate") LocalDate endDate,
                                                   @Param("statuses") List<LeaveStatusEnum> statuses);
 
+    @Query("""
+    SELECT l FROM HrLeaveApplication l
+    JOIN FETCH l.employee
+    WHERE l.status = 'APPROVED'
+    """)
+        List<HrLeaveApplication> findApprovedLeaves();
+
 }
