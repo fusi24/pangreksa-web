@@ -78,6 +78,13 @@ public class BpjsPajakView extends Main {
             "ba8979a0-ac03-420e-a418-49b9d9915d8a",
             "f56c31fb-f1c0-4660-adc5-1a458fccb96d",
             "3ae1184a-b6b8-412c-9ee8-13e478796aa4",
+            "d3aa3d4c-4ca3-4fc0-9d35-81ca0eca10d0",
+            "6acfeeef-610c-4b60-8021-350a27b88f5a",
+            "96f08ec1-0243-4683-8a31-4164f6018017",
+            "beace354-bc15-40a1-bdca-de67d7e6c4ee",
+            "16447797-b302-46bc-8cec-3c4c9aaadd4b",
+            "abd010d7-3a93-48bf-9efa-0e064b894fd4",
+            "9312bfdd-2dae-4017-8f91-7c4c85fb1f30",
             "8a06244d-ebe9-4a4a-a71c-e947759dcec6",
             "3d1426fb-4503-4085-abc4-51c9469aa1c9",
             "e53eb8ac-a133-481a-a0ad-1cb892f0b740"
