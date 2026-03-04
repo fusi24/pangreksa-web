@@ -4,7 +4,7 @@ import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrCompanyCalendar;
-import com.fusi24.pangreksa.web.model.entity.HrLeaveApplication;
+import com.fusi24.pangreksa.web.model.entity.HrLeaveApplication; // Import ini dikembalikan
 import com.fusi24.pangreksa.web.service.CalendarService;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.vaadin.flow.component.UI;
@@ -21,8 +21,7 @@ import org.vaadin.stefan.fullcalendar.FullCalendar;
 import org.vaadin.stefan.fullcalendar.FullCalendarBuilder;
 import org.vaadin.stefan.fullcalendar.Entry;
 import org.vaadin.stefan.fullcalendar.CalendarViewImpl;
-import org.vaadin.stefan.fullcalendar.dataprovider.InMemoryEntryProvider;
-import org.vaadin.stefan.fullcalendar.Entry;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
@@ -56,7 +55,7 @@ public class CompanyCalendarView extends Main {
         this.auth = commonService.getAuthorization(
                 currentUser.require(),
                 (String) UI.getCurrent().getSession().getAttribute("responsibility"),
-                this.serialVersionUID);
+                CompanyCalendarView.serialVersionUID);
 
         log.debug("Page {}, Authorization: {} {} {} {}",
                 VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
@@ -75,25 +74,64 @@ public class CompanyCalendarView extends Main {
     }
 
     private void createBody() {
-
         body = new VerticalLayout();
         body.setSizeFull();
-        body.setPadding(false);
-        body.setSpacing(false);
 
         FullCalendar calendar = FullCalendarBuilder.create().build();
-
         calendar.setHeight("700px");
         calendar.setWidthFull();
 
         calendar.changeView(CalendarViewImpl.DAY_GRID_MONTH);
+        calendar.setLocale(Locale.forLanguageTag("id"));
 
-        calendar.setLocale(new Locale("id", "ID"));
+        // Memuat dua sumber data ke dalam satu kalender
+        loadCompanyHoliday(calendar);
+        loadEmployeeLeave(calendar); // <-- Panggilan method cuti ditambahkan di sini
 
         body.add(calendar);
-
         add(body);
     }
 
+    private void loadCompanyHoliday(FullCalendar calendar) {
+        int year = LocalDate.now().getYear();
+        List<HrCompanyCalendar> holidays = calendarService.getCompanyCalendarsByYear(year);
 
+        log.info("Holiday count = {}", holidays.size());
+
+        for (HrCompanyCalendar h : holidays) {
+            Entry entry = new Entry();
+            entry.setTitle(h.getLabel());
+            entry.setStart(h.getStartDate());
+            entry.setEnd(h.getEndDate().plusDays(1));
+            entry.setAllDay(true);
+            entry.setColor("#d9534f"); // Merah
+
+            calendar.getEntryProvider().asInMemory().addEntry(entry);
+        }
+    }
+
+    // Method cuti dari kamu (dengan tambahan sedikit penyempurnaan)
+    private void loadEmployeeLeave(FullCalendar calendar) {
+        List<HrLeaveApplication> leaves = calendarService.getApprovedLeaves();
+
+        // Tambahan log agar informatif di terminal saat debug
+        log.info("Leave count = {}", leaves != null ? leaves.size() : 0);
+
+        if (leaves == null) return; // Mencegah error jika database kosong
+
+        for (HrLeaveApplication l : leaves) {
+            Entry entry = new Entry();
+
+            String name = l.getEmployee().getFirstName() + " " + l.getEmployee().getLastName();
+
+            entry.setTitle(name + " - Cuti");
+            entry.setStart(l.getStartDate());
+            entry.setEnd(l.getEndDate().plusDays(1));
+
+            entry.setAllDay(true); // <-- Tambahan: Agar balok biru tampil penuh dari ujung ke ujung kotak tanggal
+            entry.setColor("#4a90e2"); // Biru
+
+            calendar.getEntryProvider().asInMemory().addEntry(entry);
+        }
+    }
 }
