@@ -76,21 +76,10 @@ public final class MainLayout extends AppLayout {
     }
 
     private Div createHeader() {
-        // Try to fetch logo URL from system
-        String logoUrl = systemService.getStringAppLogo();
-        Component appLogo;
-        if (logoUrl != null && (
-                logoUrl.toLowerCase().endsWith(".png") ||
-                logoUrl.toLowerCase().endsWith(".jpg") ||
-                logoUrl.toLowerCase().endsWith(".jpeg"))) {
-            Image img = new Image(logoUrl, "App Logo");
-            img.setHeight("32px");
-            img.setWidth("32px");
-            appLogo = img;
-        } else {
-            appLogo = VaadinIcon.CUBES.create();
-            appLogo.addClassNames(TextColor.PRIMARY, IconSize.LARGE);
-        }
+        // Menggunakan logo baru secara langsung dari folder images
+        Image appLogo = new Image("images/Pangreksabw.png", "Pangreksa Logo");
+        appLogo.setHeight("35px"); // Sesuaikan ukuran tinggi logo di sini
+        // appLogo.setWidth("auto"); // (Opsional) Buka komentar ini jika logo terlihat gepeng
 
         String name = systemService.getStringAppName();
         var appName = new Span( !name.equals("") ? name : "Pangreksa");
