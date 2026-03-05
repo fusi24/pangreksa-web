@@ -66,6 +66,11 @@ public class HrWorkScheduleService {
                         attendanceDate
                 );
 
+        if (position == null || position.getPosition() == null) {
+            log.warn("No active position found for personId={} on date={}", personId, attendanceDate);
+            return null;
+        }
+
         Long orgStructureId = position.getPosition().getOrgStructure().getId();
         log.info("OrgStructureId={}", orgStructureId);
 
