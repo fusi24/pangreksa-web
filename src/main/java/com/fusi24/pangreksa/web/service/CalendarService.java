@@ -92,4 +92,16 @@ public class CalendarService {
         return leaveRepository.findApprovedLeaves();
     }
 
+    public List<HrLeaveApplication> getApprovedLeavesByPerson(Long personId) {
+        return leaveRepository.findApprovedByPerson(personId);
+    }
+
+    public Long getPersonIdByUserId(String userId) {
+
+        FwAppUser user = appUserRepository
+                .findByUsername(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return user.getPerson().getId();
+    }
 }

@@ -60,4 +60,11 @@ public interface HrLeaveApplicationRepository extends JpaRepository<HrLeaveAppli
     """)
         List<HrLeaveApplication> findApprovedLeaves();
 
+    @Query("""
+    select l
+    from HrLeaveApplication l
+    where l.employee.id = :personId
+    and l.status = 'APPROVED'
+""")
+    List<HrLeaveApplication> findApprovedByPerson(@Param("personId") Long personId);
 }

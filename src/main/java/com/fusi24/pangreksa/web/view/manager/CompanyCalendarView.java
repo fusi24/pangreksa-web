@@ -45,7 +45,7 @@ public class CompanyCalendarView extends Main {
 
     private static final long serialVersionUID = 16L;
     private static final Logger log = LoggerFactory.getLogger(CompanyCalendarView.class);
-
+    private String responsibility;
     private final CurrentUser currentUser;
     private final CommonService commonService;
     private final CalendarService calendarService;
@@ -63,7 +63,8 @@ public class CompanyCalendarView extends Main {
         this.currentUser = currentUser;
         this.commonService = commonService;
         this.calendarService = calendarService;
-
+        this.responsibility =
+                (String) UI.getCurrent().getSession().getAttribute("responsibility");
         addClassNames(
                 LumoUtility.BoxSizing.BORDER,
                 LumoUtility.Display.FLEX,
@@ -194,17 +195,44 @@ public class CompanyCalendarView extends Main {
     }
 
     private void loadEmployeeLeave() {
-        List<HrLeaveApplication> leaves = calendarService.getApprovedLeaves();
+
+        List<HrLeaveApplication> leaves;
+
+        String responsibility =
+                (String) UI.getCurrent().getSession().getAttribute("responsibility");
+
+        if ("Karyawan".equals(responsibility)) {
+
+            String userId = currentUser.require().getUserId().toString();
+
+            Long personId = calendarService.getPersonIdByUserId(userId);
+
+            leaves = calendarService.getApprovedLeavesByPerson(personId);
+
+        } else {
+
+            leaves = calendarService.getApprovedLeaves();
+
+        }
+
         if (leaves == null) return;
 
         for (HrLeaveApplication l : leaves) {
+
             Entry entry = new Entry();
-            String name = l.getEmployee().getFirstName() + " " + l.getEmployee().getLastName();
-            entry.setTitle(name + " - Cuti");
+
+            String title =
+                    "Karyawan".equals(responsibility)
+                            ? "Cuti Saya"
+                            : l.getEmployee().getFirstName() + " "
+                            + l.getEmployee().getLastName() + " - Cuti";
+
+            entry.setTitle(title);
             entry.setStart(l.getStartDate());
             entry.setEnd(l.getEndDate().plusDays(1));
             entry.setAllDay(true);
             entry.setColor("#4a90e2");
+
             calendar.getEntryProvider().asInMemory().addEntry(entry);
         }
     }
