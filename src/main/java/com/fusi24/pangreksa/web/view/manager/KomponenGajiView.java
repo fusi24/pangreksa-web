@@ -462,7 +462,7 @@ public class KomponenGajiView extends Main {
                 ro("Keterangan", sbl.getReason())
         );
 
-        Button close = new Button("Close", e -> dialog.close());
+        Button close = new Button("Tutup", e -> dialog.close());
         dialog.getFooter().add(close);
 
         dialog.add(layout);
@@ -704,7 +704,10 @@ public class KomponenGajiView extends Main {
                     currentAppUser.getCompany(),
                     currentAppUser,
                     null,
-                    () -> populateSalaryBaseLevelGrid(withInactiveBasicSalary.getValue())
+                    () -> {
+                        populateSalaryBaseLevelGrid(withInactiveBasicSalary.getValue());
+                        AppNotification.success("Gaji pokok berhasil ditambahkan");
+                    }
             );
             dialog.open();
         });
@@ -722,7 +725,7 @@ public class KomponenGajiView extends Main {
         // Allowance add
         saAddButton.addClickListener(e -> {
             HrSalaryAllowance newAllowance = new HrSalaryAllowance();
-            newAllowance.setName("NEW ALLOWANCE");
+            newAllowance.setName("Tunjangan Baru");
             newAllowance.setAmount(BigDecimal.ZERO);
             newAllowance.setStartDate(LocalDate.now());
             salaryAllowanceGrid.getListDataView().addItem(newAllowance);

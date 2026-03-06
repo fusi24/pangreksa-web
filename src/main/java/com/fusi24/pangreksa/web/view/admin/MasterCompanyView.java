@@ -223,7 +223,7 @@ public class MasterCompanyView extends Main {
                 ro("Longitude", b.getBranchLongitude() != null ? b.getBranchLongitude().toPlainString() : "-")
         );
 
-        Button close = new Button("Close", e -> dialog.close());
+        Button close = new Button("Tutup", e -> dialog.close());
         dialog.getFooter().add(close);
 
         dialog.add(layout);
@@ -252,7 +252,7 @@ public class MasterCompanyView extends Main {
                 ro("Catatan", c.getNotes())
         );
 
-        Button close = new Button("Close", e -> dialog.close());
+        Button close = new Button("Tutup", e -> dialog.close());
         dialog.getFooter().add(close);
 
         dialog.add(layout);

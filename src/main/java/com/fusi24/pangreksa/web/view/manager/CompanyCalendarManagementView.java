@@ -302,7 +302,7 @@ public class CompanyCalendarManagementView extends Main {
                 populateGrid();
 
                 // Notify user of success
-                AppNotification.success("Successfully saved company calendar data.");
+                AppNotification.success("Data kalender perusahaan berhasil disimpan.");
                 saveButton.setEnabled(true);
                 this.isEdit = false;
             }

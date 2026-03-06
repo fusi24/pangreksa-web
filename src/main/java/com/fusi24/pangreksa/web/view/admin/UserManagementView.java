@@ -364,25 +364,30 @@ public class UserManagementView extends Main {
             gridUsers.setItems(appUserList);
         });
 
-        saveButton.addClickListener( e->{
-            // getAll FwAppUser from grid
+        saveButton.addClickListener(e -> {
+
             List<FwAppUser> usersToSave = gridUsers.getListDataView().getItems().toList();
 
-            FwAppUser hasNoPassword = usersToSave.stream().filter(p -> p.getPassword() == null && p.getPasswordHash() == null).findFirst().orElse(null);
-            if(hasNoPassword != null) {
+            FwAppUser hasNoPassword = usersToSave.stream()
+                    .filter(p -> p.getPassword() == null && p.getPasswordHash() == null)
+                    .findFirst()
+                    .orElse(null);
+
+            if (hasNoPassword != null) {
                 AppNotification.error(
-    "Password wajib diisi for User: " + hasNoPassword.getUsername()
-);
+                        "Password wajib diisi untuk user: " + hasNoPassword.getUsername()
+                );
                 return;
             }
 
-            // log all user
             usersToSave.forEach(user -> {
                 log.debug("Saving user: {} - {} - {}", user.getUsername(), user.getPerson(), user.getCompany());
                 adminService.saveAppUser(user, currentUser.require());
             });
 
             populateButton.click();
+
+            AppNotification.success("Data pengguna berhasil disimpan.");
         });
 
         addButton.addClickListener(event -> {
@@ -390,7 +395,7 @@ public class UserManagementView extends Main {
             newUser.setIsActive(false);
             newUser.setUsername("ChangeMe");
             newUser.setNickname("NicknameMe");
-
+            AppNotification.info("User baru ditambahkan. Silakan lengkapi data lalu klik Simpan.");
             gridUsers.getListDataView().addItem(newUser);
         });
     }

@@ -205,7 +205,7 @@ public class LeaveRequestView extends Main {
                 ro("Keterangan", l.getReason())
         );
 
-        Button close = new Button("Close", e -> dialog.close());
+        Button close = new Button("Tutup", e -> dialog.close());
         dialog.getFooter().add(close);
 
         dialog.add(layout);

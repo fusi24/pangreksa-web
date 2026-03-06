@@ -152,7 +152,7 @@ public class MasterWorkScheduleView extends Main {
                 createReadOnlyField("Status", BooleanUtils.toString(ws.getIsActive(), "Active", "Inactive"))
         );
 
-        Button close = new Button("Close", e -> dialog.close());
+        Button close = new Button("Tutup", e -> dialog.close());
         dialog.getFooter().add(close);
 
         dialog.add(layout);

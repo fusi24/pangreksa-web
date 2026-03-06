@@ -408,7 +408,7 @@ runWithPreloading("Menghapus data payroll...", () -> {
             addRow.accept("Calculation", "(not created yet)");
         }
 
-        Button close = new Button("Close", e -> detailDialog.close());
+        Button close = new Button("Tutup", e -> detailDialog.close());
         close.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         VerticalLayout layout = new VerticalLayout(title, form, close);
