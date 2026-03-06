@@ -52,88 +52,6 @@ public class CheckInOutDialog extends Dialog {
         configureContent();
     }
 
-    private void configureContent() {
-        String fullName = attendance.getPerson().getFirstName() + " " + attendance.getPerson().getLastName();
-        add(new H3(fullName));
-        add(new Span("Tanggal: " + attendance.getAttendanceDate().format(DateTimeFormatter.ofPattern("dd MMM yyyy"))));
-
-        boolean hasCheckIn = attendance.getCheckIn() != null;
-        boolean hasCheckOut = attendance.getCheckOut() != null;
-
-        // ===== Branch Field =====
-        branchField.setWidthFull();
-        branchField.setPlaceholder("Pilih branch");
-        branchField.setClearButtonVisible(true);
-
-        // item label: "CODE - NAME"
-        branchField.setItemLabelGenerator(b -> {
-            if (b == null) return "";
-            String code = b.getBranchCode() == null ? "" : b.getBranchCode().trim();
-            String name = b.getBranchName() == null ? "" : b.getBranchName().trim();
-            String label = (code + " - " + name).trim();
-            return label.isBlank() ? "(No Name)" : label;
-        });
-
-        // Load items (wajib AttendanceService sudah setUser di tempat pemanggil dialog)
-        try {
-            branchField.setItems(attendanceService.getBranchesForCurrentUserCompany());
-        } catch (Exception ex) {
-            // kalau belum setUser, atau error lain, supaya ketahuan cepat
-            AppNotification.error("Gagal load branch: " + ex.getMessage());
-        }
-
-        // Jika sudah ada branch tersimpan di attendance (misal record existing),
-        // kita tampilkan sebagai info.
-        Span branchInfo = null;
-        if (StringUtils.isNotBlank(attendance.getBranchCode()) || StringUtils.isNotBlank(attendance.getBranchName())) {
-            String info = "Branch: "
-                    + StringUtils.defaultString(attendance.getBranchCode(), "-")
-                    + " - "
-                    + StringUtils.defaultString(attendance.getBranchName(), "-");
-            branchInfo = new Span(info);
-        }
-
-        // ===== Action button =====
-        if (!hasCheckIn) {
-            actionButton.setText("Clock-In");
-            actionButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-            actionButton.addClickListener(e -> handleCheckIn());
-
-            // Saat Clock-In: branch wajib dipilih
-            branchField.setVisible(true);
-            if (branchInfo != null) {
-                branchInfo.setVisible(false); // belum ada branch, hide saja
-            }
-
-        } else if (!hasCheckOut) {
-            actionButton.setText("Clock-Out");
-            actionButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
-            actionButton.addClickListener(e -> handleCheckOut());
-
-            // Saat Clock-Out: branch tidak perlu dipilih lagi (data sudah tersimpan saat check-in)
-            branchField.setVisible(false);
-
-        } else {
-            actionButton.setText("Sudah Clock-Out");
-            actionButton.setEnabled(false);
-            branchField.setVisible(false);
-        }
-
-        // ===== Notes =====
-        notesField.setMaxLength(255);
-        notesField.setValue(StringUtils.defaultIfBlank(attendance.getNotes(), StringUtils.EMPTY));
-        notesField.setWidthFull();
-
-        VerticalLayout content = new VerticalLayout();
-        content.setSpacing(true);
-        content.setPadding(true);
-
-        if (branchInfo != null) content.add(branchInfo);
-        content.add(branchField, actionButton, notesField);
-
-        add(content);
-    }
-
     private void handleCheckIn() {
         try {
     // validasi branch wajib
@@ -162,6 +80,93 @@ public class CheckInOutDialog extends Dialog {
 } catch (Exception ex) {
     AppNotification.error("Gagal Clock-In: " + ex.getMessage());
 }
+    }
+
+    private void configureContent() {
+
+        String fullName = attendance.getPerson().getFirstName() + " " + attendance.getPerson().getLastName();
+        add(new H3(fullName));
+        add(new Span("Tanggal: " + attendance.getAttendanceDate().format(DateTimeFormatter.ofPattern("dd MMM yyyy"))));
+
+        boolean hasCheckIn = attendance.getCheckIn() != null;
+        boolean hasCheckOut = attendance.getCheckOut() != null;
+
+        // ===== Branch Field =====
+        branchField.setWidthFull();
+        branchField.setPlaceholder("Pilih branch");
+        branchField.setClearButtonVisible(true);
+
+        branchField.setItemLabelGenerator(b -> {
+            if (b == null) return "";
+            String code = b.getBranchCode() == null ? "" : b.getBranchCode().trim();
+            String name = b.getBranchName() == null ? "" : b.getBranchName().trim();
+            String label = (code + " - " + name).trim();
+            return label.isBlank() ? "(No Name)" : label;
+        });
+
+        try {
+            branchField.setItems(attendanceService.getBranchesForCurrentUserCompany());
+        } catch (Exception ex) {
+            AppNotification.error("Gagal load branch: " + ex.getMessage());
+        }
+
+        // ===== Branch Info =====
+        Span branchInfo = null;
+        if (StringUtils.isNotBlank(attendance.getBranchCode()) || StringUtils.isNotBlank(attendance.getBranchName())) {
+            String info = "Branch: "
+                    + StringUtils.defaultString(attendance.getBranchCode(), "-")
+                    + " - "
+                    + StringUtils.defaultString(attendance.getBranchName(), "-");
+            branchInfo = new Span(info);
+        }
+
+        // ===== Close Button =====
+        Button closeButton = new Button("Tutup");
+        closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        closeButton.addClickListener(e -> close());
+
+        // ===== Action Button =====
+        if (!hasCheckIn) {
+
+            actionButton.setText("Check-In");
+            actionButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            actionButton.addClickListener(e -> handleCheckIn());
+
+            branchField.setVisible(true);
+            if (branchInfo != null) {
+                branchInfo.setVisible(false);
+            }
+
+        } else if (!hasCheckOut) {
+
+            actionButton.setText("Check-Out");
+            actionButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
+            actionButton.addClickListener(e -> handleCheckOut());
+
+            branchField.setVisible(false);
+
+        } else {
+
+            actionButton.setText("Sudah Check-Out");
+            actionButton.setEnabled(false);
+            branchField.setVisible(false);
+        }
+
+        // ===== Notes =====
+        notesField.setMaxLength(255);
+        notesField.setValue(StringUtils.defaultIfBlank(attendance.getNotes(), StringUtils.EMPTY));
+        notesField.setWidthFull();
+
+        // ===== Layout =====
+        VerticalLayout content = new VerticalLayout();
+        content.setSpacing(true);
+        content.setPadding(true);
+
+        if (branchInfo != null) content.add(branchInfo);
+
+        content.add(branchField, actionButton, notesField, closeButton);
+
+        add(content);
     }
 
     private void handleCheckOut() {
