@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
+import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.repo.FwAppuserRespRepository.GridRow;
@@ -85,19 +86,15 @@ public class RoleManagementView extends Main {
     }
     private String blankToNull(String s) { return (s == null || s.isBlank()) ? null : s.trim(); }
     private void notifySuccess(String msg) {
-        var n = Notification.show(msg);
-        n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-        n.setPosition(Notification.Position.TOP_END);
+        AppNotification.success(msg);
     }
+
     private void notifyWarn(String msg) {
-        var n = Notification.show(msg);
-        n.addThemeVariants(NotificationVariant.LUMO_WARNING);
-        n.setPosition(Notification.Position.TOP_END);
+        AppNotification.error(msg);
     }
+
     private void notifyError(String msg) {
-        var n = Notification.show(msg);
-        n.addThemeVariants(NotificationVariant.LUMO_ERROR);
-        n.setPosition(Notification.Position.TOP_END);
+        AppNotification.error(msg);
     }
 
     /* ===== UI ===== */
