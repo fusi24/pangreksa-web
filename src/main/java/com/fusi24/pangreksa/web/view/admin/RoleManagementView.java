@@ -216,8 +216,7 @@ public class RoleManagementView extends Main {
             dirtyIds.clear();
         } catch (Exception ex) {
             log.error("Gagal populate data role", ex);
-            notifyError("Gagal memuat data. Coba lagi.");
-            notifyError("Gagal memuat data. Coba lagi.");
+            AppNotification.error("Gagal memuat data. Coba lagi.");
         }
     }
 
@@ -280,7 +279,7 @@ public class RoleManagementView extends Main {
                 roleService.addMapping(u.getId(), r.getId(), actor());
                 dlg.close();
                 populate();
-                notifySuccess("Data baru berhasil disimpan.");
+                AppNotification.success("Data baru berhasil disimpan.");
             } catch (Exception ex) {
                 log.error("Gagal menambah mapping role", ex);
 
