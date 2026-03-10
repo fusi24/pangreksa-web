@@ -519,9 +519,9 @@ public class PersonService {
         if (orgStructureId == null || currentPersonId == null) {
             return new ArrayList<>();
         }
-        // Ambil data halaman pertama (0) dengan limit 5 data
-        Pageable limit = PageRequest.of(0, 5);
-        return hrPersonRepository.findCoworkersByOrgStructure(orgStructureId, currentPersonId, limit);
+
+        // Gunakan unpaged() untuk mengambil seluruh data tanpa limit
+        return hrPersonRepository.findCoworkersByOrgStructure(orgStructureId, currentPersonId, Pageable.unpaged());
     }
 
     public HrPerson getPersonWithDetails(Long id) {

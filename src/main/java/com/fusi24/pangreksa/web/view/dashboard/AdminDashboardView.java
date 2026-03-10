@@ -5,7 +5,6 @@ import com.fusi24.pangreksa.web.repo.HrAttendanceRepository;
 import com.fusi24.pangreksa.web.repo.HrLeaveApplicationRepository;
 import com.fusi24.pangreksa.web.repo.HrPayrollRepository;
 import com.fusi24.pangreksa.web.service.PersonService;
-
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -13,9 +12,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-
 import jakarta.annotation.security.PermitAll;
-
 import java.time.LocalDate;
 
 @Route(value = "admin-dashboard", layout = MainLayout.class)

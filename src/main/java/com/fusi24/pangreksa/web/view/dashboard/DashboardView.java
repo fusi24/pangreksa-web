@@ -370,7 +370,6 @@ public class DashboardView extends VerticalLayout {
                 .stream()
                 .filter(p -> p.getDob() != null)
                 .filter(p -> p.getDob().getMonthValue() == currentMonth)
-                .limit(5)
                 .forEach(p -> {
                     String name = p.getFirstName() + " " + p.getLastName();
                     String dob = p.getDob().format(formatter);
