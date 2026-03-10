@@ -153,16 +153,16 @@ public class DashboardView extends VerticalLayout {
         Span label = new Span("Sisa Hari");
         label.getStyle().set("color", "#64748b").set("font-weight", "500");
 
-        Button apply = new Button("Apply", VaadinIcon.PLUS.create());
-        apply.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+//        Button apply = new Button("Apply", VaadinIcon.PLUS.create());
+//        apply.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+//
+//        HorizontalLayout bottom = new HorizontalLayout(label, apply);
+//        bottom.setWidthFull();
+//        bottom.setJustifyContentMode(JustifyContentMode.BETWEEN);
+//        bottom.setAlignItems(Alignment.CENTER);
+//        bottom.getStyle().set("margin-top", "auto");
 
-        HorizontalLayout bottom = new HorizontalLayout(label, apply);
-        bottom.setWidthFull();
-        bottom.setJustifyContentMode(JustifyContentMode.BETWEEN);
-        bottom.setAlignItems(Alignment.CENTER);
-        bottom.getStyle().set("margin-top", "auto");
-
-        card.add(title, circleOuter, bottom);
+        card.add(title, circleOuter);
 
         return card;
     }
