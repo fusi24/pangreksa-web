@@ -23,6 +23,7 @@ public class HrPerson extends AuditableEntity<HrPerson> {
     @SequenceGenerator(name = "global_hr_seq", sequenceName = "global_hr_seq", allocationSize = 1)
     private Long id;
 
+
     @Column(name = "first_name", nullable = false, length = 50)
     private String firstName;
 

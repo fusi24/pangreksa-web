@@ -151,6 +151,7 @@ public final class MainLayout extends AppLayout {
 
         if(role != null){
 
+
             // ADMIN DASHBOARD
             if(role.equalsIgnoreCase("Administrator") ||
                     role.equalsIgnoreCase("HR Manager")){

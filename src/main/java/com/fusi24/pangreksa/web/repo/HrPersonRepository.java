@@ -70,6 +70,7 @@ public interface HrPersonRepository extends JpaRepository<HrPerson, Long> {
             Pageable pageable
     );
 
+
     @Query("""
         select p
         from HrPerson p

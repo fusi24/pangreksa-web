@@ -50,6 +50,7 @@ public class DashboardView extends VerticalLayout {
         this.leaveService = leaveService;
         this.personService = personService;
 
+
         setWidthFull();
         setPadding(true);
 
