@@ -326,6 +326,7 @@ vaadin-combo-box {
     padding: 10px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.95rem;
 }
 .attendance-row:last-child { border-bottom: none; }
+
 .notification-box {
     background: #eff6ff; border-left: 4px solid #3b82f6;
     padding: 16px; border-radius: 8px; color: #1e3a8a; font-size: 0.95rem;
