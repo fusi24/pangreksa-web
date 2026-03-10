@@ -102,4 +102,15 @@ public interface HrPersonPositionRepository extends JpaRepository<HrPersonPositi
     );
 
     HrPersonPosition findFirstByPersonId(Long personId);
+
+    @Query("""
+SELECT p
+FROM HrPersonPosition p
+LEFT JOIN FETCH p.person
+LEFT JOIN FETCH p.department
+LEFT JOIN FETCH p.position pos
+LEFT JOIN FETCH pos.orgStructure
+WHERE p.company = :company
+""")
+    List<HrPersonPosition> findByCompanyWithRelations(@Param("company") HrCompany company);
 }

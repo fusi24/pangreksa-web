@@ -147,6 +147,13 @@ public final class MainLayout extends AppLayout {
     private SideNav populateNavigation(Responsibility responsibility){
         var nav = new SideNav();
 
+        // MENU DASHBOARD
+        SideNavItem dashboard = new SideNavItem(
+                "Dashboard",
+                "dashboard",
+                VaadinIcon.DASHBOARD.create()
+        );
+        nav.addItem(dashboard);
         // If groupMenuEntries is null or empty, fall back to flat menuEntries (optional)
         if (responsibility.getGroupMenuEntries() != null && !responsibility.getGroupMenuEntries().isEmpty()) {
             // Sort group names (optional: you could use a LinkedHashMap to preserve order)

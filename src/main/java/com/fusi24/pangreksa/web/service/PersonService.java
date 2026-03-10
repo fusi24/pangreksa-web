@@ -513,4 +513,21 @@ public class PersonService {
         return hrPersonRepository.findUnassignedPersonsByKeyword(keyword, pageable);
     }
 
+    // Tambahkan method ini di dalam PersonService
+    public List<HrPerson> getCoworkers(Long orgStructureId, Long currentPersonId) {
+        if (orgStructureId == null || currentPersonId == null) {
+            return new ArrayList<>();
+        }
+        // Ambil data halaman pertama (0) dengan limit 5 data
+        Pageable limit = PageRequest.of(0, 5);
+        return hrPersonRepository.findCoworkersByOrgStructure(orgStructureId, currentPersonId, limit);
+    }
+
+    public HrPerson getPersonWithDetails(Long id) {
+        if (id == null) {
+            return null;
+        }
+        return hrPersonRepository.findPersonWithDetails(id);
+    }
+
 }

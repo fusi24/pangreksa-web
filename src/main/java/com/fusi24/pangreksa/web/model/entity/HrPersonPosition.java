@@ -59,5 +59,7 @@ public class HrPersonPosition  extends AuditableEntity<HrPersonPosition>  {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "branch_id")
     private HrCompanyBranch branch;
+
+
 }
 

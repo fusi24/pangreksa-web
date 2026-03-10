@@ -7,6 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface HrPersonRepository extends JpaRepository<HrPerson, Long> {
 
     @Query("""
@@ -67,4 +69,29 @@ public interface HrPersonRepository extends JpaRepository<HrPerson, Long> {
             @Param("keyword") String keyword,
             Pageable pageable
     );
+
+    @Query("""
+        select p
+        from HrPerson p
+        join fetch p.personPosition pp
+        join fetch pp.position pos
+        join fetch pos.orgStructure org
+        where org.id = :orgStructureId
+        and p.id != :personId
+    """)
+    List<HrPerson> findCoworkersByOrgStructure(
+            @Param("orgStructureId") Long orgStructureId,
+            @Param("personId") Long personId,
+            Pageable pageable
+    );
+
+    @Query("""
+        select p
+        from HrPerson p
+        left join fetch p.personPosition pp
+        left join fetch pp.position pos
+        left join fetch pos.orgStructure org
+        where p.id = :id
+    """)
+    HrPerson findPersonWithDetails(@Param("id") Long id);
 }
