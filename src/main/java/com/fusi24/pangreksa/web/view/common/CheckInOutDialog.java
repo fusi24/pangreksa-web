@@ -57,7 +57,7 @@ public class CheckInOutDialog extends Dialog {
     // validasi branch wajib
     HrCompanyBranch selected = branchField.getValue();
     if (selected == null) {
-        AppNotification.error("Branch wajib dipilih sebelum Clock-In");
+        AppNotification.error("Branch wajib dipilih sebelum Check-in");
         return;
     }
 
@@ -73,12 +73,12 @@ public class CheckInOutDialog extends Dialog {
 
     attendanceService.saveAttendance(attendance, currentUser.require());
 
-    AppNotification.success("Clock-In berhasil");
+    AppNotification.success("Check-in berhasil");
 
     closeAndNotify();
 
 } catch (Exception ex) {
-    AppNotification.error("Gagal Clock-In: " + ex.getMessage());
+    AppNotification.error("Gagal Check-in: " + ex.getMessage());
 }
     }
 
@@ -176,15 +176,15 @@ public class CheckInOutDialog extends Dialog {
     );
     attendance.setNotes(notesField.getValue());
 
-    // Branch tidak diubah saat clock-out
+    // Branch tidak diubah saat Check-out
     attendanceService.saveAttendance(attendance, currentUser.require());
 
-    AppNotification.success("Clock-Out berhasil");
+    AppNotification.success("Check-out berhasil");
 
     closeAndNotify();
 
 } catch (Exception ex) {
-    AppNotification.error("Gagal Clock-Out: " + ex.getMessage());
+    AppNotification.error("Gagal Check-out: " + ex.getMessage());
 }
     }
 

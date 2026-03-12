@@ -200,9 +200,9 @@ public class DashboardView extends VerticalLayout {
         title.addClassName("dashboard-title");
 
         VerticalLayout list = new VerticalLayout(
-                createAttendanceRow("Check In", checkIn, checkIn.equals("--:--") ? "#64748b" : "#16a34a"),
-                createAttendanceRow("Check Out", checkOut, "#64748b"),
-                createAttendanceRow("Status", statusText, statusColor)
+                createAttendanceRow("Check In: ", checkIn, checkIn.equals("--:--") ? "#64748b" : "#16a34a"),
+                createAttendanceRow("Check Out: ", checkOut, "#64748b"),
+                createAttendanceRow("Status: ", statusText, statusColor)
         );
         list.setPadding(false);
         list.setSpacing(false);

@@ -160,14 +160,14 @@ public class AttendanceView extends Main {
                                         ? att.getCheckIn().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"))
                                         : "-"
                         )
-                        .setHeader("Clock-In")
+                        .setHeader("Check-in")
                         .setKey("checkIn")              // 🔑 PENTING
                         .setSortable(true)
                         .setComparator(HrAttendance::getCheckIn)
                         .setWidth("140px");
 
         grid.addColumn(att -> att.getCheckOut() != null ? att.getCheckOut().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) : "-")
-                .setHeader("Clock-Out").setWidth("100px");
+                .setHeader("Check-out").setWidth("100px");
 
         grid.addColumn(att -> formatWorkDuration(att.getTotalWorkMinutes()))
                 .setHeader("Total Jam Kerja")
@@ -303,10 +303,10 @@ public class AttendanceView extends Main {
             checkInButton.setText("Sudah Absen Hari Ini");
         } else if (today.getCheckIn() != null) {
             checkInButton.setEnabled(true);
-            checkInButton.setText("Clock-Out Sekarang");
+            checkInButton.setText("Check-out Sekarang");
         } else {
             checkInButton.setEnabled(true);
-            checkInButton.setText("Clock-In Sekarang");
+            checkInButton.setText("Check-in Sekarang");
         }
     }
 
@@ -403,15 +403,15 @@ public class AttendanceView extends Main {
             return new Span("-");
         }
 
-        Button clockOutBtn = new Button("Clock-Out");
+        Button clockOutBtn = new Button("Check-out");
         clockOutBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
 
         clockOutBtn.addClickListener(e -> {
 
             ConfirmationDialogUtil.showConfirmation(
-                    "Konfirmasi Clock-Out",
-                    "Apakah Anda yakin ingin melakukan Clock-Out sekarang?",
-                    "Ya, Clock-Out",
+                    "Konfirmasi Check-out",
+                    "Apakah Anda yakin ingin melakukan Check-out sekarang?",
+                    "Ya, Check-out",
                     ev -> {
 
                         ZoneId jakartaZone = ZoneId.of("Asia/Jakarta");
@@ -422,14 +422,14 @@ public class AttendanceView extends Main {
                        try {
     attendanceService.saveAttendance(attendance, currentUser.require());
 
-    AppNotification.success("Clock-out berhasil");
+    AppNotification.success("Check-out berhasil");
 
     applyFilters();
 
 } catch (Exception ex) {
     attendance.setCheckOut(null);
 
-    AppNotification.error("Gagal clock-out: " + ex.getMessage());
+    AppNotification.error("Gagal Check-out: " + ex.getMessage());
 }
                     }
             );
