@@ -156,7 +156,7 @@ public class CompanyCalendarView extends Main {
         calendar.setWidthFull();
         calendar.changeView(CalendarViewImpl.DAY_GRID_MONTH);
         calendar.setLocale(Locale.forLanguageTag("id"));
-
+        calendar.setEditable(false);
         calendarCard.add(calendar);
 
         refreshData();
@@ -190,6 +190,7 @@ public class CompanyCalendarView extends Main {
             entry.setEnd(h.getEndDate().plusDays(1));
             entry.setAllDay(true);
             entry.setColor("#d9534f");
+            entry.setEditable(false);
             calendar.getEntryProvider().asInMemory().addEntry(entry);
         }
     }
@@ -232,7 +233,7 @@ public class CompanyCalendarView extends Main {
             entry.setEnd(l.getEndDate().plusDays(1));
             entry.setAllDay(true);
             entry.setColor("#4a90e2");
-
+            entry.setEditable(false);
             calendar.getEntryProvider().asInMemory().addEntry(entry);
         }
     }
