@@ -169,27 +169,47 @@ public class DashboardView extends VerticalLayout {
     }
 
     /* =====================================================
-       2. ATTENDANCE TODAY
-    ===================================================== */
+           2. ATTENDANCE TODAY
+        ===================================================== */
     private Div createAttendanceCard(AppUserInfo user){
         HrAttendance attendance = attendanceService.getOrCreateTodayAttendance(attendanceService.getCurrentUser());
 
         String checkIn = "--:--";
         String checkOut = "--:--";
         String statusText = "Pending";
-        String statusColor = "#64748b";
+        String statusColor = "#64748b"; // Warna default (Abu-abu)
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
         if(attendance != null){
+            // 1. Ambil Jam Check In & Out
             if(attendance.getCheckIn() != null){
                 checkIn = attendance.getCheckIn().toLocalTime().format(timeFormatter);
-                statusText = "Working";
-                statusColor = "#0ea5e9"; // Biru
             }
             if(attendance.getCheckOut() != null){
                 checkOut = attendance.getCheckOut().toLocalTime().format(timeFormatter);
-                statusText = "Completed";
-                statusColor = "#16a34a"; // Hijau
+            }
+
+            // 2. AMBIL STATUS LANGSUNG DARI DATABASE
+            if (attendance.getStatus() != null) {
+                statusText = attendance.getStatus();
+
+                // 3. LOGIKA WARNA BERDASARKAN NILAI STATUS
+                // Silakan sesuaikan string status (misal: "PRESENT", "ABSENT") dengan isi di DB Anda
+                switch (statusText.toUpperCase()) {
+                    case "WORKING":
+                    case "PRESENT":
+                        statusColor = "#0ea5e9"; // Biru
+                        break;
+                    case "COMPLETED":
+                        statusColor = "#16a34a"; // Hijau
+                        break;
+                    case "LATE":
+                    case "ABSENT":
+                        statusColor = "#ef4444"; // Merah
+                        break;
+                    default:
+                        statusColor = "#64748b"; // Abu-abu
+                }
             }
         }
 
