@@ -544,7 +544,9 @@ public class PayrollService {
         HrPosition position = personPosition.getPosition();
         HrOrgStructure department = position != null ? position.getOrgStructure() : null;
 
-        HrPersonPtkp activePtkp = hrPersonPtkpRepository.findCurrentByPersonId(person.getId()).orElse(null);
+        HrPersonPtkp activePtkp = hrPersonPtkpRepository
+                .findActiveByPersonId(person.getId(), payrollDate)
+                .orElse(null);
 
         String ptkpCode = activePtkp == null ? "NOT_SET" : activePtkp.getPtkpCode();
         BigDecimal ptkpYear = activePtkp == null ? ZERO : nvl(activePtkp.getPtkpAmount());

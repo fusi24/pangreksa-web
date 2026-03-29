@@ -17,8 +17,10 @@ public interface HrPersonPtkpRepository extends JpaRepository<HrPersonPtkp, Long
         select p
         from HrPersonPtkp p
         where p.person.id = :personId
-          and p.validTo is null
-        order by p.validFrom desc nulls last
+          and p.validFrom <= :referenceDate
+          and (p.validTo is null or p.validTo >= :referenceDate)
+        order by p.validFrom desc
     """)
-        Optional<HrPersonPtkp> findCurrentByPersonId(@Param("personId") Long personId);
+        Optional<HrPersonPtkp> findActiveByPersonId(@Param("personId") Long personId,
+                                                    @Param("referenceDate") LocalDate referenceDate);
 }
