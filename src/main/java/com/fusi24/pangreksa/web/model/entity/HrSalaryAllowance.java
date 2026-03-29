@@ -41,4 +41,7 @@ public class HrSalaryAllowance extends AuditableEntity<HrSalaryAllowance>{
     @Column(name = "penalty_rate", precision = 5, scale = 2)
     private BigDecimal penaltyRate;
 
+    @Column(name = "allowance_type", length = 20)
+    private String allowanceType; // FIXED / VARIABLE
+
 }

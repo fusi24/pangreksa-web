@@ -65,6 +65,9 @@ public class HrPerson extends AuditableEntity<HrPerson> {
     @Column(name = "status_employee", length = 10)
     private String statusEmployee;
 
+    @Column(name = "nip", length = 30, nullable = true)
+    private String nip;
+
     @OneToOne(fetch = FetchType.LAZY, mappedBy = "person", cascade = CascadeType.DETACH)
     private HrPersonPosition personPosition;
 }

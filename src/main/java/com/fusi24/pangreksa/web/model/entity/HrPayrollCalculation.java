@@ -8,55 +8,83 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "hr_payroll_calculations")
-@Builder
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class HrPayrollCalculation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
-    // FK: hr_payroll_calculations.payroll_input_id -> hr_payroll.id
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payroll_input_id")
-    private HrPayroll payrollInput;
+    // RELATION
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payroll_input_id", nullable = false)
+    private HrPayroll payroll;
 
-    @Column(name = "gross_salary", precision = 15, scale = 2)
-    private BigDecimal grossSalary;
-
-    @Column(name = "total_allowances", precision = 15, scale = 2)
-    private BigDecimal totalAllowances;
-
-    @Column(name = "total_overtimes", precision = 15, scale = 2)
-    private BigDecimal totalOvertimes;
-
-    @Column(name = "total_bonus", precision = 15, scale = 2)
-    private BigDecimal totalBonus;
-
-    @Column(name = "total_other_deductions", precision = 15, scale = 2)
-    private BigDecimal totalOtherDeductions;
-
-    @Column(name = "total_taxable", precision = 15, scale = 2)
-    private BigDecimal totalTaxable;
-
-    @Column(name = "health_deduction")
-    private BigDecimal healthDeduction;
-
-    @Column(name = "attendance_allowance_deduction", precision = 19, scale = 2, nullable = false)
-    private BigDecimal attendanceAllowanceDeduction;
-
+    // PENGHASILAN
     @Column(name = "base_salary", precision = 19, scale = 2)
     private BigDecimal baseSalary;
 
-    @Column(name = "net_take_home_pay", precision = 15, scale = 2)
+    @Column(name = "fixed_allowance_total", precision = 19, scale = 2)
+    private BigDecimal fixedAllowanceTotal;
+
+    @Column(name = "variable_allowance_total", precision = 19, scale = 2)
+    private BigDecimal variableAllowanceTotal;
+
+    @Column(name = "overtime_amount", precision = 19, scale = 2)
+    private BigDecimal overtimeAmount;
+
+    @Column(name = "bonus_amount", precision = 19, scale = 2)
+    private BigDecimal bonusAmount;
+
+    @Column(name = "gross_salary", precision = 19, scale = 2)
+    private BigDecimal grossSalary;
+
+    // ATTENDANCE
+    @Column(name = "absence_deduction", precision = 19, scale = 2)
+    private BigDecimal absenceDeduction;
+
+    @Column(name = "late_deduction", precision = 19, scale = 2)
+    private BigDecimal lateDeduction;
+
+    // BPJS EMPLOYEE
+    @Column(name = "bpjs_jht_deduction", precision = 19, scale = 2)
+    private BigDecimal bpjsJhtDeduction;
+
+    @Column(name = "bpjs_jp_deduction", precision = 19, scale = 2)
+    private BigDecimal bpjsJpDeduction;
+
+    @Column(name = "bpjs_jkn_deduction", precision = 19, scale = 2)
+    private BigDecimal bpjsJknDeduction;
+
+    // BPJS COMPANY
+    @Column(name = "bpjs_jht_company", precision = 19, scale = 2)
+    private BigDecimal bpjsJhtCompany;
+
+    @Column(name = "bpjs_jp_company", precision = 19, scale = 2)
+    private BigDecimal bpjsJpCompany;
+
+    @Column(name = "bpjs_jkn_company", precision = 19, scale = 2)
+    private BigDecimal bpjsJknCompany;
+
+    // TAX
+    @Column(name = "pph21_deduction", precision = 19, scale = 2)
+    private BigDecimal pph21Deduction;
+
+    // FINAL
+    @Column(name = "total_deduction", precision = 19, scale = 2)
+    private BigDecimal totalDeduction;
+
+    @Column(name = "net_take_home_pay", precision = 19, scale = 2)
     private BigDecimal netTakeHomePay;
 
-    @Column(name = "calculated_at", updatable = false)
-    private LocalDateTime calculatedAt = LocalDateTime.now();
+    // META
+    @Column(name = "calculated_at")
+    private LocalDateTime calculatedAt;
 
-    @Column(name = "notes", columnDefinition = "text")
+    @Column(name = "notes")
     private String notes;
 }

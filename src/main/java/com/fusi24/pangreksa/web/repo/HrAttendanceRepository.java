@@ -63,15 +63,28 @@ public interface HrAttendanceRepository extends CrudRepository<HrAttendance, Lon
     );
 
     @Query("""
-        select count(a)
-        from HrAttendance a
-        where a.person.id = :personId
-          and a.attendanceDate >= :startOfMonth
-          and a.attendanceDate < :startOfNextMonth
-          and a.status != 'ALPHA'
+    select count(a)
+    from HrAttendance a
+    where a.person.id = :personId
+      and a.attendanceDate >= :startDate
+      and a.attendanceDate < :endDateExclusive
+      and a.status in :statuses
     """)
-    long countAttendanceByPersonAndPeriod(@Param("personId") Long personId,
-                                          @Param("startOfMonth") LocalDate startOfMonth,
-                                          @Param("startOfNextMonth") LocalDate startOfNextMonth);
+    long countByPersonAndPeriodAndStatuses(@Param("personId") Long personId,
+                                           @Param("startDate") LocalDate startDate,
+                                           @Param("endDateExclusive") LocalDate endDateExclusive,
+                                           @Param("statuses") List<String> statuses);
+
+    @Query("""
+    select count(a)
+    from HrAttendance a
+    where a.person.id = :personId
+      and a.attendanceDate >= :startDate
+      and a.attendanceDate < :endDateExclusive
+    """)
+        long countAttendanceByPersonAndPeriod(@Param("personId") Long personId,
+                                          @Param("startDate") LocalDate startDate,
+                                          @Param("endDateExclusive") LocalDate endDateExclusive);
+
 
 }

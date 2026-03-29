@@ -17,7 +17,7 @@ import java.util.List;
 public interface HrPayrollRepository extends CrudRepository<HrPayroll, Long>, JpaSpecificationExecutor<HrPayroll> {
 
     @Override
-    @EntityGraph(attributePaths = {"calculation"})
+    @EntityGraph(attributePaths = {"person"})
     Page<HrPayroll> findAll(Specification<HrPayroll> spec, Pageable pageable);
 
     boolean existsByPersonIdAndPayrollDate(Long personId, LocalDate payrollDate);
