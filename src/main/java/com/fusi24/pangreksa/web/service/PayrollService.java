@@ -4,6 +4,8 @@ import com.fusi24.pangreksa.security.AppUserInfo;
 import com.fusi24.pangreksa.web.model.entity.*;
 import com.fusi24.pangreksa.web.model.enumerate.LeaveStatusEnum;
 import com.fusi24.pangreksa.web.repo.*;
+import lombok.Getter;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.fusi24.pangreksa.web.model.entity.HrSalaryAllowance;
-import com.fusi24.pangreksa.web.repo.HrSalaryAllowanceRepository;
-import com.fusi24.pangreksa.web.repo.HrAttendanceRepository;
-import com.fusi24.pangreksa.web.repo.FwSystemRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -24,16 +22,16 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
-
-import lombok.Getter;
-import lombok.Setter;
-
-import java.math.RoundingMode;
 import java.util.stream.Collectors;
 
 @Service
 public class PayrollService {
     private static final Logger log = LoggerFactory.getLogger(PayrollService.class);
+
+    private static final int SCALE_MONEY = 2;
+    private static final BigDecimal BD_12 = BigDecimal.valueOf(12);
+    private static final BigDecimal BD_100 = BigDecimal.valueOf(100);
+    private static final BigDecimal ZERO = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
 
     private final HrSalaryBaseLevelRepository hrSalaryBaseLevelRepository;
     private final HrSalaryAllowanceRepository hrSalaryAllowanceRepository;
@@ -42,6 +40,8 @@ public class PayrollService {
 
     private final HrPayrollRepository hrPayrollRepository;
     private final HrPayrollCalculationRepository hrPayrollCalculationRepository;
+    private final HrPayrollComponentRepository hrPayrollComponentRepository;
+
     private final HrTaxBracketRepository hrTaxBracketRepository;
     private final HrSalaryEmployeeLevelRepository hrSalaryEmployeeLevelRepository;
     private final HrAttendanceRepository hrAttendanceRepository;
@@ -54,61 +54,46 @@ public class PayrollService {
 
     private final SystemService systemService;
 
-    private static final int SCALE_MONEY = 2;
-
-    private static final BigDecimal BD_12 = BigDecimal.valueOf(12);
-    private static final BigDecimal BD_100 = BigDecimal.valueOf(100);
+    private FwAppUser appUser;
 
     @Autowired
     public PayrollService(HrSalaryBaseLevelRepository hrSalaryBaseLevelRepository,
                           FwAppUserRepository appUserRepository,
                           HrSalaryAllowanceRepository hrSalaryAllowanceRepository,
-                          HrSalaryPositionAllowanceRepository hrSalaryAllowancePackageRepository,
+                          HrSalaryPositionAllowanceRepository hrSalaryPositionAllowanceRepository,
                           HrPayrollRepository hrPayrollRepository,
-                          SystemService systemService,
                           HrPayrollCalculationRepository hrPayrollCalculationRepository,
+                          HrPayrollComponentRepository hrPayrollComponentRepository,
                           HrTaxBracketRepository hrTaxBracketRepository,
                           HrSalaryEmployeeLevelRepository hrSalaryEmployeeLevelRepository,
+                          HrAttendanceRepository hrAttendanceRepository,
+                          FwSystemRepository fwSystemRepository,
                           HrPersonPositionRepository hrPersonPositionRepository,
                           HrPersonRespository hrPersonRepository,
                           HrPersonPtkpRepository hrPersonPtkpRepository,
                           HrLeaveApplicationRepository hrLeaveApplicationRepository,
-                          HrAttendanceRepository hrAttendanceRepository,
-                          FwSystemRepository fwSystemRepository) {
+                          SystemService systemService) {
 
         this.hrSalaryBaseLevelRepository = hrSalaryBaseLevelRepository;
         this.appUserRepository = appUserRepository;
         this.hrSalaryAllowanceRepository = hrSalaryAllowanceRepository;
-        this.hrSalaryPositionAllowanceRepository = hrSalaryAllowancePackageRepository;
-        this.hrAttendanceRepository = hrAttendanceRepository;
-        this.fwSystemRepository = fwSystemRepository;
-
+        this.hrSalaryPositionAllowanceRepository = hrSalaryPositionAllowanceRepository;
         this.hrPayrollRepository = hrPayrollRepository;
-        this.systemService = systemService;
         this.hrPayrollCalculationRepository = hrPayrollCalculationRepository;
+        this.hrPayrollComponentRepository = hrPayrollComponentRepository;
         this.hrTaxBracketRepository = hrTaxBracketRepository;
         this.hrSalaryEmployeeLevelRepository = hrSalaryEmployeeLevelRepository;
-
+        this.hrAttendanceRepository = hrAttendanceRepository;
+        this.fwSystemRepository = fwSystemRepository;
         this.hrPersonPositionRepository = hrPersonPositionRepository;
         this.hrPersonRepository = hrPersonRepository;
         this.hrPersonPtkpRepository = hrPersonPtkpRepository;
         this.hrLeaveApplicationRepository = hrLeaveApplicationRepository;
-
-        log.warn("PayrollService constructed. instance={}, hrPersonRepositoryInjected={}",
-                System.identityHashCode(this),
-                (this.hrPersonRepository != null));
-
+        this.systemService = systemService;
     }
-
-    public void deleteSalaryAllowance(HrSalaryAllowance data) {
-        hrSalaryAllowanceRepository.delete(data);
-    }
-
-    private FwAppUser appUser;
 
     public void setUser(AppUserInfo appUserInfo) {
-        FwAppUser appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
-        this.appUser = appUser;
+        this.appUser = findAppUserByUserId(appUserInfo.getUserId().toString());
     }
 
     private FwAppUser findAppUserByUserId(String userId) {
@@ -116,42 +101,47 @@ public class PayrollService {
                 .orElseThrow(() -> new IllegalStateException("User not found: " + userId));
     }
 
+    public void deleteSalaryAllowance(HrSalaryAllowance data) {
+        hrSalaryAllowanceRepository.delete(data);
+    }
+
     public List<HrSalaryBaseLevel> getAllSalaryBaseLevels(boolean includeInactive) {
-        if (appUser == null) {
-            throw new IllegalStateException("App user is not set. Please call setUser() before using this method.");
-        }
+        ensureUserSet();
 
         if (includeInactive) {
             return hrSalaryBaseLevelRepository.findByCompanyOrderByLevelCodeAsc(appUser.getCompany());
         }
-
         return hrSalaryBaseLevelRepository.findByCompanyAndIsActiveTrueOrderByLevelCodeAsc(appUser.getCompany());
     }
 
     public List<HrSalaryAllowance> getAllSalaryAllowances(boolean includeInactive) {
-        if (includeInactive)
+        ensureUserSet();
+
+        if (includeInactive) {
             return hrSalaryAllowanceRepository.findByCompanyOrderByNameAsc(appUser.getCompany());
-        else
-            return hrSalaryAllowanceRepository.findByCompanyAndEndDateIsNullOrderByNameAsc(appUser.getCompany());
+        }
+        return hrSalaryAllowanceRepository.findByCompanyAndEndDateIsNullOrderByNameAsc(appUser.getCompany());
     }
 
     public List<HrSalaryPositionAllowance> getSalaryPositionAllowancesByPosition(HrPosition position, boolean includeInactive) {
-        if (includeInactive)
+        ensureUserSet();
+
+        if (includeInactive) {
             return hrSalaryPositionAllowanceRepository.findByPositionAndCompanyOrderByUpdatedAtAsc(position, appUser.getCompany());
-        else
-            return hrSalaryPositionAllowanceRepository.findByPositionAndCompanyAndEndDateIsNullOrderByUpdatedAtAsc(position, appUser.getCompany());
+        }
+        return hrSalaryPositionAllowanceRepository.findByPositionAndCompanyAndEndDateIsNullOrderByUpdatedAtAsc(position, appUser.getCompany());
     }
 
     public HrSalaryBaseLevel saveSalaryBaseLevel(HrSalaryBaseLevel salaryBaseLevel, AppUserInfo appUserInfo) {
-        FwAppUser appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
+        FwAppUser currentUser = findAppUserByUserId(appUserInfo.getUserId().toString());
 
         if (salaryBaseLevel.getId() == null) {
-            salaryBaseLevel.setCreatedBy(appUser);
-            salaryBaseLevel.setUpdatedBy(appUser);
+            salaryBaseLevel.setCreatedBy(currentUser);
+            salaryBaseLevel.setUpdatedBy(currentUser);
             salaryBaseLevel.setCreatedAt(LocalDateTime.now());
             salaryBaseLevel.setUpdatedAt(LocalDateTime.now());
         } else {
-            salaryBaseLevel.setUpdatedBy(appUser);
+            salaryBaseLevel.setUpdatedBy(currentUser);
             salaryBaseLevel.setUpdatedAt(LocalDateTime.now());
         }
 
@@ -159,22 +149,21 @@ public class PayrollService {
     }
 
     public HrSalaryAllowance saveSalaryAllowance(HrSalaryAllowance salaryAllowance, AppUserInfo appUserInfo) {
-        FwAppUser appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
+        FwAppUser currentUser = findAppUserByUserId(appUserInfo.getUserId().toString());
 
         if (salaryAllowance.getId() == null) {
             if (salaryAllowance.getCompany() == null) {
-                salaryAllowance.setCompany(appUser.getCompany());
+                salaryAllowance.setCompany(currentUser.getCompany());
             }
-
-            salaryAllowance.setCreatedBy(appUser);
-            salaryAllowance.setUpdatedBy(appUser);
+            salaryAllowance.setCreatedBy(currentUser);
+            salaryAllowance.setUpdatedBy(currentUser);
             salaryAllowance.setCreatedAt(LocalDateTime.now());
             salaryAllowance.setUpdatedAt(LocalDateTime.now());
         } else {
-            salaryAllowance.setUpdatedBy(appUser);
+            salaryAllowance.setUpdatedBy(currentUser);
             salaryAllowance.setUpdatedAt(LocalDateTime.now());
             if (salaryAllowance.getCompany() == null) {
-                salaryAllowance.setCompany(appUser.getCompany());
+                salaryAllowance.setCompany(currentUser.getCompany());
             }
         }
 
@@ -182,15 +171,15 @@ public class PayrollService {
     }
 
     public HrSalaryPositionAllowance saveSalaryPositionAllowance(HrSalaryPositionAllowance salaryPositionAllowance, AppUserInfo appUserInfo) {
-        FwAppUser appUser = this.findAppUserByUserId(appUserInfo.getUserId().toString());
+        FwAppUser currentUser = findAppUserByUserId(appUserInfo.getUserId().toString());
 
         if (salaryPositionAllowance.getId() == null) {
-            salaryPositionAllowance.setCreatedBy(appUser);
-            salaryPositionAllowance.setUpdatedBy(appUser);
+            salaryPositionAllowance.setCreatedBy(currentUser);
+            salaryPositionAllowance.setUpdatedBy(currentUser);
             salaryPositionAllowance.setCreatedAt(LocalDateTime.now());
             salaryPositionAllowance.setUpdatedAt(LocalDateTime.now());
         } else {
-            salaryPositionAllowance.setUpdatedBy(appUser);
+            salaryPositionAllowance.setUpdatedBy(currentUser);
             salaryPositionAllowance.setUpdatedAt(LocalDateTime.now());
         }
 
@@ -202,37 +191,8 @@ public class PayrollService {
         hrPayrollRepository.delete(data);
     }
 
-    private BigDecimal calculatePPh21(BigDecimal monthlyTaxableIncome, BigDecimal annualTaxableIncome) {
-        List<HrTaxBracket> brackets = hrTaxBracketRepository.findAllByOrderByMinIncomeAsc();
-
-        BigDecimal annualTax = BigDecimal.ZERO;
-        BigDecimal remaining = annualTaxableIncome;
-
-        for (HrTaxBracket bracket : brackets) {
-            BigDecimal min = bracket.getMinIncome();
-            BigDecimal max = bracket.getMaxIncome() != null ? bracket.getMaxIncome() : new BigDecimal("999999999999");
-            BigDecimal rate = bracket.getTaxRate().divide(BigDecimal.valueOf(100));
-
-            if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
-
-            BigDecimal bracketRange = max.subtract(min);
-            BigDecimal taxableInBracket = remaining.compareTo(bracketRange) > 0 ? bracketRange : remaining;
-
-            BigDecimal taxInBracket = taxableInBracket.multiply(rate);
-            annualTax = annualTax.add(taxInBracket);
-            remaining = remaining.subtract(taxableInBracket);
-        }
-
-        return annualTax.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
-    }
-
-    // ==============================
-    // GRID DATA (pagination)
-    // ==============================
     public Page<HrPayroll> getPayrollPage(Pageable pageable, Integer year, LocalDate month, String searchTerm) {
-        if (appUser == null) {
-            throw new IllegalStateException("App user is not set. Please call setUser() before using this method.");
-        }
+        ensureUserSet();
         Specification<HrPayroll> spec = buildFilterSpec(year, month, searchTerm);
         return hrPayrollRepository.findAll(spec, pageable);
     }
@@ -275,239 +235,159 @@ public class PayrollService {
             return (root, query, cb) -> cb.conjunction();
         }
 
-        String lowerCaseSearchTerm = "%" + searchTerm.toLowerCase() + "%";
+        String lower = "%" + searchTerm.toLowerCase() + "%";
         return (root, query, cb) -> cb.or(
-                cb.like(cb.lower(root.get("firstName")), lowerCaseSearchTerm),
-                cb.like(cb.lower(root.get("lastName")), lowerCaseSearchTerm)
+                cb.like(cb.lower(root.get("firstName")), lower),
+                cb.like(cb.lower(root.get("lastName")), lower),
+                cb.like(cb.lower(root.get("employeeNumber")), lower)
         );
     }
 
     public List<HrPerson> getActiveEmployees() {
-        if (appUser == null) {
-            throw new IllegalStateException("App user not set");
-        }
+        ensureUserSet();
         return hrPersonRepository.findAll();
     }
 
     public HrPayrollCalculation getCalculationByPayrollId(Long payrollId) {
-        return hrPayrollCalculationRepository.findFirstByPayrollInputId(payrollId);
+        return hrPayrollCalculationRepository.findFirstByPayrollId(payrollId);
     }
 
-    // ==============================
-    // REQUEST MODEL
-    // ==============================
     @Getter
     @Setter
     public static class AddPayrollRequest {
         private Integer year;
         private Integer month;
-
         private Integer paramAttendanceDays;
         private Integer overtimeMinutes;
-
-        // "STATIC" / "PERCENTAGE"
-        private String overtimePaymentType;
-
+        private String overtimePaymentType; // masih dipakai untuk input proses
         private BigDecimal overtimeStaticNominal;
         private Integer overtimePercent;
-
-        // "NO ALLOWANCE" / "SELECT ALLOWANCE" / "BENEFITS PACKAGE"
-        private String allowanceMode;
-
+        private String allowanceMode; // NO ALLOWANCE / SELECT ALLOWANCE / BENEFITS PACKAGE
         private List<HrSalaryAllowance> selectedAllowances = new ArrayList<>();
     }
 
     public List<HrSalaryAllowance> getSelectableAllowancesForPayrollDate(LocalDate payrollDate) {
-        List<HrSalaryAllowance> all = this.getAllSalaryAllowances(true);
-
-        return all.stream()
+        return getAllSalaryAllowances(true).stream()
                 .filter(a -> {
                     if (a.getStartDate() != null && payrollDate.isBefore(a.getStartDate())) return false;
-                    if (a.getEndDate() == null) return true;
-                    return !payrollDate.isAfter(a.getEndDate());
+                    return a.getEndDate() == null || !payrollDate.isAfter(a.getEndDate());
                 })
                 .toList();
     }
 
-    // ==============================
-    // BULK CREATE (anti duplicate)
-    // ==============================
     @Transactional
     public void createPayrollBulk(AddPayrollRequest req, AppUserInfo userInfo) {
-        FwAppUser appUser = this.findAppUserByUserId(userInfo.getUserId().toString());
+        FwAppUser currentUser = findAppUserByUserId(userInfo.getUserId().toString());
 
         LocalDate payrollDate = LocalDate.of(req.getYear(), req.getMonth(), 1);
-        LocalDate startOfMonth = payrollDate;
-        LocalDate startOfNextMonth = payrollDate.plusMonths(1);
+        LocalDate monthStart = payrollDate.withDayOfMonth(1);
+        LocalDate monthEndExclusive = monthStart.plusMonths(1);
 
-        // NOTE: sesuai kondisi kamu sebelumnya, person yang ikut diproses adalah yang punya posisi aktif.
-        // Jika kamu ingin semua hr_person tanpa kecuali, ganti ke hrPersonRepository.findAll().
         List<HrPerson> employees = hrPersonRepository.findAll();
-        if (employees == null || employees.isEmpty()) return;
-
-        LocalDate yearStart = LocalDate.of(req.getYear(), 1, 1);
-        LocalDate yearEnd = yearStart.plusYears(1);
+        if (employees == null || employees.isEmpty()) {
+            return;
+        }
 
         for (HrPerson person : employees) {
-
-            // Anti duplicate per bulan
             if (hrPayrollRepository.existsByPersonIdAndPayrollDate(person.getId(), payrollDate)) {
-                continue; // skip kalau sudah ada payroll bulan tsb
+                continue;
             }
 
             HrPersonPosition personPosition = hrPersonPositionRepository.findFirstByPersonId(person.getId());
             if (personPosition == null) {
-                // ini menjelaskan kenapa jumlah payroll lebih sedikit daripada hr_person:
-                // person yang tidak punya posisi aktif / mapping position tidak dibuatkan payroll.
                 continue;
             }
 
-            HrPosition position = personPosition.getPosition();
-            HrOrgStructure department = position != null ? position.getOrgStructure() : null;
+            HrPayroll payroll = buildPayrollHeader(person, personPosition, payrollDate, req, currentUser, monthStart, monthEndExclusive);
+            HrPayroll savedPayroll = hrPayrollRepository.save(payroll);
 
-            // PTKP aktif → simpan BULANAN (dibagi 12)
-            HrPersonPtkp activePtkp = hrPersonPtkpRepository
-                    .findCurrentByPersonId(person.getId())
-                    .orElse(null);
-
-            String ptkpCode = activePtkp == null ? "NOT_SET" : activePtkp.getPtkpCode();
-
-            BigDecimal ptkpYear = activePtkp == null ? BigDecimal.ZERO : nvl(activePtkp.getPtkpAmount());
-            BigDecimal ptkpMonth = (activePtkp == null)
-                    ? BigDecimal.ZERO
-                    : ptkpYear.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
-
-            // Total cuti tahun berjalan (APPROVED)
-            BigDecimal totalLeaveYear = BigDecimal.valueOf(
-                    hrLeaveApplicationRepository.sumLeaveDaysByPersonAndPeriodAndStatuses(
-                            person.getId(),
-                            yearStart,
-                            yearEnd,
-                            List.of(LeaveStatusEnum.APPROVED)
-                    )
-            );
-
-            // Allowance value text (delimiter |)
-            String allowancesValueText = buildAllowanceValueTextForPerson(req, person, payrollDate, personPosition);
-
-
-            // Overtime value payment text: "pct | amount"
-            String overtimeValuePaymentText = buildOvertimeValuePaymentText(req, person);
-
-            HrPayroll payroll = HrPayroll.builder()
-                    .person(person)
-
-                    .firstName(person.getFirstName())
-                    .middleName(person.getMiddleName())
-                    .lastName(person.getLastName())
-                    .pob(person.getPob())
-                    .dob(person.getDob())
-                    .gender(person.getGender() == null ? null : person.getGender().name())
-                    .ktpNumber(person.getKtpNumber())
-
-                    .position(position != null ? position.getName() : "")
-                    .positionCode(position != null ? position.getCode() : "")
-
-                    .department(department != null ? department.getName() : "")
-                    .departmentCode(department != null ? department.getCode() : "")
-
-                    .payrollDate(payrollDate)
-                    .paramAttendanceDays(req.getParamAttendanceDays())
-
-                    .allowancesType(req.getAllowanceMode())
-                    .allowancesValue(allowancesValueText)
-
-                    // overtime_hours = menit 0..60
-                    .overtimeHours(BigDecimal.valueOf(req.getOvertimeMinutes() == null ? 0L : req.getOvertimeMinutes().longValue()))
-                    .overtimeType(req.getOvertimePaymentType())
-                    .overtimeValuePayment(overtimeValuePaymentText) // <-- butuh kolom text di DB
-
-                    // default 0, nanti via Recalculate/Add Component
-                    .annualBonus(BigDecimal.ZERO)
-                    .otherDeductions(BigDecimal.ZERO)
-
-                    .ptkpCode(ptkpCode)
-                    .ptkpAmount(ptkpMonth) // <-- BULANAN
-                    .totalLeaveYear(totalLeaveYear)
-                    .build();
-
-            payroll.setCreatedBy(appUser);
-            payroll.setUpdatedBy(appUser);
-
-            int sumAttendance = resolveSumAttendance(payroll.getPerson().getId(), startOfMonth, startOfNextMonth);
-            payroll.setSumAttendance(sumAttendance);
-
-            HrPayroll saved = hrPayrollRepository.save(payroll);
-
-            // Sekarang langsung create calculations agar grid muncul datanya
-            calculatePayrollForMonth(saved, startOfMonth, startOfNextMonth);
+            generatePayroll(savedPayroll, personPosition, req, monthStart, monthEndExclusive, BigDecimal.ZERO, nvl(savedPayroll.getOtherDeductions()));
         }
     }
 
-    // ==============================
-    // SINGLE RECALCULATE (update)
-    // ==============================
     @Transactional
     public void recalculateSinglePayroll(Long payrollId,
                                          AddPayrollRequest req,
                                          BigDecimal totalBonus,
                                          BigDecimal totalOtherDeductions,
-                                         BigDecimal totalTaxable,
+                                         BigDecimal ignoredTotalTaxable,
                                          AppUserInfo userInfo) {
 
-        FwAppUser appUser = this.findAppUserByUserId(userInfo.getUserId().toString());
+        FwAppUser currentUser = findAppUserByUserId(userInfo.getUserId().toString());
 
         HrPayroll payroll = hrPayrollRepository.findById(payrollId)
                 .orElseThrow(() -> new IllegalStateException("Payroll not found: " + payrollId));
 
-        LocalDate payrollDate = payroll.getPayrollDate();
-        LocalDate startOfMonth = payrollDate.withDayOfMonth(1);
-        LocalDate startOfNextMonth = startOfMonth.plusMonths(1);
+        HrPerson person = payroll.getPerson();
+        if (person == null) {
+            throw new IllegalStateException("Payroll person is null for payrollId=" + payrollId);
+        }
 
-        // Update request-driven fields
+        HrPersonPosition personPosition = hrPersonPositionRepository.findFirstByPersonId(person.getId());
+        if (personPosition == null) {
+            throw new IllegalStateException("No active position found for personId=" + person.getId());
+        }
+
+        LocalDate monthStart = payroll.getPayrollDate().withDayOfMonth(1);
+        LocalDate monthEndExclusive = monthStart.plusMonths(1);
+
         payroll.setParamAttendanceDays(req.getParamAttendanceDays());
+        payroll.setOvertimeHours(toMoney(req.getOvertimeMinutes()));
+        payroll.setBonusAmount(nvl(totalBonus));
+        payroll.setOtherDeductions(nvl(totalOtherDeductions));
+        payroll.setUpdatedBy(currentUser);
+        payroll.setUpdatedAt(LocalDateTime.now());
+        payroll.setSumAttendance(resolveSumAttendance(person.getId(), monthStart, monthEndExclusive));
 
-        int sumAttendance = resolveSumAttendance(payroll.getPerson().getId(), startOfMonth, startOfNextMonth);
-        payroll.setSumAttendance(sumAttendance);
+        HrPayroll savedPayroll = hrPayrollRepository.save(payroll);
 
-        payroll.setAllowancesType(req.getAllowanceMode());
+        HrPayrollCalculation currentCalc = hrPayrollCalculationRepository.findFirstByPayrollId(savedPayroll.getId());
+        if (currentCalc != null) {
+            hrPayrollComponentRepository.deleteByPayrollCalculationId(currentCalc.getId());
+            hrPayrollCalculationRepository.delete(currentCalc);
+        }
 
-        HrPersonPosition personPosition = hrPersonPositionRepository.findFirstByPersonId(payroll.getPerson().getId());
-        String allowancesValueText = buildAllowanceValueTextForPerson(req, payroll.getPerson(), payroll.getPayrollDate(), personPosition);
-
-        payroll.setAllowancesValue(allowancesValueText);
-
-        payroll.setOvertimeHours(BigDecimal.valueOf(req.getOvertimeMinutes() == null ? 0L : req.getOvertimeMinutes().longValue()));
-        payroll.setOvertimeType(req.getOvertimePaymentType());
-        payroll.setOvertimeValuePayment(buildOvertimeValuePaymentText(req, payroll.getPerson()));
-
-        payroll.setUpdatedBy(appUser);
-        hrPayrollRepository.save(payroll);
-
-        // Update calculation (bonus/deduct/taxable) then recompute net
-        calculatePayrollForMonth(payroll, startOfMonth, startOfNextMonth, totalBonus, totalOtherDeductions, totalTaxable);
+        generatePayroll(savedPayroll, personPosition, req, monthStart, monthEndExclusive, nvl(totalBonus), nvl(totalOtherDeductions));
     }
 
-    // ==============================
-    // BULK DELETE
-    // ==============================
     @Transactional
     public void deletePayrolls(List<Long> payrollIds) {
         if (payrollIds == null || payrollIds.isEmpty()) return;
 
-        hrPayrollCalculationRepository.deleteByPayrollIds(payrollIds);
+        hrPayrollCalculationRepository.deleteByPayrollIdIn(payrollIds);
         hrPayrollRepository.deleteByIds(payrollIds);
     }
 
-    // ==============================
-    // CORE CALCULATION (MONTH-SCOPED)
-    // ==============================
     @Transactional
     public HrPayrollCalculation calculatePayrollForMonth(HrPayroll payrollInput,
                                                          LocalDate startOfMonth,
                                                          LocalDate startOfNextMonth) {
-        return calculatePayrollForMonth(payrollInput, startOfMonth, startOfNextMonth,
-                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        HrPerson person = payrollInput.getPerson();
+        if (person == null) {
+            throw new IllegalArgumentException("Payroll person must not be null");
+        }
+
+        HrPersonPosition personPosition = hrPersonPositionRepository.findFirstByPersonId(person.getId());
+        if (personPosition == null) {
+            throw new IllegalStateException("No active position found for personId=" + person.getId());
+        }
+
+        AddPayrollRequest req = new AddPayrollRequest();
+        req.setYear(payrollInput.getPayrollDate().getYear());
+        req.setMonth(payrollInput.getPayrollDate().getMonthValue());
+        req.setParamAttendanceDays(payrollInput.getParamAttendanceDays());
+        req.setOvertimeMinutes(payrollInput.getOvertimeHours() == null ? 0 : payrollInput.getOvertimeHours().intValue());
+        req.setAllowanceMode("BENEFITS PACKAGE");
+
+        return generatePayroll(
+                payrollInput,
+                personPosition,
+                req,
+                startOfMonth,
+                startOfNextMonth,
+                nvl(payrollInput.getBonusAmount()),
+                nvl(payrollInput.getOtherDeductions())
+        );
     }
 
     @Transactional
@@ -516,687 +396,509 @@ public class PayrollService {
                                                          LocalDate startOfNextMonth,
                                                          BigDecimal totalBonus,
                                                          BigDecimal totalOtherDeductions,
-                                                         BigDecimal totalTaxable) {
+                                                         BigDecimal ignoredTotalTaxable) {
+        HrPerson person = payrollInput.getPerson();
+        if (person == null) {
+            throw new IllegalArgumentException("Payroll person must not be null");
+        }
+
+        HrPersonPosition personPosition = hrPersonPositionRepository.findFirstByPersonId(person.getId());
+        if (personPosition == null) {
+            throw new IllegalStateException("No active position found for personId=" + person.getId());
+        }
+
+        AddPayrollRequest req = new AddPayrollRequest();
+        req.setYear(payrollInput.getPayrollDate().getYear());
+        req.setMonth(payrollInput.getPayrollDate().getMonthValue());
+        req.setParamAttendanceDays(payrollInput.getParamAttendanceDays());
+        req.setOvertimeMinutes(payrollInput.getOvertimeHours() == null ? 0 : payrollInput.getOvertimeHours().intValue());
+        req.setAllowanceMode("BENEFITS PACKAGE");
+
+        return generatePayroll(
+                payrollInput,
+                personPosition,
+                req,
+                startOfMonth,
+                startOfNextMonth,
+                nvl(totalBonus),
+                nvl(totalOtherDeductions)
+        );
+    }
+
+    @Transactional
+    public HrPayrollCalculation generatePayroll(HrPayroll payrollInput,
+                                                HrPersonPosition personPosition,
+                                                AddPayrollRequest req,
+                                                LocalDate startOfMonth,
+                                                LocalDate endOfMonthExclusive,
+                                                BigDecimal bonusAmount,
+                                                BigDecimal otherDeductions) {
 
         if (payrollInput == null || payrollInput.getPerson() == null) {
             throw new IllegalArgumentException("Payroll input/person must not be null");
         }
 
-        BigDecimal baseSalary = resolveGrossSalary(payrollInput.getPerson().getId());
-        BigDecimal ptkpMonth   = nvl(payrollInput.getPtkpAmount());
+        HrPerson person = payrollInput.getPerson();
+        Long personId = person.getId();
 
-        Integer sumAttendance = payrollInput.getSumAttendance(); // sudah diisi saat create/recalc
-        Integer paramAttendanceDays = payrollInput.getParamAttendanceDays();
-
-        BigDecimal computedTaxable;
-        if (ptkpMonth.compareTo(BigDecimal.ZERO) <= 0) {
-            // PTKP expired / tidak ada → anggap tidak kena pajak
-            computedTaxable = BigDecimal.ZERO;
-        } else {
-            computedTaxable = baseSalary.subtract(ptkpMonth);
-            if (computedTaxable.compareTo(BigDecimal.ZERO) < 0) {
-                computedTaxable = BigDecimal.ZERO;
-            }
+        BigDecimal baseSalary = nvl(payrollInput.getBaseSalary());
+        if (baseSalary.compareTo(BigDecimal.ZERO) <= 0) {
+            baseSalary = resolveGrossSalary(personId);
+            payrollInput.setBaseSalary(baseSalary);
         }
 
-        BigDecimal totalAllowances = parseAllowanceTotal(payrollInput);                // poin 2A
-        BigDecimal totalOvertimes = calculateOvertimeTotal(payrollInput, startOfMonth, startOfNextMonth); // poin 2B
+        payrollInput.setBonusAmount(nvl(bonusAmount));
+        payrollInput.setOtherDeductions(nvl(otherDeductions));
 
-        BigDecimal attendanceAllowanceDeduction = computeAttendanceAllowanceDeduction(totalAllowances, sumAttendance, paramAttendanceDays);
+        int sumAttendance = resolveSumAttendance(personId, startOfMonth, endOfMonthExclusive);
+        payrollInput.setSumAttendance(sumAttendance);
 
-        BigDecimal bonus = nvl(totalBonus);
-        BigDecimal otherDed = nvl(totalOtherDeductions);
+        AllowanceResult allowanceResult = resolveAllowanceResult(req, personPosition, payrollInput.getPayrollDate());
+        BigDecimal fixedAllowanceTotal = allowanceResult.fixedTotal;
+        BigDecimal variableAllowanceTotal = allowanceResult.variableTotal;
 
-        BigDecimal computedGrossSalary = baseSalary
-                .add(totalAllowances)
-                .add(totalOvertimes)
-                .add(bonus);
-
-        // potongan jaminan kesehatan (rupiah)
-        BigDecimal healthDeduction = resolveBpjsDeduction(computedGrossSalary);
-
-        BigDecimal monthlyPph21 = calculateMonthlyPph21FromGross(
-                computedGrossSalary,
-                payrollInput.getPtkpAmount(),               // pastikan ini monthly PTKP (sesuai requirement dikali 12 di fungsi)
-                payrollInput.getPerson().getStatusEmployee()
+        AttendanceDeductionResult attendanceDeduction = resolveAttendanceDeduction(
+                variableAllowanceTotal,
+                payrollInput.getParamAttendanceDays(),
+                personId,
+                startOfMonth,
+                endOfMonthExclusive
         );
 
-        // THP final (sesuai struktur perhitungan kamu)
-        BigDecimal netTakeHomePay = baseSalary
-                .add(totalAllowances)
-                .add(totalOvertimes)
-                .add(bonus)
-                .subtract(otherDed)
-                .subtract(monthlyPph21)
-                .subtract(healthDeduction);
+        BigDecimal overtimeAmount = resolveOvertimeAmount(payrollInput, req, startOfMonth, endOfMonthExclusive);
+        payrollInput.setOvertimeAmount(overtimeAmount);
 
-        BigDecimal aad = attendanceAllowanceDeduction == null ? BigDecimal.ZERO : attendanceAllowanceDeduction;
-        BigDecimal enhancedNetTakeHomePay = netTakeHomePay.subtract(aad);
+        BpjsResult bpjs = resolveBpjsResult(baseSalary);
 
-        if (enhancedNetTakeHomePay.signum() < 0) {
-            enhancedNetTakeHomePay = BigDecimal.ZERO; // optional safety
+        BigDecimal grossSalary = baseSalary
+                .add(fixedAllowanceTotal)
+                .add(variableAllowanceTotal)
+                .add(overtimeAmount)
+                .add(nvl(bonusAmount))
+                .add(bpjs.companyTkTotal)
+                .add(bpjs.companyJkn);
+
+        BigDecimal pph21Deduction = calculateMonthlyPph21FromGross(
+                grossSalary,
+                nvl(payrollInput.getPtkpAmount()),
+                payrollInput.getStatusEmployee()
+        );
+
+        BigDecimal totalDeduction = attendanceDeduction.absenceDeduction
+                .add(attendanceDeduction.lateDeduction)
+                .add(bpjs.employeeJht)
+                .add(bpjs.employeeJp)
+                .add(bpjs.employeeJkn)
+                .add(pph21Deduction)
+                .add(nvl(otherDeductions));
+
+        BigDecimal netTakeHomePay = grossSalary.subtract(totalDeduction);
+        if (netTakeHomePay.signum() < 0) {
+            netTakeHomePay = ZERO;
         }
 
-        HrPayrollCalculation current = hrPayrollCalculationRepository.findFirstByPayrollInputId(payrollInput.getId());
+        HrPayrollCalculation current = hrPayrollCalculationRepository.findFirstByPayrollId(payrollInput.getId());
 
-        HrPayrollCalculation calculation = HrPayrollCalculation.builder()
+        HrPayrollCalculation calc = HrPayrollCalculation.builder()
                 .id(current == null ? null : current.getId())
-                .payrollInput(payrollInput)
-
-                // NEW: pindahkan nilai lama gross ke base_salary
-                .baseSalary(baseSalary)
-
-                // NEW: gross_salary = base + allowances + overtime + bonus
-                .grossSalary(computedGrossSalary)
-
-                .totalAllowances(totalAllowances)
-                .totalOvertimes(totalOvertimes)
-                .totalBonus(bonus)
-
-                .totalOtherDeductions(otherDed)
-
-                // simpan hasil gross-ptkp ke DB
-                .totalTaxable(monthlyPph21)
-
-                // simpan health deduction ke DB
-                .healthDeduction(healthDeduction)
-
-                .attendanceAllowanceDeduction(aad) // <-- NEW
-                .netTakeHomePay(enhancedNetTakeHomePay) // <-- NEW
-
+                .payroll(payrollInput)
+                .baseSalary(scale(baseSalary))
+                .fixedAllowanceTotal(scale(fixedAllowanceTotal))
+                .variableAllowanceTotal(scale(variableAllowanceTotal))
+                .overtimeAmount(scale(overtimeAmount))
+                .bonusAmount(scale(nvl(bonusAmount)))
+                .grossSalary(scale(grossSalary))
+                .absenceDeduction(scale(attendanceDeduction.absenceDeduction))
+                .lateDeduction(scale(attendanceDeduction.lateDeduction))
+                .bpjsJhtDeduction(scale(bpjs.employeeJht))
+                .bpjsJpDeduction(scale(bpjs.employeeJp))
+                .bpjsJknDeduction(scale(bpjs.employeeJkn))
+                .bpjsJhtCompany(scale(bpjs.companyJht))
+                .bpjsJpCompany(scale(bpjs.companyJp))
+                .bpjsJknCompany(scale(bpjs.companyJkn))
+                .pph21Deduction(scale(pph21Deduction))
+                .totalDeduction(scale(totalDeduction))
+                .netTakeHomePay(scale(netTakeHomePay))
                 .calculatedAt(LocalDateTime.now())
                 .notes("Calculated")
                 .build();
 
-        return hrPayrollCalculationRepository.save(calculation);
+        HrPayrollCalculation savedCalc = hrPayrollCalculationRepository.save(calc);
+
+        hrPayrollComponentRepository.deleteByPayrollCalculationId(savedCalc.getId());
+        hrPayrollComponentRepository.saveAll(buildPayrollComponents(savedCalc, allowanceResult, attendanceDeduction, bpjs, overtimeAmount, nvl(bonusAmount), pph21Deduction));
+
+        hrPayrollRepository.save(payrollInput);
+
+        return savedCalc;
     }
 
-    // ==============================
-    // HELPERS
-    // ==============================
-    private BigDecimal resolveGrossSalary(Long personId) {
-        // join mapping: fw_appuser.person_id -> hr_salary_employee_level.id_fwuser -> hr_salary_base_level.base_salary
-        try {
-            FwAppUser fw = appUserRepository.findByPersonId(personId).orElse(null);
-            if (fw == null) return BigDecimal.ZERO;
-
-            HrSalaryEmployeeLevel sel = hrSalaryEmployeeLevelRepository.findByAppUserId(fw.getId()).orElse(null);
-            if (sel == null || sel.getBaseLevel() == null) return BigDecimal.ZERO;
-
-            return nvl(sel.getBaseLevel().getBaseSalary());
-        } catch (Exception ex) {
-            log.warn("Resolve gross salary failed for personId {}: {}", personId, ex.getMessage());
-            return BigDecimal.ZERO;
-        }
-    }
-
-    private String buildAllowanceValueText(AddPayrollRequest req) {
-        if (req == null || req.getAllowanceMode() == null) return "0";
-
-        if ("NO ALLOWANCE".equals(req.getAllowanceMode())) {
-            return "0";
-        }
-
-        if ("SELECT ALLOWANCE".equals(req.getAllowanceMode())) {
-            if (req.getSelectedAllowances() == null || req.getSelectedAllowances().isEmpty()) return "0";
-
-            // format: "NAME:AMOUNT|NAME:AMOUNT|..."
-            StringBuilder sb = new StringBuilder();
-            for (HrSalaryAllowance a : req.getSelectedAllowances()) {
-                if (a == null) continue;
-                String nm = a.getName() == null ? "" : a.getName();
-                BigDecimal amt = a.getAmount() == null ? BigDecimal.ZERO : a.getAmount();
-                if (!sb.isEmpty()) sb.append("|");
-                sb.append(nm).append(":").append(amt.toPlainString());
-            }
-            return sb.isEmpty() ? "0" : sb.toString();
-        }
-
-        if ("BENEFITS PACKAGE".equals(req.getAllowanceMode())) {
-            // untuk bulk: belum ada person context di req,
-            // jadi allowanceValueText untuk package akan diset saat per-person, bukan dari req langsung.
-            // Di createPayrollBulk kita sudah set allowancesValue via buildAllowanceValueText(req),
-            // namun untuk package yang benar perlu per person.
-            // Karena itu: kita override di createPayrollBulk jika mode BENEFITS PACKAGE.
-            return "0";
-        }
-
-        return "0";
-    }
-
-    private BigDecimal parseAllowanceTotal(HrPayroll payroll) {
-        if (payroll == null) return BigDecimal.ZERO;
-
-        String mode = payroll.getAllowancesType();
-        String raw = payroll.getAllowancesValue();
-
-        if (mode == null || "NO ALLOWANCE".equalsIgnoreCase(mode)) return BigDecimal.ZERO;
-        return sumAllowanceValueText(raw);
-    }
-
-    private String buildOvertimeValuePaymentText(AddPayrollRequest req, HrPerson person) {
-        // format:
-        // STATIC: "0 | nominal"
-        // PERCENTAGE: "pct | pctAmount" (pctAmount = pct% * grossSalary)
-        if (req == null) return "0 | 0";
-
-        String type = req.getOvertimePaymentType() == null ? "STATIC" : req.getOvertimePaymentType();
-
-        if ("PERCENTAGE".equalsIgnoreCase(type)) {
-            int pct = req.getOvertimePercent() == null ? 0 : req.getOvertimePercent();
-            BigDecimal gross = person == null ? BigDecimal.ZERO : resolveGrossSalary(person.getId());
-            BigDecimal pctAmount = gross.multiply(BigDecimal.valueOf(pct))
-                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-
-            return pct + " | " + pctAmount.toPlainString();
-        }
-
-        BigDecimal nominal = req.getOvertimeStaticNominal() == null ? BigDecimal.ZERO : req.getOvertimeStaticNominal();
-        return "0 | " + nominal.toPlainString();
-    }
-
-    private BigDecimal calculateOvertimeTotal(HrPayroll payroll,
-                                              LocalDate startOfMonth,
-                                              LocalDate startOfNextMonth) {
-        // 1) Ambil attendance OVERTIME hanya bulan itu (poin 2)
-        // 2) hitung total overtime minutes = sum(max(0, checkOut - scheduleCheckOut))
-        // 3) overtime_hours payroll = parameter kelipatan menit (0..60)
-        //    factor = totalMinutes / overtime_hours (dibulatkan ke bawah agar bulat)
-        // 4) overtime_value_payment (text "pct | amount") ambil amount nya saja lalu * factor
-
-        if (payroll == null || payroll.getPerson() == null) return BigDecimal.ZERO;
-
-        Long personId = payroll.getPerson().getId();
-        List<HrAttendance> overtimeAtt = hrAttendanceRepository.findOvertimeByPersonAndPeriod(
-                personId, startOfMonth, startOfNextMonth
-        );
-
-        if (overtimeAtt == null || overtimeAtt.isEmpty()) return BigDecimal.ZERO;
-
-        long totalMinutes = 0L;
-        for (HrAttendance a : overtimeAtt) {
-            if (a.getCheckOut() == null) continue;
-            if (a.getWorkSchedule() == null) continue;
-            if (a.getWorkSchedule().getCheckOut() == null) continue;
-
-            LocalTime scheduleOut = a.getWorkSchedule().getCheckOut();
-            LocalDate attDate = a.getAttendanceDate();
-            if (attDate == null) continue;
-
-            LocalDateTime scheduleOutDt = LocalDateTime.of(attDate, scheduleOut);
-            LocalDateTime checkOutDt = a.getCheckOut();
-
-            if (checkOutDt.isAfter(scheduleOutDt)) {
-                totalMinutes += Duration.between(scheduleOutDt, checkOutDt).toMinutes();
-            }
-        }
-
-        if (totalMinutes <= 0) return BigDecimal.ZERO;
-
-        BigDecimal paramMinutes = payroll.getOvertimeHours() == null ? BigDecimal.ZERO : payroll.getOvertimeHours();
-        if (paramMinutes.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
-
-        // faktor harus bulat, tidak boleh koma
-        BigDecimal factorBd = BigDecimal.valueOf(totalMinutes)
-                .divide(paramMinutes, 0, RoundingMode.DOWN);
-
-        if (factorBd.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
-
-        BigDecimal overtimeUnitAmount = parseOvertimeAmountOnly(payroll.getOvertimeValuePayment());
-        return overtimeUnitAmount.multiply(factorBd);
-    }
-
-    private BigDecimal parseOvertimeAmountOnly(String overtimeValuePaymentText) {
-        // input: "10 | 1000000" -> return 1000000
-        if (overtimeValuePaymentText == null) return BigDecimal.ZERO;
-        String raw = overtimeValuePaymentText.trim();
-        if (raw.isEmpty()) return BigDecimal.ZERO;
-
-        String[] parts = raw.split("\\|");
-        if (parts.length < 2) {
-            return parseBigDecimalSafe(raw);
-        }
-        return parseBigDecimalSafe(parts[1].trim());
-    }
-
-    private BigDecimal parseBigDecimalSafe(String raw) {
-        if (raw == null) return BigDecimal.ZERO;
-        String s = raw.trim();
-        if (s.isEmpty()) return BigDecimal.ZERO;
-        try {
-            s = s.replace(",", "");
-            return new BigDecimal(s);
-        } catch (Exception ex) {
-            return BigDecimal.ZERO;
-        }
-    }
-
-    private BigDecimal nvl(BigDecimal v) {
-        return v == null ? BigDecimal.ZERO : v;
-    }
-
-    private static class AllowancePack {
-        private final String allowanceValueText;
-        private final BigDecimal allowanceTotal;
-
-        private AllowancePack(String allowanceValueText, BigDecimal allowanceTotal) {
-            this.allowanceValueText = allowanceValueText;
-            this.allowanceTotal = allowanceTotal;
-        }
-    }
-
-    private AllowancePack buildAllowanceValue(HrPerson person, LocalDate payrollDate, HrPersonPosition personPosition, AddPayrollRequest req) {
-
-        String mode = nvlString(req.getAllowanceMode()).trim();
-
-        // NO ALLOWANCE
-        if ("NO ALLOWANCE".equalsIgnoreCase(mode) || mode.isBlank()) {
-            return new AllowancePack("0", BigDecimal.ZERO);
-        }
-
-        // SELECT ALLOWANCE
-        if ("SELECT ALLOWANCE".equalsIgnoreCase(mode)) {
-            if (req.getSelectedAllowances() == null || req.getSelectedAllowances().isEmpty()) {
-                return new AllowancePack("0", BigDecimal.ZERO);
-            }
-
-            StringBuilder sb = new StringBuilder();
-            BigDecimal total = BigDecimal.ZERO;
-
-            for (HrSalaryAllowance a : req.getSelectedAllowances()) {
-                if (a == null) continue;
-
-                String name = a.getName() == null ? "" : a.getName().trim();
-                BigDecimal amount = a.getAmount() == null ? BigDecimal.ZERO : a.getAmount();
-
-                if (!name.isBlank()) {
-                    if (!sb.isEmpty()) sb.append("|");
-                    sb.append(name).append(":").append(amount.toPlainString());
-                }
-
-                total = total.add(amount);
-            }
-
-            if (sb.isEmpty()) {
-                return new AllowancePack("0", BigDecimal.ZERO);
-            }
-
-            return new AllowancePack(sb.toString(), total);
-        }
-
-        // BENEFITS PACKAGE
-        if ("BENEFITS PACKAGE".equalsIgnoreCase(mode)) {
-            List<HrSalaryPositionAllowance> packages = hrSalaryPositionAllowanceRepository
-                    .findByPositionAndCompanyOrderByUpdatedAtAsc(personPosition.getPosition(), personPosition.getCompany());
-
-            BigDecimal total = BigDecimal.ZERO;
-            StringBuilder sb = new StringBuilder();
-
-            for (HrSalaryPositionAllowance p : packages) {
-                if (p == null) continue;
-
-                // filter active by start/end date
-                if (p.getStartDate() != null && payrollDate.isBefore(p.getStartDate())) continue;
-                if (p.getEndDate() != null && payrollDate.isAfter(p.getEndDate())) continue;
-
-                HrSalaryAllowance a = p.getAllowance();
-                if (a == null) continue;
-
-                String name = a.getName() == null ? "" : a.getName().trim();
-                BigDecimal amount = a.getAmount() == null ? BigDecimal.ZERO : a.getAmount();
-
-                if (!name.isBlank()) {
-                    if (!sb.isEmpty()) sb.append("|");
-                    sb.append(name).append(":").append(amount.toPlainString());
-                }
-
-                total = total.add(amount);
-            }
-
-            if (sb.isEmpty()) {
-                return new AllowancePack("0", BigDecimal.ZERO);
-            }
-
-            return new AllowancePack(sb.toString(), total);
-        }
-
-        // fallback
-        return new AllowancePack("0", BigDecimal.ZERO);
-    }
-
-    private HrPayrollCalculation buildCalculation(HrPayroll payroll, BigDecimal totalAllowances, LocalDate monthStart, LocalDate monthEnd) {
-
-        // ===============================
-        // 1) Gross salary dari mapping salary level
-        // ===============================
-        BigDecimal grossSalary = resolveGrossSalary(payroll.getPerson());
-
-        // ===============================
-        // 2) Total overtimes dari attendance + schedule
-        // ===============================
-        BigDecimal totalOvertimes = resolveTotalOvertimesFromAttendance(payroll, monthStart, monthEnd);
-
-        // ===============================
-        // 3) Bonus & deductions (awal 0, nanti via Add Komponen)
-        // ===============================
-        BigDecimal totalBonus = payroll.getAnnualBonus() == null ? BigDecimal.ZERO : payroll.getAnnualBonus();
-        BigDecimal totalOtherDeductions = payroll.getOtherDeductions() == null ? BigDecimal.ZERO : payroll.getOtherDeductions();
-
-        // ===============================
-        // 4) total_taxable (sementara 0 dulu sesuai kebutuhan saat ini)
-        // kalau Anda mau, nanti kita sambungkan ke bracket + PTKP
-        // ===============================
-        BigDecimal totalTaxable = BigDecimal.ZERO;
-
-        // ===============================
-        // 5) Net THP sesuai formula Anda
-        // net = gross + allowance + overtime + bonus - other_deduct - total_taxable
-        // ===============================
-        BigDecimal netTakeHomePay = grossSalary
-                .add(nvl(totalAllowances))
-                .add(nvl(totalOvertimes))
-                .add(nvl(totalBonus))
-                .subtract(nvl(totalOtherDeductions))
-                .subtract(nvl(totalTaxable));
-
-        return HrPayrollCalculation.builder()
-                .payrollInput(payroll)
-                .grossSalary(grossSalary)
-                .totalAllowances(nvl(totalAllowances))
-                .totalOvertimes(nvl(totalOvertimes))
-                .totalBonus(nvl(totalBonus))
-                .totalOtherDeductions(nvl(totalOtherDeductions))
-                .totalTaxable(nvl(totalTaxable))
-                .netTakeHomePay(netTakeHomePay)
-                .calculatedAt(LocalDateTime.now())
-                .notes("Calculated on bulk payroll creation")
+    private HrPayroll buildPayrollHeader(HrPerson person,
+                                         HrPersonPosition personPosition,
+                                         LocalDate payrollDate,
+                                         AddPayrollRequest req,
+                                         FwAppUser currentUser,
+                                         LocalDate startOfMonth,
+                                         LocalDate endOfMonthExclusive) {
+
+        HrPosition position = personPosition.getPosition();
+        HrOrgStructure department = position != null ? position.getOrgStructure() : null;
+
+        HrPersonPtkp activePtkp = hrPersonPtkpRepository
+                .findActiveByPersonId(person.getId(), payrollDate)
+                .orElse(null);
+
+        String ptkpCode = activePtkp == null ? "NOT_SET" : activePtkp.getPtkpCode();
+        BigDecimal ptkpYear = activePtkp == null ? ZERO : nvl(activePtkp.getPtkpAmount());
+        BigDecimal ptkpMonth = activePtkp == null ? ZERO : ptkpYear.divide(BD_12, 2, RoundingMode.HALF_UP);
+
+        BigDecimal baseSalary = resolveGrossSalary(person.getId());
+
+        HrPayroll payroll = HrPayroll.builder()
+                .person(person)
+                .employeeNumber(resolveEmployeeNumber(person))
+                .firstName(person.getFirstName())
+                .middleName(person.getMiddleName())
+                .lastName(person.getLastName())
+                .position(position != null ? nvlString(position.getName()) : "")
+                .positionCode(position != null ? nvlString(position.getCode()) : "")
+                .department(department != null ? nvlString(department.getName()) : "")
+                .departmentCode(department != null ? nvlString(department.getCode()) : "")
+                .pob(person.getPob())
+                .dob(person.getDob())
+                .gender(person.getGender() == null ? null : person.getGender().name())
+                .ktpNumber(person.getKtpNumber())
+                .statusEmployee(resolveStatusEmployee(person))
+                .joinDate(resolveJoinDate(person, personPosition))
+                .payrollDate(payrollDate)
+                .paramAttendanceDays(req.getParamAttendanceDays() == null ? 0 : req.getParamAttendanceDays())
+                .baseSalary(scale(baseSalary))
+                .overtimeHours(toMoney(req.getOvertimeMinutes()))
+                .overtimeAmount(ZERO)
+                .bonusAmount(ZERO)
+                .otherDeductions(ZERO)
+                .ptkpCode(ptkpCode)
+                .ptkpAmount(scale(ptkpMonth))
+                .sumAttendance(resolveSumAttendance(person.getId(), startOfMonth, endOfMonthExclusive))
                 .build();
+
+        payroll.setCreatedBy(currentUser);
+        payroll.setUpdatedBy(currentUser);
+        payroll.setCreatedAt(LocalDateTime.now());
+        payroll.setUpdatedAt(LocalDateTime.now());
+
+        return payroll;
     }
 
-    private BigDecimal resolveGrossSalary(HrPerson person) {
-        if (person == null || person.getId() == null) return BigDecimal.ZERO;
+    private AllowanceResult resolveAllowanceResult(AddPayrollRequest req,
+                                                   HrPersonPosition personPosition,
+                                                   LocalDate payrollDate) {
 
-        try {
-            FwAppUser personUser = appUserRepository.findByPersonId(person.getId()).orElse(null);
-            if (personUser == null) return BigDecimal.ZERO;
+        List<HrSalaryAllowance> selected = new ArrayList<>();
 
-            HrSalaryEmployeeLevel level = hrSalaryEmployeeLevelRepository.findByAppUserId(personUser.getId()).orElse(null);
-            if (level == null || level.getBaseLevel() == null || level.getBaseLevel().getBaseSalary() == null) {
-                return BigDecimal.ZERO;
+        String mode = req == null ? "" : nvlString(req.getAllowanceMode()).trim();
+
+        if ("SELECT ALLOWANCE".equalsIgnoreCase(mode)) {
+            if (req.getSelectedAllowances() != null) {
+                selected.addAll(req.getSelectedAllowances().stream().filter(Objects::nonNull).toList());
             }
+        } else if ("BENEFITS PACKAGE".equalsIgnoreCase(mode)) {
+            if (personPosition != null && personPosition.getPosition() != null) {
+                List<HrSalaryPositionAllowance> packages = hrSalaryPositionAllowanceRepository
+                        .findByPositionAndCompanyOrderByUpdatedAtAsc(personPosition.getPosition(), personPosition.getCompany());
 
-            return level.getBaseLevel().getBaseSalary();
-        } catch (Exception ex) {
-            log.warn("resolveGrossSalary failed for personId {}: {}", person.getId(), ex.getMessage());
-            return BigDecimal.ZERO;
+                for (HrSalaryPositionAllowance p : packages) {
+                    if (p == null || p.getAllowance() == null) continue;
+                    if (p.getStartDate() != null && payrollDate.isBefore(p.getStartDate())) continue;
+                    if (p.getEndDate() != null && payrollDate.isAfter(p.getEndDate())) continue;
+                    selected.add(p.getAllowance());
+                }
+            }
         }
+
+        BigDecimal fixed = ZERO;
+        BigDecimal variable = ZERO;
+        List<HrSalaryAllowance> fixedItems = new ArrayList<>();
+        List<HrSalaryAllowance> variableItems = new ArrayList<>();
+
+        for (HrSalaryAllowance a : selected) {
+            BigDecimal amount = scale(nvl(a.getAmount()));
+            String type = nvlString(a.getAllowanceType());
+
+            if ("FIXED".equalsIgnoreCase(type)) {
+                fixed = fixed.add(amount);
+                fixedItems.add(a);
+            } else {
+                variable = variable.add(amount);
+                variableItems.add(a);
+            }
+        }
+
+        return new AllowanceResult(scale(fixed), scale(variable), fixedItems, variableItems);
     }
 
-    private BigDecimal resolveTotalOvertimesFromAttendance(HrPayroll payroll, LocalDate monthStart, LocalDate monthEnd) {
+    private AttendanceDeductionResult resolveAttendanceDeduction(BigDecimal variableAllowanceTotal,
+                                                                 Integer paramAttendanceDays,
+                                                                 Long personId,
+                                                                 LocalDate startOfMonth,
+                                                                 LocalDate endOfMonthExclusive) {
 
-        if (payroll == null || payroll.getPerson() == null || payroll.getPerson().getId() == null) {
-            return BigDecimal.ZERO;
+        BigDecimal variable = nvl(variableAllowanceTotal);
+        if (variable.compareTo(BigDecimal.ZERO) <= 0) {
+            return new AttendanceDeductionResult(ZERO, ZERO, 0, 0);
         }
 
-        // parameter overtime_hours dari form (menit 0..60)
-        BigDecimal paramMinutes = payroll.getOvertimeHours() == null ? BigDecimal.ZERO : payroll.getOvertimeHours();
-        if (paramMinutes.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO;
+        int paramDays = paramAttendanceDays == null ? 0 : paramAttendanceDays;
+        if (paramDays <= 0) {
+            return new AttendanceDeductionResult(ZERO, ZERO, 0, 0);
         }
 
-        List<HrAttendance> overtimeAttendances = hrAttendanceRepository.findOvertimeAttendances(
-                payroll.getPerson().getId(),
-                monthStart,
-                monthEnd,
-                "OVERTIME"
+        int alphaCount = resolveCountByStatuses(personId, startOfMonth, endOfMonthExclusive, List.of("ALPHA"));
+        int lateCount = resolveCountByStatuses(personId, startOfMonth, endOfMonthExclusive, List.of("TERLAMBAT", "TERLAMBAT_DI_LUAR_LOKASI"));
+
+        BigDecimal perDay = variable.divide(BigDecimal.valueOf(paramDays), 6, RoundingMode.HALF_UP);
+        BigDecimal absenceDeduction = perDay.multiply(BigDecimal.valueOf(alphaCount));
+
+        BigDecimal lateFactor = BigDecimal.valueOf(0.25); // 1 terlambat = 0.25 hari
+        BigDecimal lateEquivalentDay = BigDecimal.valueOf(lateCount).multiply(lateFactor);
+        BigDecimal lateDeduction = perDay.multiply(lateEquivalentDay);
+
+        BigDecimal totalAttendanceDeduction = absenceDeduction.add(lateDeduction);
+        if (totalAttendanceDeduction.compareTo(variable) > 0) {
+            BigDecimal ratio = variable.divide(totalAttendanceDeduction, 6, RoundingMode.HALF_UP);
+            absenceDeduction = absenceDeduction.multiply(ratio);
+            lateDeduction = lateDeduction.multiply(ratio);
+        }
+
+        return new AttendanceDeductionResult(scale(absenceDeduction), scale(lateDeduction), alphaCount, lateCount);
+    }
+
+    private BigDecimal resolveOvertimeAmount(HrPayroll payrollInput,
+                                             AddPayrollRequest req,
+                                             LocalDate startOfMonth,
+                                             LocalDate endOfMonthExclusive) {
+
+        if (payrollInput == null || payrollInput.getPerson() == null) return ZERO;
+
+        Integer overtimeMinutesParam = req == null ? null : req.getOvertimeMinutes();
+        if (overtimeMinutesParam == null || overtimeMinutesParam <= 0) {
+            return ZERO;
+        }
+
+        List<HrAttendance> overtimeAttendances = hrAttendanceRepository.findOvertimeByPersonAndPeriod(
+                payrollInput.getPerson().getId(),
+                startOfMonth,
+                endOfMonthExclusive
         );
 
         if (overtimeAttendances == null || overtimeAttendances.isEmpty()) {
-            return BigDecimal.ZERO;
+            return ZERO;
         }
 
-        long totalOvertimeMinutes = 0;
-
+        long totalMinutes = 0L;
         for (HrAttendance a : overtimeAttendances) {
             if (a.getCheckOut() == null) continue;
-            if (a.getWorkSchedule() == null || a.getWorkSchedule().getCheckOut() == null) continue;
+            if (a.getWorkSchedule() == null) continue;
+            if (a.getWorkSchedule().getCheckOut() == null) continue;
+            if (a.getAttendanceDate() == null) continue;
 
-            // scheduled checkout time
-            LocalDate d = a.getAttendanceDate();
-            if (d == null) continue;
+            LocalTime scheduleOut = a.getWorkSchedule().getCheckOut();
+            LocalDateTime scheduledOut = LocalDateTime.of(a.getAttendanceDate(), scheduleOut);
 
-            LocalDateTime scheduledOut = LocalDateTime.of(d, a.getWorkSchedule().getCheckOut());
-            LocalDateTime actualOut = a.getCheckOut();
-
-            if (actualOut.isAfter(scheduledOut)) {
-                long diff = java.time.Duration.between(scheduledOut, actualOut).toMinutes();
-                if (diff > 0) totalOvertimeMinutes += diff;
+            if (a.getCheckOut().isAfter(scheduledOut)) {
+                totalMinutes += Duration.between(scheduledOut, a.getCheckOut()).toMinutes();
             }
         }
 
-        if (totalOvertimeMinutes <= 0) {
-            return BigDecimal.ZERO;
+        if (totalMinutes <= 0) return ZERO;
+
+        BigDecimal multiplier = BigDecimal.valueOf(totalMinutes)
+                .divide(BigDecimal.valueOf(overtimeMinutesParam), 0, RoundingMode.DOWN);
+
+        if (multiplier.compareTo(BigDecimal.ZERO) <= 0) return ZERO;
+
+        BigDecimal unitAmount;
+        String paymentType = req.getOvertimePaymentType() == null ? "STATIC" : req.getOvertimePaymentType();
+
+        if ("PERCENTAGE".equalsIgnoreCase(paymentType)) {
+            int pct = req.getOvertimePercent() == null ? 0 : req.getOvertimePercent();
+            unitAmount = payrollInput.getBaseSalary()
+                    .multiply(BigDecimal.valueOf(pct))
+                    .divide(BD_100, 2, RoundingMode.HALF_UP);
+        } else {
+            unitAmount = nvl(req.getOvertimeStaticNominal());
         }
 
-        // multiplier = floor(totalMinutes / paramMinutes) -> integer only
-        BigDecimal minutesBD = BigDecimal.valueOf(totalOvertimeMinutes);
-        BigDecimal multiplierBD = minutesBD.divide(paramMinutes, 0, RoundingMode.DOWN); // no decimals
-
-        if (multiplierBD.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO;
-        }
-
-        BigDecimal basePayment = parseOvertimeMoney(payroll.getOvertimeValuePayment());
-
-        return basePayment.multiply(multiplierBD);
+        return scale(unitAmount.multiply(multiplier));
     }
 
-    private BigDecimal parseOvertimeMoney(String overtimeValuePayment) {
-        if (overtimeValuePayment == null) return BigDecimal.ZERO;
+    private BpjsResult resolveBpjsResult(BigDecimal baseForBpjs) {
+        BigDecimal gross = nvl(baseForBpjs);
+        if (gross.signum() <= 0) {
+            return BpjsResult.zero();
+        }
 
-        String raw = overtimeValuePayment.trim();
-        if (raw.isEmpty()) return BigDecimal.ZERO;
+        Map<Integer, FwSystem> cfg = fwSystemRepository.findBySortOrderIn(Set.of(100, 101, 102, 103, 109, 110, 113, 114))
+                .stream()
+                .collect(Collectors.toMap(FwSystem::getSortOrder, x -> x, (a, b) -> a));
 
-        // format: "NilaiPersen | NilaiUang"
-        // contoh: "10 | 1000000" atau "0 | 100000"
+        BigDecimal companyJhtRate = getDecimalVal(cfg.get(100));
+        BigDecimal employeeJhtRate = getDecimalVal(cfg.get(101));
+        BigDecimal companyJpRate = getDecimalVal(cfg.get(102));
+        BigDecimal employeeJpRate = getDecimalVal(cfg.get(103));
+        BigDecimal companyJknRate = getDecimalVal(cfg.get(109));
+        BigDecimal employeeJknRate = getDecimalVal(cfg.get(110));
+
+        BigDecimal capJkn = parseDecimal(cfg.get(113) == null ? null : cfg.get(113).getStringVal());
+        BigDecimal capJp = parseDecimal(cfg.get(114) == null ? null : cfg.get(114).getStringVal());
+
+        BigDecimal baseJht = gross;
+        BigDecimal baseJp = (capJp == null || capJp.signum() <= 0) ? gross : gross.min(capJp);
+        BigDecimal baseJkn = (capJkn == null || capJkn.signum() <= 0) ? gross : gross.min(capJkn);
+
+        BigDecimal employeeJht = percentOf(baseJht, employeeJhtRate);
+        BigDecimal employeeJp = percentOf(baseJp, employeeJpRate);
+        BigDecimal employeeJkn = percentOf(baseJkn, employeeJknRate);
+
+        BigDecimal companyJht = percentOf(baseJht, companyJhtRate);
+        BigDecimal companyJp = percentOf(baseJp, companyJpRate);
+        BigDecimal companyJkn = percentOf(baseJkn, companyJknRate);
+
+        return new BpjsResult(
+                scale(employeeJht),
+                scale(employeeJp),
+                scale(employeeJkn),
+                scale(companyJht),
+                scale(companyJp),
+                scale(companyJkn)
+        );
+    }
+
+    private List<HrPayrollComponent> buildPayrollComponents(HrPayrollCalculation calc,
+                                                            AllowanceResult allowanceResult,
+                                                            AttendanceDeductionResult attendanceDeduction,
+                                                            BpjsResult bpjs,
+                                                            BigDecimal overtimeAmount,
+                                                            BigDecimal bonusAmount,
+                                                            BigDecimal pph21Deduction) {
+
+        List<HrPayrollComponent> components = new ArrayList<>();
+
+        int sort = 1;
+
+        components.add(component(calc, "EARNING", "BASE", "GAPOK", "Gaji Pokok", calc.getBaseSalary(), sort++));
+
+        for (HrSalaryAllowance a : allowanceResult.fixedItems) {
+            components.add(component(
+                    calc,
+                    "EARNING",
+                    "FIXED_ALLOWANCE",
+                    safeCode(a.getName()),
+                    a.getName(),
+                    scale(nvl(a.getAmount())),
+                    sort++
+            ));
+        }
+
+        for (HrSalaryAllowance a : allowanceResult.variableItems) {
+            components.add(component(
+                    calc,
+                    "EARNING",
+                    "VARIABLE_ALLOWANCE",
+                    safeCode(a.getName()),
+                    a.getName(),
+                    scale(nvl(a.getAmount())),
+                    sort++
+            ));
+        }
+
+        if (nvl(overtimeAmount).compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "EARNING", "OVERTIME", "OVERTIME", "Lembur", scale(overtimeAmount), sort++));
+        }
+
+        if (nvl(bonusAmount).compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "EARNING", "BONUS", "BONUS", "Bonus", scale(bonusAmount), sort++));
+        }
+
+        if (calc.getBpjsJhtCompany().compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "EARNING", "BPJS_COMPANY", "BPJS_JHT_COMPANY", "BPJS TK JHT (Perusahaan)", calc.getBpjsJhtCompany(), sort++));
+        }
+
+        if (calc.getBpjsJpCompany().compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "EARNING", "BPJS_COMPANY", "BPJS_JP_COMPANY", "BPJS TK JP (Perusahaan)", calc.getBpjsJpCompany(), sort++));
+        }
+
+        if (calc.getBpjsJknCompany().compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "EARNING", "BPJS_COMPANY", "BPJS_JKN_COMPANY", "BPJS JKN (Perusahaan)", calc.getBpjsJknCompany(), sort++));
+        }
+
+        if (attendanceDeduction.absenceDeduction.compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "DEDUCTION", "ATTENDANCE", "ABSENCE", "Absen", attendanceDeduction.absenceDeduction, sort++));
+        }
+
+        if (attendanceDeduction.lateDeduction.compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "DEDUCTION", "ATTENDANCE", "LATE", "Terlambat", attendanceDeduction.lateDeduction, sort++));
+        }
+
+        if (calc.getBpjsJhtDeduction().compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "DEDUCTION", "BPJS", "BPJS_JHT", "BPJS TK JHT", calc.getBpjsJhtDeduction(), sort++));
+        }
+
+        if (calc.getBpjsJpDeduction().compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "DEDUCTION", "BPJS", "BPJS_JP", "BPJS TK JP", calc.getBpjsJpDeduction(), sort++));
+        }
+
+        if (calc.getBpjsJknDeduction().compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "DEDUCTION", "BPJS", "BPJS_JKN", "BPJS JKN", calc.getBpjsJknDeduction(), sort++));
+        }
+
+        if (nvl(pph21Deduction).compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "DEDUCTION", "TAX", "PPH21", "PPh 21", scale(pph21Deduction), sort++));
+        }
+
+        return components;
+    }
+
+    private HrPayrollComponent component(HrPayrollCalculation calc,
+                                         String type,
+                                         String group,
+                                         String code,
+                                         String name,
+                                         BigDecimal amount,
+                                         int sortOrder) {
+        return HrPayrollComponent.builder()
+                .payrollCalculation(calc)
+                .componentType(type)
+                .componentGroup(group)
+                .componentCode(code)
+                .componentName(name)
+                .amount(scale(nvl(amount)))
+                .sortOrder(sortOrder)
+                .createdAt(LocalDateTime.now())
+                .build();
+    }
+
+    private BigDecimal resolveGrossSalary(Long personId) {
         try {
-            String[] parts = raw.split("\\|");
-            if (parts.length == 1) {
-                // fallback: kalau ternyata cuma angka tanpa delimiter
-                return parseBigDecimalSafe(parts[0]);
+            FwAppUser fw = appUserRepository.findByPersonId(personId).orElse(null);
+            if (fw == null) return ZERO;
+
+            HrSalaryEmployeeLevel sel = hrSalaryEmployeeLevelRepository.findByAppUserId(fw.getId()).orElse(null);
+            if (sel == null || sel.getBaseLevel() == null || sel.getBaseLevel().getBaseSalary() == null) {
+                return ZERO;
             }
-            // bagian kedua = NilaiUang
-            return parseBigDecimalSafe(parts[1]);
-        } catch (Exception e) {
-            return BigDecimal.ZERO;
-        }
-    }
 
-    private BigDecimal parseOvertimePercent(String overtimeValuePayment) {
-        if (overtimeValuePayment == null) return BigDecimal.ZERO;
-
-        String raw = overtimeValuePayment.trim();
-        if (raw.isEmpty()) return BigDecimal.ZERO;
-
-        try {
-            String[] parts = raw.split("\\|");
-            if (parts.length == 0) return BigDecimal.ZERO;
-            // bagian pertama = NilaiPersen
-            return parseBigDecimalSafe(parts[0]);
-        } catch (Exception e) {
-            return BigDecimal.ZERO;
-        }
-    }
-
-    private String nvlString(String s) {
-        return s == null ? "" : s;
-    }
-
-    private BigDecimal resolveOvertimeValue(AddPayrollRequest req) {
-        if ("PERCENTAGE".equals(req.getOvertimePaymentType())) {
-            Integer pct = req.getOvertimePercent() == null ? 0 : req.getOvertimePercent();
-            return new BigDecimal(pct);
-        }
-        return req.getOvertimeStaticNominal() == null ? BigDecimal.ZERO : req.getOvertimeStaticNominal();
-    }
-
-    private BigDecimal resolveBenefitsPackageAllowanceTotal(HrPerson person, LocalDate payrollDate, HrPersonPosition personPosition) {
-        if (personPosition == null || personPosition.getPosition() == null) return BigDecimal.ZERO;
-
-        try {
-            List<HrSalaryPositionAllowance> packages = hrSalaryPositionAllowanceRepository
-                    .findByPositionAndCompanyOrderByUpdatedAtAsc(personPosition.getPosition(), personPosition.getCompany());
-
-            List<HrSalaryPositionAllowance> activePackages = packages.stream()
-                    .filter(p -> {
-                        if (p.getStartDate() != null && payrollDate.isBefore(p.getStartDate())) return false;
-                        if (p.getEndDate() == null) return true;
-                        return !payrollDate.isAfter(p.getEndDate());
-                    })
-                    .toList();
-
-            BigDecimal total = BigDecimal.ZERO;
-            for (HrSalaryPositionAllowance p : activePackages) {
-                HrSalaryAllowance a = p.getAllowance();
-                if (a != null && a.getAmount() != null) {
-                    total = total.add(a.getAmount());
-                }
-            }
-            return total;
+            return scale(sel.getBaseLevel().getBaseSalary());
         } catch (Exception ex) {
-            log.warn("Benefits package resolve failed for personId {}: {}", person.getId(), ex.getMessage());
-            return BigDecimal.ZERO;
+            log.warn("resolveGrossSalary failed for personId {}: {}", personId, ex.getMessage());
+            return ZERO;
         }
     }
 
-    private String buildAllowanceValueTextForPerson(AddPayrollRequest req,
-                                                    HrPerson person,
-                                                    LocalDate payrollDate,
-                                                    HrPersonPosition personPosition) {
-
-        if (req == null || req.getAllowanceMode() == null) return "0";
-
-        String mode = req.getAllowanceMode().trim();
-
-        // 1) NO ALLOWANCE
-        if ("NO ALLOWANCE".equalsIgnoreCase(mode) || mode.isBlank()) {
-            return "0";
-        }
-
-        // helper sanitize agar delimiter tidak rusak
-        java.util.function.Function<String, String> sanitizeName =
-                (nm) -> nm == null ? "" : nm.replace("|", " ").replace(":", " ").trim();
-
-        // 2) SELECT ALLOWANCE -> dari req.selectedAllowances
-        if ("SELECT ALLOWANCE".equalsIgnoreCase(mode)) {
-            if (req.getSelectedAllowances() == null || req.getSelectedAllowances().isEmpty()) return "0";
-
-            StringBuilder sb = new StringBuilder();
-            for (HrSalaryAllowance a : req.getSelectedAllowances()) {
-                if (a == null) continue;
-                String name = sanitizeName.apply(a.getName());
-                if (name.isBlank()) continue;
-
-                BigDecimal amount = a.getAmount() == null ? BigDecimal.ZERO : a.getAmount();
-
-                if (!sb.isEmpty()) sb.append("|");
-                sb.append(name).append(":").append(amount.toPlainString());
-            }
-            return sb.isEmpty() ? "0" : sb.toString();
-        }
-
-        // 3) BENEFITS PACKAGE -> dari hr_salary_position_allowance by position + active by date
-        if ("BENEFITS PACKAGE".equalsIgnoreCase(mode)) {
-            if (personPosition == null || personPosition.getPosition() == null) return "0";
-
-            List<HrSalaryPositionAllowance> packages =
-                    hrSalaryPositionAllowanceRepository.findByPositionAndCompanyOrderByUpdatedAtAsc(
-                            personPosition.getPosition(), personPosition.getCompany()
-                    );
-
-            if (packages == null || packages.isEmpty()) return "0";
-
-            StringBuilder sb = new StringBuilder();
-
-            for (HrSalaryPositionAllowance p : packages) {
-                if (p == null) continue;
-
-                // filter active by start/end date
-                if (p.getStartDate() != null && payrollDate.isBefore(p.getStartDate())) continue;
-                if (p.getEndDate() != null && payrollDate.isAfter(p.getEndDate())) continue;
-
-                HrSalaryAllowance a = p.getAllowance();
-                if (a == null) continue;
-
-                String name = sanitizeName.apply(a.getName());
-                if (name.isBlank()) continue;
-
-                BigDecimal amount = a.getAmount() == null ? BigDecimal.ZERO : a.getAmount();
-
-                if (!sb.isEmpty()) sb.append("|");
-                sb.append(name).append(":").append(amount.toPlainString());
-            }
-
-            return sb.isEmpty() ? "0" : sb.toString();
-        }
-
-        return "0";
-    }
-
-    private BigDecimal sumAllowanceValueText(String allowancesValue) {
-        if (allowancesValue == null) return BigDecimal.ZERO;
-        String raw = allowancesValue.trim();
-        if (raw.isEmpty() || "0".equals(raw)) return BigDecimal.ZERO;
-
-        BigDecimal total = BigDecimal.ZERO;
-        String[] items = raw.split("\\|");
-        for (String it : items) {
-            if (it == null) continue;
-            String s = it.trim();
-            if (s.isEmpty()) continue;
-
-            int idx = s.lastIndexOf(':');
-            String amtStr = (idx >= 0) ? s.substring(idx + 1).trim() : s;
-
-            total = total.add(parseBigDecimalSafe(amtStr));
-        }
-        return total;
-    }
-
-    private BigDecimal resolveHealthInsurancePercentSum() {
-        // sum int_val dari sort_order 100,101,102
-        List<Integer> orders = List.of(100, 101, 102);
-
-        // Asumsi repo punya method ini. Kalau belum, bikin di repo:
-        // List<FwSystem> findBySortOrderIn(Collection<Integer> sortOrders);
-        List<FwSystem> rows = fwSystemRepository.findBySortOrderIn(orders);
-
-        if (rows == null || rows.isEmpty()) return BigDecimal.ZERO;
-
-        BigDecimal sum = BigDecimal.ZERO;
-        for (FwSystem s : rows) {
-            if (s == null || s.getIntVal() == null) continue;
-            sum = sum.add(BigDecimal.valueOf(s.getIntVal()));
-        }
-        return sum; // contoh: 2 + 1 + 1 = 4 (%)
-    }
-
-    private BigDecimal resolveHealthInsuranceDeduction(BigDecimal grossSalary) {
-        BigDecimal gross = nvl(grossSalary);
-        if (gross.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
-
-        BigDecimal percentSum = resolveHealthInsurancePercentSum(); // misal 4
-        if (percentSum.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
-
-        // gross * percent/100
-        return gross.multiply(percentSum)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-    }
-
-    private int resolveSumAttendance(Long personId, LocalDate startOfMonth, LocalDate startOfNextMonth) {
+    private int resolveSumAttendance(Long personId, LocalDate startOfMonth, LocalDate endOfMonthExclusive) {
         if (personId == null) return 0;
         try {
-            long c = hrAttendanceRepository.countAttendanceByPersonAndPeriod(personId, startOfMonth, startOfNextMonth);
+            long c = hrAttendanceRepository.countAttendanceByPersonAndPeriod(personId, startOfMonth, endOfMonthExclusive);
             return (int) Math.max(0, c);
         } catch (Exception ex) {
             log.warn("resolveSumAttendance failed personId {}: {}", personId, ex.getMessage());
@@ -1204,176 +906,80 @@ public class PayrollService {
         }
     }
 
-    private BigDecimal computeAttendanceAllowanceDeduction(
-            BigDecimal totalAllowances,
-            Integer sumAttendance,
-            Integer paramAttendanceDays
-    ) {
-        BigDecimal allowances = totalAllowances == null ? BigDecimal.ZERO : totalAllowances;
-
-        int sum = (sumAttendance == null ? 0 : sumAttendance);
-        int param = (paramAttendanceDays == null ? 0 : paramAttendanceDays);
-
-        if (param <= 0) return BigDecimal.ZERO;      // tidak bisa prorata
-        if (allowances.signum() <= 0) return BigDecimal.ZERO;
-
-        int absentDays = param - sum;
-        if (absentDays <= 0) return BigDecimal.ZERO; // hadir >= target => tidak dipotong
-
-        // per-day allowance
-        BigDecimal perDay = allowances.divide(BigDecimal.valueOf(param), 6, RoundingMode.HALF_UP);
-
-        BigDecimal deduction = perDay.multiply(BigDecimal.valueOf(absentDays))
-                .setScale(2, RoundingMode.HALF_UP);
-
-        // safety clamp
-        if (deduction.signum() < 0) return BigDecimal.ZERO;
-        if (deduction.compareTo(allowances) > 0) return allowances;
-
-        return deduction;
-    }
-
-    private BigDecimal resolveBpjsDeduction(BigDecimal grossSalary) {
-        BigDecimal gross = nvl(grossSalary);
-        if (gross.signum() <= 0) return BigDecimal.ZERO;
-
-        // 1) ambil config 100-104 dari fw_system.string_val
-        Map<Integer, String> cfg = fwSystemRepository.findBySortOrderIn(Set.of(100,101,102,103,104))
-                .stream()
-                .collect(Collectors.toMap(FwSystem::getSortOrder, FwSystem::getStringVal, (a, b) -> a));
-
-        BigDecimal rateKes = parseDecimal(cfg.get(100)); // persen
-        BigDecimal rateJht = parseDecimal(cfg.get(101)); // persen
-        BigDecimal rateJp  = parseDecimal(cfg.get(102)); // persen
-        BigDecimal capKes  = parseDecimal(cfg.get(103)); // uang
-        BigDecimal capJp   = parseDecimal(cfg.get(104)); // uang
-
-        // default bila null / kosong
-        rateKes = nvl(rateKes);
-        rateJht = nvl(rateJht);
-        rateJp  = nvl(rateJp);
-
-        // cap kalau tidak ada, dianggap tidak dibatasi (pakai gross)
-        BigDecimal baseKes = (capKes == null || capKes.signum() <= 0) ? gross : gross.min(capKes);
-        BigDecimal baseJht = gross;
-        BigDecimal baseJp  = (capJp  == null || capJp.signum()  <= 0) ? gross : gross.min(capJp);
-
-        BigDecimal bpjsKes = percentOf(baseKes, rateKes);
-        BigDecimal bpjsJht = percentOf(baseJht, rateJht);
-        BigDecimal bpjsJp  = percentOf(baseJp,  rateJp);
-
-        return bpjsKes.add(bpjsJht).add(bpjsJp).setScale(SCALE_MONEY, RoundingMode.HALF_UP);
-    }
-
-    private BigDecimal percentOf(BigDecimal amount, BigDecimal ratePercent) {
-        if (amount == null || ratePercent == null) return BigDecimal.ZERO;
-        if (amount.signum() <= 0 || ratePercent.signum() <= 0) return BigDecimal.ZERO;
-
-        return amount
-                .multiply(ratePercent)
-                .divide(BigDecimal.valueOf(100), SCALE_MONEY, RoundingMode.HALF_UP);
-    }
-
-    /**
-     * Parsing string_val menjadi BigDecimal.
-     * Jika kamu simpan string_val tanpa format ribuan, ini cukup.
-     * Kalau ada format (mis "12.000.000" atau "12,000,000"), rapikan dulu.
-     */
-    private BigDecimal parseDecimal(String raw) {
-        if (raw == null) return null;
-        String s = raw.trim();
-        if (s.isEmpty()) return null;
-
-        // normalize: buang pemisah ribuan umum
-        s = s.replace(" ", "");
-        s = s.replace(",", "");     // 12,000,000 -> 12000000
-        // Jika di DB kamu pakai 12.000.000 sebagai ribuan, uncomment:
-        // s = s.replace(".", "");
-
+    private int resolveCountByStatuses(Long personId, LocalDate startOfMonth, LocalDate endOfMonthExclusive, List<String> statuses) {
+        if (personId == null || statuses == null || statuses.isEmpty()) return 0;
         try {
-            return new BigDecimal(s);
-        } catch (NumberFormatException ex) {
-            return null; // atau lempar exception supaya ketahuan config rusak
+            long c = hrAttendanceRepository.countByPersonAndPeriodAndStatuses(personId, startOfMonth, endOfMonthExclusive, statuses);
+            return (int) Math.max(0, c);
+        } catch (Exception ex) {
+            log.warn("resolveCountByStatuses failed personId {} statuses {}: {}", personId, statuses, ex.getMessage());
+            return 0;
         }
     }
 
-    private BigDecimal calculateMonthlyPph21FromGross(
-            BigDecimal monthlyGrossSalary,
-            BigDecimal monthlyPtkpAmount,
-            String statusEmployee
-    ) {
+    private BigDecimal calculateMonthlyPph21FromGross(BigDecimal monthlyGrossSalary,
+                                                      BigDecimal monthlyPtkpAmount,
+                                                      String statusEmployee) {
         BigDecimal grossMonth = nvl(monthlyGrossSalary);
-        BigDecimal ptkpMonth  = nvl(monthlyPtkpAmount);
+        BigDecimal ptkpMonth = nvl(monthlyPtkpAmount);
 
-        if (grossMonth.signum() <= 0) return BigDecimal.ZERO;
+        if (grossMonth.signum() <= 0) return ZERO;
 
-        // 1) annualize
         BigDecimal grossYear = grossMonth.multiply(BD_12);
 
-        // 2) biaya jabatan
         BigDecimal penghasilanNetoYear = grossYear;
         if (isEligibleForBiayaJabatan(statusEmployee)) {
-
-            // sesuai requirement kamu: 5% x (grossYear)
-            BigDecimal biayaJabatanMonthly = grossYear
+            BigDecimal biayaJabatanMonthly = grossMonth
                     .multiply(BigDecimal.valueOf(5))
-                    .divide(BD_100, 6, RoundingMode.HALF_UP);
+                    .divide(BD_100, 2, RoundingMode.HALF_UP);
 
-            // cap 500,000
-            BigDecimal cap = BigDecimal.valueOf(500_000);
-            if (biayaJabatanMonthly.compareTo(cap) > 0) {
-                biayaJabatanMonthly = cap;
+            BigDecimal capMonthly = BigDecimal.valueOf(500_000);
+            if (biayaJabatanMonthly.compareTo(capMonthly) > 0) {
+                biayaJabatanMonthly = capMonthly;
             }
 
-            BigDecimal fixedPotonganJabatanYear = biayaJabatanMonthly.multiply(BD_12);
-
-            penghasilanNetoYear = grossYear.subtract(fixedPotonganJabatanYear);
-            if (penghasilanNetoYear.signum() < 0) penghasilanNetoYear = BigDecimal.ZERO;
+            BigDecimal biayaJabatanYear = biayaJabatanMonthly.multiply(BD_12);
+            penghasilanNetoYear = grossYear.subtract(biayaJabatanYear);
+            if (penghasilanNetoYear.signum() < 0) {
+                penghasilanNetoYear = ZERO;
+            }
         }
 
-        // 3) PKP
         BigDecimal pkp = penghasilanNetoYear.subtract(ptkpMonth.multiply(BD_12));
-        if (pkp.signum() < 0) pkp = BigDecimal.ZERO;
+        if (pkp.signum() < 0) pkp = ZERO;
 
-        // 4) PPh21 tahunan (progresif)
         BigDecimal pphYear = calculatePph21YearlyProgressive(pkp);
-
-        // 5) bulanan untuk disimpan ke total_taxable
-        BigDecimal pphMonth = pphYear.divide(BD_12, 2, RoundingMode.HALF_UP);
-        if (pphMonth.signum() < 0) return BigDecimal.ZERO;
-
-        return pphMonth;
+        return scale(pphYear.divide(BD_12, 2, RoundingMode.HALF_UP));
     }
 
     private BigDecimal calculatePph21YearlyProgressive(BigDecimal pkp) {
         BigDecimal remaining = nvl(pkp);
-        if (remaining.signum() <= 0) return BigDecimal.ZERO;
+        if (remaining.signum() <= 0) return ZERO;
 
-        BigDecimal tax = BigDecimal.ZERO;
+        BigDecimal tax = ZERO;
 
         tax = tax.add(taxLayer(remaining, 60_000_000L, 5));
         remaining = remaining.subtract(BigDecimal.valueOf(60_000_000L));
         if (remaining.signum() <= 0) return tax;
 
-        tax = tax.add(taxLayer(remaining, 190_000_000L, 15)); // 250-60 = 190
+        tax = tax.add(taxLayer(remaining, 190_000_000L, 15));
         remaining = remaining.subtract(BigDecimal.valueOf(190_000_000L));
         if (remaining.signum() <= 0) return tax;
 
-        tax = tax.add(taxLayer(remaining, 250_000_000L, 25)); // 500-250
+        tax = tax.add(taxLayer(remaining, 250_000_000L, 25));
         remaining = remaining.subtract(BigDecimal.valueOf(250_000_000L));
         if (remaining.signum() <= 0) return tax;
 
-        tax = tax.add(taxLayer(remaining, 4_500_000_000L, 30)); // 5M-500jt
+        tax = tax.add(taxLayer(remaining, 4_500_000_000L, 30));
         remaining = remaining.subtract(BigDecimal.valueOf(4_500_000_000L));
         if (remaining.signum() <= 0) return tax;
 
-        // > 5M
         tax = tax.add(taxLayer(remaining, null, 35));
         return tax;
     }
 
     private BigDecimal taxLayer(BigDecimal amount, Long layerCap, int ratePercent) {
-        if (amount == null || amount.signum() <= 0) return BigDecimal.ZERO;
+        if (amount == null || amount.signum() <= 0) return ZERO;
 
         BigDecimal taxable = amount;
         if (layerCap != null) {
@@ -1391,4 +997,147 @@ public class PayrollService {
         return "PKWT".equalsIgnoreCase(statusEmployee) || "PKWTT".equalsIgnoreCase(statusEmployee);
     }
 
+    private BigDecimal getDecimalVal(FwSystem s) {
+        if (s == null || s.getDecimalVal() == null) return ZERO;
+        return scale(s.getDecimalVal());
+    }
+
+    private BigDecimal percentOf(BigDecimal amount, BigDecimal ratePercent) {
+        if (amount == null || ratePercent == null) return ZERO;
+        if (amount.signum() <= 0 || ratePercent.signum() <= 0) return ZERO;
+
+        return scale(amount.multiply(ratePercent).divide(BD_100, 2, RoundingMode.HALF_UP));
+    }
+
+    private BigDecimal parseDecimal(String raw) {
+        if (raw == null) return null;
+        String s = raw.trim();
+        if (s.isEmpty()) return null;
+
+        s = s.replace(" ", "");
+        s = s.replace(",", "");
+        s = s.replace(".", "");
+
+        try {
+            return new BigDecimal(s);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+    private String resolveEmployeeNumber(HrPerson person) {
+        if (person == null || person.getNip() == null) {
+            return "";
+        }
+        return person.getNip().trim();
+    }
+
+    private String resolveStatusEmployee(HrPerson person) {
+        try {
+            return person.getStatusEmployee();
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private LocalDate resolveJoinDate(HrPerson person, HrPersonPosition personPosition) {
+        if (personPosition != null) {
+            return personPosition.getStartDate();
+        }
+        return null;
+    }
+
+    private BigDecimal nvl(BigDecimal v) {
+        return v == null ? ZERO : v;
+    }
+
+    private BigDecimal scale(BigDecimal v) {
+        return (v == null ? ZERO : v).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal toMoney(Integer val) {
+        return val == null ? ZERO : BigDecimal.valueOf(val).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private String nvlString(String s) {
+        return s == null ? "" : s;
+    }
+
+    private String safeCode(String s) {
+        return nvlString(s).trim().toUpperCase().replace(" ", "_");
+    }
+
+    private void ensureUserSet() {
+        if (appUser == null) {
+            throw new IllegalStateException("App user is not set. Please call setUser() before using this method.");
+        }
+    }
+
+    private static class AllowanceResult {
+        private final BigDecimal fixedTotal;
+        private final BigDecimal variableTotal;
+        private final List<HrSalaryAllowance> fixedItems;
+        private final List<HrSalaryAllowance> variableItems;
+
+        private AllowanceResult(BigDecimal fixedTotal,
+                                BigDecimal variableTotal,
+                                List<HrSalaryAllowance> fixedItems,
+                                List<HrSalaryAllowance> variableItems) {
+            this.fixedTotal = fixedTotal;
+            this.variableTotal = variableTotal;
+            this.fixedItems = fixedItems;
+            this.variableItems = variableItems;
+        }
+    }
+
+    private static class AttendanceDeductionResult {
+        private final BigDecimal absenceDeduction;
+        private final BigDecimal lateDeduction;
+        private final int alphaCount;
+        private final int lateCount;
+
+        private AttendanceDeductionResult(BigDecimal absenceDeduction,
+                                          BigDecimal lateDeduction,
+                                          int alphaCount,
+                                          int lateCount) {
+            this.absenceDeduction = absenceDeduction;
+            this.lateDeduction = lateDeduction;
+            this.alphaCount = alphaCount;
+            this.lateCount = lateCount;
+        }
+    }
+
+    private static class BpjsResult {
+        private final BigDecimal employeeJht;
+        private final BigDecimal employeeJp;
+        private final BigDecimal employeeJkn;
+        private final BigDecimal companyJht;
+        private final BigDecimal companyJp;
+        private final BigDecimal companyJkn;
+        private final BigDecimal companyTkTotal;
+        private final BigDecimal employeeTkTotal;
+
+        private BpjsResult(BigDecimal employeeJht,
+                           BigDecimal employeeJp,
+                           BigDecimal employeeJkn,
+                           BigDecimal companyJht,
+                           BigDecimal companyJp,
+                           BigDecimal companyJkn) {
+            this.employeeJht = employeeJht;
+            this.employeeJp = employeeJp;
+            this.employeeJkn = employeeJkn;
+            this.companyJht = companyJht;
+            this.companyJp = companyJp;
+            this.companyJkn = companyJkn;
+            this.companyTkTotal = companyJht.add(companyJp);
+            this.employeeTkTotal = employeeJht.add(employeeJp);
+        }
+
+        private static BpjsResult zero() {
+            return new BpjsResult(ZERO, ZERO, ZERO, ZERO, ZERO, ZERO);
+        }
+    }
+
+    public List<HrPayrollComponent> getPayrollComponentsByCalculationId(Long calculationId) {
+        return hrPayrollComponentRepository.findByPayrollCalculationId(calculationId);
+    }
 }

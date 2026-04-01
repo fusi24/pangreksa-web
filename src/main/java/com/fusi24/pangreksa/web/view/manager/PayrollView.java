@@ -8,32 +8,35 @@ import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrPayroll;
 import com.fusi24.pangreksa.web.model.entity.HrPayrollCalculation;
+import com.fusi24.pangreksa.web.model.entity.HrPayrollComponent;
 import com.fusi24.pangreksa.web.model.entity.HrSalaryAllowance;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.PayrollService;
 import com.fusi24.pangreksa.web.service.SystemService;
-import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
-import com.vaadin.flow.component.textfield.BigDecimalField;
-import com.vaadin.flow.component.textfield.IntegerField;
-import com.vaadin.flow.component.combobox.MultiSelectComboBox;
-import com.vaadin.flow.data.binder.BeanValidationBinder;
-import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.combobox.MultiSelectComboBox;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.HeaderRow;
 import com.vaadin.flow.component.html.Main;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.progressbar.ProgressBar;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
+import com.vaadin.flow.component.textfield.BigDecimalField;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.binder.BeanValidationBinder;
+import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.data.provider.QuerySortOrder;
 import com.vaadin.flow.data.value.ValueChangeMode;
@@ -48,14 +51,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.format.TextStyle;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-
 
 @Route("payroll-list-page-access")
 @PageTitle("Payroll")
@@ -65,6 +66,7 @@ public class PayrollView extends Main {
     public static final String VIEW_NAME = "Payroll";
     private static final long serialVersionUID = 19092L;
     private static final Logger log = LoggerFactory.getLogger(PayrollView.class);
+
     private final CurrentUser currentUser;
     private final CommonService commonService;
     private final SystemService systemService;
@@ -73,114 +75,181 @@ public class PayrollView extends Main {
     private Authorization auth;
 
     private final Button deleteButton = new Button("Delete");
-    private Grid<HrPayroll> grid = new Grid<>(HrPayroll.class, false);
-    private TextField searchField = new TextField();
+    private final Grid<HrPayroll> grid = new Grid<>(HrPayroll.class, false);
+    private final TextField searchField = new TextField();
+    private final ComboBox<Integer> yearFilter = new ComboBox<>();
+    private final ComboBox<Integer> monthFilter = new ComboBox<>();
+    private final Dialog addPayrollDialog = new Dialog();
+    private final Dialog recalculateDialog = new Dialog();
+    private final Dialog detailDialog = new Dialog();
 
-    private ComboBox<Integer> yearFilter = new ComboBox<>();
-    private ComboBox<Integer> monthFilter = new ComboBox<>();
-
-    private Dialog addPayrollDialog = new Dialog();
-
-    MutableObject<HrPayroll> mObject = new MutableObject<>();
-
-    // Untuk numbering "No" yang stabil lintas pagination
     private final Map<Long, Integer> rowNoByPayrollId = new ConcurrentHashMap<>();
+    private final Map<Long, HrPayrollCalculation> calculationCache = new ConcurrentHashMap<>();
 
-    public PayrollView(CurrentUser currentUser, CommonService commonService, SystemService systemService, PayrollService payrollService) {
-        this.payrollService = payrollService;
+    public PayrollView(CurrentUser currentUser,
+                       CommonService commonService,
+                       SystemService systemService,
+                       PayrollService payrollService) {
         this.currentUser = currentUser;
         this.commonService = commonService;
         this.systemService = systemService;
+        this.payrollService = payrollService;
 
         this.payrollService.setUser(currentUser.require());
 
         this.auth = commonService.getAuthorization(
                 currentUser.require(),
                 (String) UI.getCurrent().getSession().getAttribute("responsibility"),
-                this.serialVersionUID);
+                this.serialVersionUID
+        );
 
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        addClassNames(
+                LumoUtility.BoxSizing.BORDER,
+                LumoUtility.Display.FLEX,
+                LumoUtility.FlexDirection.COLUMN,
+                LumoUtility.Padding.MEDIUM,
+                LumoUtility.Gap.SMALL
+        );
 
         add(new ViewToolbar(VIEW_NAME));
 
-        log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
+        log.debug("Page {}, Authorization: {} {} {} {}",
+                VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
+
         initializeView();
     }
 
     private void initializeView() {
-        this.setHeightFull();
+        setHeightFull();
+        configureGrid();
+        add(buildMainLayout());
+        applyFilters();
+    }
 
-        // =========================
-        // Grid Columns (NEW LOGIC)
-        // =========================
+    private void configureGrid() {
+        grid.setSizeFull();
+        grid.setSelectionMode(Grid.SelectionMode.MULTI);
 
-        // 1) No (Looping logic) - stable with pagination
-        grid.addComponentColumn(payroll -> {
-            Long id = payroll.getId();
-            Integer no = id == null ? null : rowNoByPayrollId.get(id);
+        // No
+        Grid.Column<HrPayroll> noCol = grid.addComponentColumn(payroll -> {
+            Integer no = payroll.getId() == null ? null : rowNoByPayrollId.get(payroll.getId());
             return new Span(no == null ? "-" : String.valueOf(no));
         }).setHeader("No").setWidth("70px").setFlexGrow(0);
 
-        // 2) Employee (dari hr_payroll.first_name + last_name)
-        grid.addColumn(payroll -> {
-            String fn = payroll.getFirstName() == null ? "" : payroll.getFirstName();
-            String ln = payroll.getLastName() == null ? "" : payroll.getLastName();
-            String full = (fn + " " + ln).trim();
-            return full.isBlank() ? "-" : full;
-        }).setHeader("Employee").setAutoWidth(true).setFlexGrow(1);
+        // NIK
+        Grid.Column<HrPayroll> nikCol = grid.addColumn(payroll ->
+                        blankToDash(payroll.getEmployeeNumber()))
+                .setHeader("NIK")
+                .setWidth("140px")
+                .setFlexGrow(0);
 
-        // 3) Payroll Month (dari hr_payroll.payroll_date)
-        grid.addColumn(payroll -> formatPayrollMonth(payroll.getPayrollDate()))
-                .setHeader("Payroll Month")
+        // Nama
+        Grid.Column<HrPayroll> nameCol = grid.addColumn(this::getEmployeeName)
+                .setHeader("Nama Karyawan")
+                .setAutoWidth(true)
+                .setFlexGrow(1);
+
+        // Gapok
+        Grid.Column<HrPayroll> gapokCol = grid.addColumn(payroll ->
+                        fmt(payroll.getBaseSalary()))
+                .setHeader("Gapok")
+                .setWidth("140px")
+                .setFlexGrow(0);
+
+        // Tunjangan Jabatan
+        Grid.Column<HrPayroll> jabatanCol = grid.addColumn(payroll ->
+                        fmt(findComponentAmountByName(payroll, "Jabatan")))
+                .setHeader("Tunjangan Jabatan")
                 .setWidth("160px")
                 .setFlexGrow(0);
 
-        // 3.1) Gross Salary
-        grid.addColumn(payroll -> {
-            HrPayrollCalculation calc = payroll.getCalculation();
-            BigDecimal val = calc == null ? BigDecimal.ZERO : nvl(calc.getGrossSalary());
-            return FormattingUtils.formatPayrollAmount(val);
-        }).setHeader("Gross Salary").setWidth("160px").setFlexGrow(0);
+        // Keahlian
+        Grid.Column<HrPayroll> keahlianCol = grid.addColumn(payroll ->
+                        fmt(findComponentAmountByName(payroll, "Keahlian")))
+                .setHeader("Keahlian")
+                .setWidth("140px")
+                .setFlexGrow(0);
 
-        // 4) Total Allowance (hr_payroll_calculations.total_allowances)
-        grid.addColumn(payroll -> {
-            HrPayrollCalculation calc = payroll.getCalculation();
-            BigDecimal val = calc == null ? BigDecimal.ZERO : nvl(calc.getTotalAllowances());
-            return FormattingUtils.formatPayrollAmount(val);
-        }).setHeader("Total Allowance").setWidth("160px").setFlexGrow(0);
+        // Tunjangan Tetap
+        Grid.Column<HrPayroll> fixedCol = grid.addColumn(payroll ->
+                        fmt(getCalc(payroll).map(HrPayrollCalculation::getFixedAllowanceTotal).orElse(BigDecimal.ZERO)))
+                .setHeader("Tunjangan Tetap")
+                .setWidth("160px")
+                .setFlexGrow(0);
 
-        // 5) Total Overtime (hr_payroll_calculations.total_overtimes)
-        grid.addColumn(payroll -> {
-            HrPayrollCalculation calc = payroll.getCalculation();
-            BigDecimal val = calc == null ? BigDecimal.ZERO : nvl(calc.getTotalOvertimes());
-            return FormattingUtils.formatPayrollAmount(val);
-        }).setHeader("Total Overtime").setWidth("160px").setFlexGrow(0);
+        // Allowance (variable only)
+        Grid.Column<HrPayroll> allowanceCol = grid.addColumn(payroll ->
+                        fmt(getCalc(payroll).map(HrPayrollCalculation::getVariableAllowanceTotal).orElse(BigDecimal.ZERO)))
+                .setHeader("Allowance")
+                .setWidth("140px")
+                .setFlexGrow(0);
 
-        // 6) Total Bonus (hr_payroll_calculations.total_bonus / 12)
-        grid.addColumn(payroll -> {
-            HrPayrollCalculation calc = payroll.getCalculation();
-            BigDecimal annual = calc == null ? BigDecimal.ZERO : nvl(calc.getTotalBonus());
-            BigDecimal perMonth = annual.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
-            return FormattingUtils.formatPayrollAmount(perMonth);
-        }).setHeader("Total Bonus").setWidth("150px").setFlexGrow(0);
+        // BPJS TK perusahaan = JHT+JP perusahaan
+        Grid.Column<HrPayroll> bpjsTkCompanyCol = grid.addColumn(payroll -> {
+            HrPayrollCalculation calc = getCalc(payroll).orElse(null);
+            if (calc == null) return fmt(BigDecimal.ZERO);
 
-        // 7) Other Deduct. (hr_payroll_calculations.total_other_deductions)
-        grid.addColumn(payroll -> {
-            HrPayrollCalculation calc = payroll.getCalculation();
-            BigDecimal val = calc == null ? BigDecimal.ZERO : nvl(calc.getTotalOtherDeductions());
-            return FormattingUtils.formatPayrollAmount(val);
-        }).setHeader("Other Deduct.").setWidth("160px").setFlexGrow(0);
+            BigDecimal val = nvl(calc.getBpjsJhtCompany())
+                    .add(nvl(calc.getBpjsJpCompany()));
+            return fmt(val);
+        }).setHeader("BPJS TK").setWidth("140px").setFlexGrow(0);
 
-        // 8) Net THP (hr_payroll_calculations.net_take_home_pay)
-        grid.addColumn(payroll -> {
-            HrPayrollCalculation calc = payroll.getCalculation();
-            BigDecimal val = calc == null ? BigDecimal.ZERO : nvl(calc.getNetTakeHomePay());
-            return FormattingUtils.formatPayrollAmount(val);
-        }).setHeader("Net THP").setWidth("140px").setFlexGrow(0);
+        // BPJS JKN perusahaan
+        Grid.Column<HrPayroll> bpjsJknCompanyCol = grid.addColumn(payroll ->
+                        fmt(getCalc(payroll).map(HrPayrollCalculation::getBpjsJknCompany).orElse(BigDecimal.ZERO)))
+                .setHeader("BPJS JKN")
+                .setWidth("140px")
+                .setFlexGrow(0);
 
-        // 9) Actions (ONLY: Detail + Recalculate)
-        grid.addComponentColumn(payroll -> {
+        // Tunjangan Tidak Tetap = allowance + bpjs tk company + bpjs jkn company
+        Grid.Column<HrPayroll> variableTotalCol = grid.addColumn(payroll -> {
+            HrPayrollCalculation calc = getCalc(payroll).orElse(null);
+            if (calc == null) return fmt(BigDecimal.ZERO);
+
+            BigDecimal bpjsTk = nvl(calc.getBpjsJhtCompany()).add(nvl(calc.getBpjsJpCompany()));
+            BigDecimal bpjsJkn = nvl(calc.getBpjsJknCompany());
+
+            BigDecimal val = nvl(calc.getVariableAllowanceTotal())
+                    .add(bpjsTk)
+                    .add(bpjsJkn);
+
+            return fmt(val);
+        }).setHeader("Tunjangan Tidak Tetap").setWidth("180px").setFlexGrow(0);
+
+        // Penghasilan Kotor
+        Grid.Column<HrPayroll> grossCol = grid.addColumn(payroll ->
+                        fmt(getCalc(payroll).map(HrPayrollCalculation::getGrossSalary).orElse(BigDecimal.ZERO)))
+                .setHeader("Penghasilan Kotor")
+                .setWidth("170px")
+                .setFlexGrow(0);
+
+        // Asuransi = BPJS TK employee + BPJS JKN employee
+        Grid.Column<HrPayroll> insuranceCol = grid.addColumn(payroll -> {
+            HrPayrollCalculation calc = getCalc(payroll).orElse(null);
+            if (calc == null) return fmt(BigDecimal.ZERO);
+
+            BigDecimal bpjsTk = nvl(calc.getBpjsJhtDeduction()).add(nvl(calc.getBpjsJpDeduction()));
+            BigDecimal bpjsJkn = nvl(calc.getBpjsJknDeduction());
+
+            return fmt(bpjsTk.add(bpjsJkn));
+        }).setHeader("Asuransi").setWidth("140px").setFlexGrow(0);
+
+        // PPh21
+        Grid.Column<HrPayroll> pphCol = grid.addColumn(payroll ->
+                        fmt(getCalc(payroll).map(HrPayrollCalculation::getPph21Deduction).orElse(BigDecimal.ZERO)))
+                .setHeader("PPh 21")
+                .setWidth("140px")
+                .setFlexGrow(0);
+
+        // THP
+        Grid.Column<HrPayroll> thpCol = grid.addColumn(payroll ->
+                        fmt(getCalc(payroll).map(HrPayrollCalculation::getNetTakeHomePay).orElse(BigDecimal.ZERO)))
+                .setHeader("THP")
+                .setWidth("150px")
+                .setFlexGrow(0);
+
+        // Actions
+        Grid.Column<HrPayroll> actionCol = grid.addComponentColumn(payroll -> {
             HorizontalLayout actions = new HorizontalLayout();
             actions.setSpacing(true);
 
@@ -192,82 +261,55 @@ public class PayrollView extends Main {
 
             actions.add(detailBtn, recalculateBtn);
             return actions;
-        }).setHeader("Actions").setWidth("220px").setFlexGrow(0);
+        }).setHeader("Actions").setWidth("230px").setFlexGrow(0);
 
-        // =========================
-        // Search / Filter toolbar
-        // =========================
+        HeaderRow top = grid.prependHeaderRow();
+        top.join(noCol, nikCol, nameCol).setText("Karyawan");
+        top.join(gapokCol, jabatanCol, keahlianCol, fixedCol, allowanceCol, bpjsTkCompanyCol, bpjsJknCompanyCol, variableTotalCol, grossCol)
+                .setText("Penghasilan");
+        top.join(insuranceCol, pphCol, thpCol).setText("Potongan / Hasil");
+        top.getCell(actionCol).setText("Aksi");
+    }
 
-        // Search Field (employee)
-        searchField.setPlaceholder("Search employee");
-        searchField.setWidth("40%");
+    private VerticalLayout buildMainLayout() {
+        // Search
+        searchField.setPlaceholder("Search NIK / nama karyawan");
+        searchField.setWidth("360px");
         searchField.setClearButtonVisible(true);
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
 
-        // Add Payroll Button
-        Button addButton = new Button("Add Payroll", e -> openAddPayrollDialog());
-        addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-
-        // Year Filter
+        // Filters
         yearFilter.setPlaceholder("Year");
         yearFilter.setItems(getRecentYears(5));
-        yearFilter.setValue(LocalDate.now().getYear());   // sudah benar
+        yearFilter.setValue(LocalDate.now().getYear());
         yearFilter.setClearButtonVisible(true);
         yearFilter.setWidth("120px");
 
-        // Month Filter
         monthFilter.setPlaceholder("Month");
-        monthFilter.setItems(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+        monthFilter.setItems(1,2,3,4,5,6,7,8,9,10,11,12);
         monthFilter.setItemLabelGenerator(this::getMonthName);
-        monthFilter.setClearButtonVisible(true);
-        monthFilter.setWidth("150px");
-
-        // ✅ ini yang biasanya belum kamu set
         monthFilter.setValue(LocalDate.now().getMonthValue());
+        monthFilter.setClearButtonVisible(true);
+        monthFilter.setWidth("140px");
 
-        HorizontalLayout filterBar = new HorizontalLayout(yearFilter, monthFilter);
-        filterBar.setSpacing(true);
-
-        // Search Button
         Button searchButton = new Button(new Icon(VaadinIcon.SEARCH), e -> applyFilters());
         searchButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-        // Reset Button
         Button resetButton = new Button(new Icon(VaadinIcon.RECYCLE), e -> {
-            reselFilter();
+            resetFilter();
             applyFilters();
         });
         resetButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        // Toolbar layout: kiri filter+search+reset, kanan Add Payroll
-        HorizontalLayout toolbarLeft = new HorizontalLayout(filterBar, searchField, searchButton, resetButton);
-        toolbarLeft.setAlignItems(FlexComponent.Alignment.END);
-        toolbarLeft.setSpacing(true);
-
-        HorizontalLayout toolbarRight = new HorizontalLayout(deleteButton, addButton);
-        toolbarRight.setAlignItems(FlexComponent.Alignment.END);
-        toolbarRight.setSpacing(true);
-
-        HorizontalLayout toolbar = new HorizontalLayout(toolbarLeft, toolbarRight);
-        toolbar.setWidthFull();
-        toolbar.setAlignItems(FlexComponent.Alignment.END);
-        toolbar.expand(toolbarLeft);
-
-        // Layout
-        VerticalLayout layout = new VerticalLayout(toolbar, grid);
-        layout.setHeightFull();
-        layout.setPadding(false);
-        layout.setSpacing(false);
-        grid.setSizeFull();
-
-        grid.setSelectionMode(Grid.SelectionMode.MULTI);
+        Button addButton = new Button("Add Payroll", e -> openAddPayrollDialog());
+        addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        addButton.setVisible(true);
 
         deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
         deleteButton.setVisible(false);
+        deleteButton.setEnabled(true);
 
-        grid.addSelectionListener(e -> {
-            deleteButton.setVisible(!grid.getSelectedItems().isEmpty());
-        });
+        grid.addSelectionListener(e -> deleteButton.setVisible(auth.canDelete && !grid.getSelectedItems().isEmpty()));
 
         deleteButton.addClickListener(e -> {
             List<Long> ids = grid.getSelectedItems().stream()
@@ -276,35 +318,106 @@ public class PayrollView extends Main {
                     .toList();
 
             if (ids.isEmpty()) {
-    AppNotification.error("Tidak ada data yang dipilih.");
-    return;
-}
+                AppNotification.error("Tidak ada data yang dipilih.");
+                return;
+            }
 
-runWithPreloading("Menghapus data payroll...", () -> {
-    payrollService.deletePayrolls(ids);
-}, () -> {
-    grid.deselectAll();
-    applyFilters();
-    deleteButton.setVisible(false);
-
-    AppNotification.success("Berhasil menghapus " + ids.size() + " data payroll.");
-});
+            runWithPreloading("Menghapus data payroll...", () -> {
+                payrollService.deletePayrolls(ids);
+            }, () -> {
+                grid.deselectAll();
+                applyFilters();
+                deleteButton.setVisible(false);
+                AppNotification.success("Berhasil menghapus " + ids.size() + " data payroll.");
+            });
         });
 
-        add(layout);
+        HorizontalLayout filterBar = new HorizontalLayout(yearFilter, monthFilter, searchField, searchButton, resetButton);
+        filterBar.setAlignItems(FlexComponent.Alignment.END);
+        filterBar.setSpacing(true);
 
-        // Initial load
-        applyFilters();
+        HorizontalLayout actionBar = new HorizontalLayout(deleteButton, addButton);
+        actionBar.setAlignItems(FlexComponent.Alignment.END);
+        actionBar.setSpacing(true);
+
+        HorizontalLayout toolbar = new HorizontalLayout(filterBar, actionBar);
+        toolbar.setWidthFull();
+        toolbar.expand(filterBar);
+        toolbar.setAlignItems(FlexComponent.Alignment.END);
+
+        VerticalLayout layout = new VerticalLayout(toolbar, grid);
+        layout.setSizeFull();
+        layout.setPadding(false);
+        layout.setSpacing(false);
+        return layout;
     }
 
-    private void reselFilter(){
+    private void applyFilters() {
+        Integer selectedYear = yearFilter.getValue();
+        Integer selectedMonth = monthFilter.getValue();
+        String searchTerm = searchField.getValue();
+
+        MutableObject<LocalDate> mFilterDate = new MutableObject<>();
+        if (selectedYear != null && selectedMonth != null) {
+            mFilterDate.setValue(LocalDate.of(selectedYear, selectedMonth, 1));
+        }
+
+        rowNoByPayrollId.clear();
+        calculationCache.clear();
+
+        DataProvider<HrPayroll, Void> dataProvider = DataProvider.fromCallbacks(
+                query -> {
+                    int offset = query.getOffset();
+                    int limit = query.getLimit();
+                    int page = offset / limit;
+
+                    List<QuerySortOrder> ignored = query.getSortOrders();
+
+                    List<HrPayroll> items = payrollService.getPayrollPage(
+                            PageRequest.of(page, limit),
+                            selectedYear,
+                            mFilterDate.getValue(),
+                            searchTerm
+                    ).getContent();
+
+                    for (int i = 0; i < items.size(); i++) {
+                        HrPayroll p = items.get(i);
+                        if (p.getId() != null) {
+                            rowNoByPayrollId.put(p.getId(), offset + i + 1);
+                        }
+                    }
+
+                    return items.stream();
+                },
+                query -> (int) payrollService.countPayroll(selectedYear, mFilterDate.getValue(), searchTerm)
+        );
+
+        grid.setDataProvider(dataProvider);
+    }
+
+    private void resetFilter() {
         yearFilter.clear();
         monthFilter.clear();
         searchField.clear();
     }
 
-    private final Dialog recalculateDialog = new Dialog();
-    private final Dialog detailDialog = new Dialog();
+    private void openAddPayrollDialog() {
+        addPayrollDialog.removeAll();
+
+        AddPayrollForm form = new AddPayrollForm(
+                payrollService,
+                currentUser,
+                this::runWithPreloading,
+                () -> {
+                    addPayrollDialog.close();
+                    applyFilters();
+                }
+        );
+
+        addPayrollDialog.add(form);
+        addPayrollDialog.setWidth("900px");
+        addPayrollDialog.open();
+    }
 
     private void openRecalculateDialog(HrPayroll payroll) {
         recalculateDialog.removeAll();
@@ -312,7 +425,7 @@ runWithPreloading("Menghapus data payroll...", () -> {
         RecalculateForm form = new RecalculateForm(
                 payrollService,
                 currentUser,
-                this::runWithPreloading,     // inject loader
+                this::runWithPreloading,
                 payroll,
                 () -> {
                     recalculateDialog.close();
@@ -327,96 +440,121 @@ runWithPreloading("Menghapus data payroll...", () -> {
 
     private void openDetailDialog(HrPayroll payroll) {
         detailDialog.removeAll();
-        detailDialog.setWidth("900px");
+        detailDialog.setWidth("1000px");
         detailDialog.setCloseOnEsc(true);
         detailDialog.setCloseOnOutsideClick(true);
 
-        HrPayrollCalculation calc = payroll.getCalculation();
+        HrPayrollCalculation calc = getCalc(payroll).orElse(null);
+        List<HrPayrollComponent> components = calc == null
+                ? Collections.emptyList()
+                : payrollService.getPayrollComponentsByCalculationId(calc.getId());
 
-        FormLayout form = new FormLayout();
-        form.setResponsiveSteps(
-                new FormLayout.ResponsiveStep("0", 1),
-                new FormLayout.ResponsiveStep("700px", 2)
-        );
+        VerticalLayout root = new VerticalLayout();
+        root.setPadding(false);
+        root.setSpacing(true);
+        root.setWidthFull();
 
-        // Helper label/value
-        java.util.function.BiConsumer<String, String> addRow = (label, value) -> {
-            TextField tf = new TextField();
-            tf.setValue(value == null ? "-" : value);
-            tf.setReadOnly(true);
-            tf.setWidthFull();
-            form.addFormItem(tf, label);
-        };
-
-        // Header
         Span title = new Span("Payroll Detail");
         title.getStyle().set("font-weight", "600");
+        title.getStyle().set("font-size", "1.1rem");
 
-        String employeeName = ((payroll.getFirstName() == null ? "" : payroll.getFirstName()) + " " +
-                (payroll.getLastName() == null ? "" : payroll.getLastName())).trim();
+        FormLayout header = new FormLayout();
+        header.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 1),
+                new FormLayout.ResponsiveStep("720px", 2)
+        );
 
-        addRow.accept("Employee", employeeName.isBlank() ? "-" : employeeName);
-        addRow.accept("Payroll Month", formatPayrollMonth(payroll.getPayrollDate()));
-        addRow.accept("Position", payroll.getPosition() == null ? "-" : payroll.getPosition());
-        addRow.accept("Department", payroll.getDepartment() == null ? "-" : payroll.getDepartment());
+        addReadOnlyField(header, "NIK", blankToDash(payroll.getEmployeeNumber()));
+        addReadOnlyField(header, "Nama", getEmployeeName(payroll));
+        addReadOnlyField(header, "Jabatan", blankToDash(payroll.getPosition()));
+        addReadOnlyField(header, "Departement", blankToDash(payroll.getDepartment()));
+        addReadOnlyField(header, "Status Pajak", blankToDash(payroll.getPtkpCode()));
+        addReadOnlyField(header, "Tanggal Masuk", payroll.getJoinDate() == null ? "-" : payroll.getJoinDate().toString());
+        addReadOnlyField(header, "Periode Payroll", formatPayrollMonth(payroll.getPayrollDate()));
+        addReadOnlyField(header, "Total Hari Kerja", String.valueOf(payroll.getParamAttendanceDays() == null ? 0 : payroll.getParamAttendanceDays()));
+        addReadOnlyField(header, "Total Hadir", String.valueOf(payroll.getSumAttendance() == null ? 0 : payroll.getSumAttendance()));
 
-        // Attendance info
-        addRow.accept("Param Attendance Days", String.valueOf(payroll.getParamAttendanceDays() == null ? 0 : payroll.getParamAttendanceDays()));
-        addRow.accept("Sum Attendance", String.valueOf(payroll.getSumAttendance() == null ? 0 : payroll.getSumAttendance()));
+        Grid<HrPayrollComponent> componentGrid = new Grid<>(HrPayrollComponent.class, false);
+        componentGrid.setWidthFull();
+        componentGrid.setHeight("400px");
+        componentGrid.setItems(components);
 
-        // Allowance / overtime raw
-        addRow.accept("Allowance Type", payroll.getAllowancesType() == null ? "-" : payroll.getAllowancesType());
-        addRow.accept("Allowance Value", payroll.getAllowancesValue() == null ? "-" : payroll.getAllowancesValue());
-        addRow.accept("Overtime Type", payroll.getOvertimeType() == null ? "-" : payroll.getOvertimeType());
-        addRow.accept("Overtime Minutes Param", payroll.getOvertimeHours() == null ? "0" : payroll.getOvertimeHours().toPlainString());
-        addRow.accept("Overtime Value Payment", payroll.getOvertimeValuePayment() == null ? "-" : payroll.getOvertimeValuePayment());
+        componentGrid.addColumn(HrPayrollComponent::getComponentType).setHeader("Type").setWidth("120px").setFlexGrow(0);
+        componentGrid.addColumn(HrPayrollComponent::getComponentGroup).setHeader("Group").setWidth("180px").setFlexGrow(0);
+        componentGrid.addColumn(HrPayrollComponent::getComponentCode).setHeader("Code").setWidth("180px").setFlexGrow(0);
+        componentGrid.addColumn(HrPayrollComponent::getComponentName).setHeader("Name").setAutoWidth(true).setFlexGrow(1);
+        componentGrid.addColumn(c -> fmt(c.getAmount())).setHeader("Amount").setWidth("160px").setFlexGrow(0);
 
-        // PTKP
-        addRow.accept("PTKP Code", payroll.getPtkpCode() == null ? "-" : payroll.getPtkpCode());
-        addRow.accept("PTKP Amount (Monthly)", FormattingUtils.formatPayrollAmount(payroll.getPtkpAmount() == null ? BigDecimal.ZERO : payroll.getPtkpAmount()));
+        FormLayout summary = new FormLayout();
+        summary.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 1),
+                new FormLayout.ResponsiveStep("720px", 2)
+        );
 
-        // Calculation summary
         if (calc != null) {
-            addRow.accept("Gross Salary", FormattingUtils.formatPayrollAmount(nvl(calc.getGrossSalary())));
-            addRow.accept("Total Allowances", FormattingUtils.formatPayrollAmount(nvl(calc.getTotalAllowances())));
-            addRow.accept("Total Overtimes", FormattingUtils.formatPayrollAmount(nvl(calc.getTotalOvertimes())));
-            addRow.accept("Total Bonus (Annual)", FormattingUtils.formatPayrollAmount(nvl(calc.getTotalBonus())));
-            addRow.accept("Other Deductions", FormattingUtils.formatPayrollAmount(nvl(calc.getTotalOtherDeductions())));
-            addRow.accept("Total Taxable", FormattingUtils.formatPayrollAmount(nvl(calc.getTotalTaxable())));
+            BigDecimal bpjsTkCompany = nvl(calc.getBpjsJhtCompany()).add(nvl(calc.getBpjsJpCompany()));
+            BigDecimal tunjanganTidakTetap = nvl(calc.getVariableAllowanceTotal()).add(bpjsTkCompany).add(nvl(calc.getBpjsJknCompany()));
+            BigDecimal asuransi = nvl(calc.getBpjsJhtDeduction()).add(nvl(calc.getBpjsJpDeduction())).add(nvl(calc.getBpjsJknDeduction()));
 
-            // kalau sudah ada kolom ini di entity calc
-            try {
-                java.lang.reflect.Method m = calc.getClass().getMethod("getHealthDeduction");
-                Object v = m.invoke(calc);
-                BigDecimal health = v instanceof BigDecimal ? (BigDecimal) v : BigDecimal.ZERO;
-                addRow.accept("Health Deduction", FormattingUtils.formatPayrollAmount(nvl(health)));
-            } catch (Exception ignored) {
-                // kalau field belum ada, diamkan
-            }
-
-            // real gross salary (attendance deduction), kalau ada
-            try {
-                java.lang.reflect.Method m = calc.getClass().getMethod("getRealGrossSalary");
-                Object v = m.invoke(calc);
-                BigDecimal realGross = v instanceof BigDecimal ? (BigDecimal) v : BigDecimal.ZERO;
-                addRow.accept("Deduction Attendance", FormattingUtils.formatPayrollAmount(nvl(realGross)));
-            } catch (Exception ignored) {
-            }
-
-            addRow.accept("Net Take Home Pay", FormattingUtils.formatPayrollAmount(nvl(calc.getNetTakeHomePay())));
-        } else {
-            addRow.accept("Calculation", "(not created yet)");
+            addReadOnlyField(summary, "Gapok", fmt(calc.getBaseSalary()));
+            addReadOnlyField(summary, "Tunjangan Tetap", fmt(calc.getFixedAllowanceTotal()));
+            addReadOnlyField(summary, "Tunjangan Tidak Tetap", fmt(tunjanganTidakTetap));
+            addReadOnlyField(summary, "Penghasilan Kotor", fmt(calc.getGrossSalary()));
+            addReadOnlyField(summary, "Asuransi", fmt(asuransi));
+            addReadOnlyField(summary, "PPh 21", fmt(calc.getPph21Deduction()));
+            addReadOnlyField(summary, "Total Potongan", fmt(calc.getTotalDeduction()));
+            addReadOnlyField(summary, "THP", fmt(calc.getNetTakeHomePay()));
         }
 
-        Button close = new Button("Tutup", e -> detailDialog.close());
+        Button close = new Button("Close", e -> detailDialog.close());
         close.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-        VerticalLayout layout = new VerticalLayout(title, form, close);
-        layout.setPadding(false);
-        layout.setSpacing(true);
+        root.add(title, header, new Span("Komponen Payroll"), componentGrid, new Span("Summary"), summary, close);
 
-        detailDialog.add(layout);
+        detailDialog.add(new Scroller(root));
         detailDialog.open();
+    }
+
+    private Optional<HrPayrollCalculation> getCalc(HrPayroll payroll) {
+        if (payroll == null || payroll.getId() == null) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(
+                calculationCache.computeIfAbsent(
+                        payroll.getId(),
+                        payrollService::getCalculationByPayrollId
+                )
+        );
+    }
+
+    private BigDecimal findComponentAmountByName(HrPayroll payroll, String componentName) {
+        HrPayrollCalculation calc = getCalc(payroll).orElse(null);
+        if (calc == null) return BigDecimal.ZERO;
+
+        List<HrPayrollComponent> components = payrollService.getPayrollComponentsByCalculationId(calc.getId());
+        return components.stream()
+                .filter(c -> c.getComponentName() != null)
+                .filter(c -> c.getComponentName().equalsIgnoreCase(componentName))
+                .map(HrPayrollComponent::getAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private String getEmployeeName(HrPayroll payroll) {
+        String fn = payroll.getFirstName() == null ? "" : payroll.getFirstName();
+        String mn = payroll.getMiddleName() == null ? "" : payroll.getMiddleName();
+        String ln = payroll.getLastName() == null ? "" : payroll.getLastName();
+        String full = (fn + " " + mn + " " + ln).trim().replaceAll("\\s+", " ");
+        return full.isBlank() ? "-" : full;
+    }
+
+    private void addReadOnlyField(FormLayout form, String label, String value) {
+        TextField tf = new TextField();
+        tf.setValue(value == null ? "-" : value);
+        tf.setReadOnly(true);
+        tf.setWidthFull();
+        form.addFormItem(tf, label);
     }
 
     public static class RecalculateForm extends FormLayout {
@@ -424,8 +562,8 @@ runWithPreloading("Menghapus data payroll...", () -> {
         private final CurrentUser currentUser;
         private final HrPayroll payroll;
         private final Runnable onSaveSuccess;
+        private final UiLoader loader;
 
-        // reuse fields like AddPayrollForm
         private final ComboBox<Integer> yearField = new ComboBox<>();
         private final ComboBox<Integer> monthField = new ComboBox<>();
         private final IntegerField attendanceDaysField = new IntegerField();
@@ -438,10 +576,8 @@ runWithPreloading("Menghapus data payroll...", () -> {
         private final RadioButtonGroup<String> allowanceMode = new RadioButtonGroup<>();
         private final MultiSelectComboBox<HrSalaryAllowance> allowanceMultiSelect = new MultiSelectComboBox<>();
 
-        // Add Component fields
         private final BigDecimalField totalBonusField = new BigDecimalField();
         private final BigDecimalField totalOtherDedField = new BigDecimalField();
-        private final BigDecimalField totalTaxableField = new BigDecimalField();
 
         private final Button saveButton = new Button("Recalculate");
         private final Button cancelButton = new Button("Cancel");
@@ -449,10 +585,11 @@ runWithPreloading("Menghapus data payroll...", () -> {
         private final Binder<PayrollService.AddPayrollRequest> binder =
                 new BeanValidationBinder<>(PayrollService.AddPayrollRequest.class);
 
-        private final UiLoader loader;
-
-        public RecalculateForm(PayrollService payrollService, CurrentUser currentUser, UiLoader loader,
-                               HrPayroll payroll, Runnable onSaveSuccess) {
+        public RecalculateForm(PayrollService payrollService,
+                               CurrentUser currentUser,
+                               UiLoader loader,
+                               HrPayroll payroll,
+                               Runnable onSaveSuccess) {
             this.payrollService = payrollService;
             this.currentUser = currentUser;
             this.loader = loader;
@@ -466,100 +603,60 @@ runWithPreloading("Menghapus data payroll...", () -> {
         }
 
         private void configureFields() {
-            LocalDate d = payroll.getPayrollDate();
-            LocalDate payrollDate = d == null ? LocalDate.now().withDayOfMonth(1) : d.withDayOfMonth(1);
+            LocalDate payrollDate = payroll.getPayrollDate() == null
+                    ? LocalDate.now().withDayOfMonth(1)
+                    : payroll.getPayrollDate().withDayOfMonth(1);
 
-            // =========================
-            // Periode (disable)
-            // =========================
-            yearField.setPlaceholder("Year");
             yearField.setItems(payrollDate.getYear());
             yearField.setValue(payrollDate.getYear());
             yearField.setEnabled(false);
             yearField.setWidthFull();
 
-            monthField.setPlaceholder("Month");
             monthField.setItems(payrollDate.getMonthValue());
             monthField.setValue(payrollDate.getMonthValue());
             monthField.setEnabled(false);
             monthField.setWidthFull();
 
-            // =========================
-            // Attendance + Overtime minutes
-            // =========================
-            attendanceDaysField.setPlaceholder("0 - 31");
             attendanceDaysField.setMin(0);
             attendanceDaysField.setMax(31);
-            attendanceDaysField.setWidthFull();
             attendanceDaysField.setValue(payroll.getParamAttendanceDays() == null ? 0 : payroll.getParamAttendanceDays());
+            attendanceDaysField.setWidthFull();
 
-            overtimeMinutesField.setPlaceholder("0 - 60");
             overtimeMinutesField.setMin(0);
             overtimeMinutesField.setMax(60);
-            overtimeMinutesField.setWidthFull();
             overtimeMinutesField.setValue(payroll.getOvertimeHours() == null ? 0 : payroll.getOvertimeHours().intValue());
+            overtimeMinutesField.setWidthFull();
 
-            // =========================
-            // Overtime type + value preload
-            // overtime_value_payment format: "pct | nominal"
-            // =========================
-            overtimePaymentType.setLabel(null);
             overtimePaymentType.setItems("STATIC", "PERCENTAGE");
-            String overtimeTypeDb = payroll.getOvertimeType() == null ? "STATIC" : payroll.getOvertimeType();
-            overtimePaymentType.setValue(overtimeTypeDb);
+            overtimePaymentType.setValue("STATIC");
             overtimePaymentType.setWidthFull();
 
-            overtimeStaticNominal.setPlaceholder("Rp 0");
+            overtimeStaticNominal.setValue(payroll.getOvertimeAmount() == null ? BigDecimal.ZERO : payroll.getOvertimeAmount());
             overtimeStaticNominal.setWidthFull();
 
-            overtimePercent.setPlaceholder("0 - 100 (%)");
             overtimePercent.setMin(0);
             overtimePercent.setMax(100);
+            overtimePercent.setValue(0);
             overtimePercent.setWidthFull();
-
-            // Parse string "pct | nominal"
-            OvertimePaymentParsed parsed = parseOvertimeValuePayment(payroll.getOvertimeValuePayment());
-
-            // Set values from parsed
-            overtimeStaticNominal.setValue(parsed.nominal);
-            overtimePercent.setValue(parsed.percent);
-
-            // Visibility according to overtime type
-            boolean isStatic = !"PERCENTAGE".equalsIgnoreCase(overtimeTypeDb);
-            overtimeStaticNominal.setVisible(isStatic);
-            overtimePercent.setVisible(!isStatic);
+            overtimePercent.setVisible(false);
 
             overtimePaymentType.addValueChangeListener(e -> {
-                boolean staticNow = "STATIC".equals(e.getValue());
-                overtimeStaticNominal.setVisible(staticNow);
-                overtimePercent.setVisible(!staticNow);
+                boolean isStatic = "STATIC".equalsIgnoreCase(e.getValue());
+                overtimeStaticNominal.setVisible(isStatic);
+                overtimePercent.setVisible(!isStatic);
             });
 
-            // =========================
-            // Allowance mode + options
-            // =========================
-            allowanceMode.setLabel(null);
             allowanceMode.setItems("NO ALLOWANCE", "SELECT ALLOWANCE", "BENEFITS PACKAGE");
-
-            // payroll.getAllowancesType() di DB bisa "SELECT ALLOWANCE" / "BENEFITS PACKAGE" / "NO ALLOWANCE"
-            String allowanceModeDb = payroll.getAllowancesType() == null ? "NO ALLOWANCE" : payroll.getAllowancesType();
-            allowanceMode.setValue(allowanceModeDb);
+            allowanceMode.setValue("BENEFITS PACKAGE");
             allowanceMode.setWidthFull();
 
             allowanceMultiSelect.setPlaceholder("Select one or more allowances");
-            allowanceMultiSelect.setWidthFull();
-
-            // Isi options allowance sama seperti Add Payroll (penting!)
-            List<HrSalaryAllowance> selectable =
-                    payrollService.getSelectableAllowancesForPayrollDate(payrollDate);
-
-            allowanceMultiSelect.setItems(selectable);
+            allowanceMultiSelect.setItems(payrollService.getSelectableAllowancesForPayrollDate(payrollDate));
             allowanceMultiSelect.setItemLabelGenerator(a ->
                     a.getName() + " (Rp " + FormattingUtils.formatPayrollAmount(a.getAmount()) + ")"
             );
-
-            // Visible hanya saat SELECT ALLOWANCE
-            allowanceMultiSelect.setVisible("SELECT ALLOWANCE".equalsIgnoreCase(allowanceModeDb));
+            allowanceMultiSelect.setVisible(false);
+            allowanceMultiSelect.setWidthFull();
 
             allowanceMode.addValueChangeListener(e -> {
                 boolean show = "SELECT ALLOWANCE".equalsIgnoreCase(e.getValue());
@@ -569,31 +666,19 @@ runWithPreloading("Menghapus data payroll...", () -> {
                 }
             });
 
-            // =========================
-            // Add Component fields (preload dari calculation jika ada)
-            // =========================
-            HrPayrollCalculation calc = payroll.getCalculation();
+            HrPayrollCalculation calc = payrollService.getCalculationByPayrollId(payroll.getId());
 
-            totalBonusField.setPlaceholder("Rp 0");
+            totalBonusField.setValue(calc == null || calc.getBonusAmount() == null ? BigDecimal.ZERO : calc.getBonusAmount());
             totalBonusField.setWidthFull();
-            totalBonusField.setValue(calc == null || calc.getTotalBonus() == null ? BigDecimal.ZERO : calc.getTotalBonus());
 
-            totalOtherDedField.setPlaceholder("Rp 0");
+            totalOtherDedField.setValue(BigDecimal.ZERO);
             totalOtherDedField.setWidthFull();
-            totalOtherDedField.setValue(calc == null || calc.getTotalOtherDeductions() == null ? BigDecimal.ZERO : calc.getTotalOtherDeductions());
 
-            totalTaxableField.setPlaceholder("AUTO (gross - PTKP)");
-            totalTaxableField.setReadOnly(true);
-            totalTaxableField.setValue(calc == null || calc.getTotalTaxable() == null ? BigDecimal.ZERO : calc.getTotalTaxable());
-            totalTaxableField.setHelperText("Nilai ini dihitung otomatis: Gross Salary - PTKP (bulanan).");
-
-            // Button themes
             saveButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
             cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         }
 
         private void configureBinder() {
-            // Buat bean request dari data payroll existing
             PayrollService.AddPayrollRequest bean = new PayrollService.AddPayrollRequest();
 
             LocalDate payrollDate = payroll.getPayrollDate() == null
@@ -602,54 +687,31 @@ runWithPreloading("Menghapus data payroll...", () -> {
 
             bean.setYear(payrollDate.getYear());
             bean.setMonth(payrollDate.getMonthValue());
-
             bean.setParamAttendanceDays(payroll.getParamAttendanceDays() == null ? 0 : payroll.getParamAttendanceDays());
             bean.setOvertimeMinutes(payroll.getOvertimeHours() == null ? 0 : payroll.getOvertimeHours().intValue());
-
-            String overtimeTypeDb = payroll.getOvertimeType() == null ? "STATIC" : payroll.getOvertimeType();
-            bean.setOvertimePaymentType(overtimeTypeDb);
-
-            // parse overtime_value_payment string "pct | nominal"
-            OvertimePaymentParsed parsed = parseOvertimeValuePayment(payroll.getOvertimeValuePayment());
-            bean.setOvertimePercent(parsed.percent);
-            bean.setOvertimeStaticNominal(parsed.nominal);
-
-            String allowanceModeDb = payroll.getAllowancesType() == null ? "NO ALLOWANCE" : payroll.getAllowancesType();
-            bean.setAllowanceMode(allowanceModeDb);
-
-            // selectedAllowances tidak dibind otomatis (ambil dari allowanceMultiSelect saat submit)
+            bean.setOvertimePaymentType("STATIC");
+            bean.setOvertimeStaticNominal(payroll.getOvertimeAmount() == null ? BigDecimal.ZERO : payroll.getOvertimeAmount());
+            bean.setOvertimePercent(0);
+            bean.setAllowanceMode("BENEFITS PACKAGE");
             bean.setSelectedAllowances(new ArrayList<>());
 
             binder.setBean(bean);
 
-            // Bind fields
-            binder.forField(yearField)
-                    .bind(PayrollService.AddPayrollRequest::getYear, PayrollService.AddPayrollRequest::setYear);
-
-            binder.forField(monthField)
-                    .bind(PayrollService.AddPayrollRequest::getMonth, PayrollService.AddPayrollRequest::setMonth);
-
-            binder.forField(attendanceDaysField)
-                    .bind(PayrollService.AddPayrollRequest::getParamAttendanceDays, PayrollService.AddPayrollRequest::setParamAttendanceDays);
-
-            binder.forField(overtimeMinutesField)
-                    .bind(PayrollService.AddPayrollRequest::getOvertimeMinutes, PayrollService.AddPayrollRequest::setOvertimeMinutes);
-
-            binder.forField(overtimePaymentType)
-                    .bind(PayrollService.AddPayrollRequest::getOvertimePaymentType, PayrollService.AddPayrollRequest::setOvertimePaymentType);
-
-            binder.forField(overtimeStaticNominal)
-                    .bind(PayrollService.AddPayrollRequest::getOvertimeStaticNominal, PayrollService.AddPayrollRequest::setOvertimeStaticNominal);
-
-            binder.forField(overtimePercent)
-                    .bind(PayrollService.AddPayrollRequest::getOvertimePercent, PayrollService.AddPayrollRequest::setOvertimePercent);
-
-            binder.forField(allowanceMode)
-                    .bind(PayrollService.AddPayrollRequest::getAllowanceMode, PayrollService.AddPayrollRequest::setAllowanceMode);
+            binder.forField(yearField).bind(PayrollService.AddPayrollRequest::getYear, PayrollService.AddPayrollRequest::setYear);
+            binder.forField(monthField).bind(PayrollService.AddPayrollRequest::getMonth, PayrollService.AddPayrollRequest::setMonth);
+            binder.forField(attendanceDaysField).bind(PayrollService.AddPayrollRequest::getParamAttendanceDays, PayrollService.AddPayrollRequest::setParamAttendanceDays);
+            binder.forField(overtimeMinutesField).bind(PayrollService.AddPayrollRequest::getOvertimeMinutes, PayrollService.AddPayrollRequest::setOvertimeMinutes);
+            binder.forField(overtimePaymentType).bind(PayrollService.AddPayrollRequest::getOvertimePaymentType, PayrollService.AddPayrollRequest::setOvertimePaymentType);
+            binder.forField(overtimeStaticNominal).bind(PayrollService.AddPayrollRequest::getOvertimeStaticNominal, PayrollService.AddPayrollRequest::setOvertimeStaticNominal);
+            binder.forField(overtimePercent).bind(PayrollService.AddPayrollRequest::getOvertimePercent, PayrollService.AddPayrollRequest::setOvertimePercent);
+            binder.forField(allowanceMode).bind(PayrollService.AddPayrollRequest::getAllowanceMode, PayrollService.AddPayrollRequest::setAllowanceMode);
         }
 
         private void configureLayout() {
-            setResponsiveSteps(new ResponsiveStep("0", 1), new ResponsiveStep("700px", 2));
+            setResponsiveSteps(
+                    new ResponsiveStep("0", 1),
+                    new ResponsiveStep("700px", 2)
+            );
 
             Span s1 = new Span("Periode Payroll");
             s1.getStyle().set("font-weight", "600");
@@ -664,12 +726,12 @@ runWithPreloading("Menghapus data payroll...", () -> {
             add(s2);
             setColspan(s2, 2);
 
-            addFormItem(attendanceDaysField, "Total Hari Kerja (input manual)");
-            addFormItem(overtimeMinutesField, "Overtime dihitung (menit 0-60)");
+            addFormItem(attendanceDaysField, "Total Hari Kerja");
+            addFormItem(overtimeMinutesField, "Overtime dihitung (menit)");
 
             addFormItem(overtimePaymentType, "Bayaran Overtime");
             addFormItem(overtimeStaticNominal, "Nominal Upah (Rp)");
-            addFormItem(overtimePercent, "Persentase (Percentage)");
+            addFormItem(overtimePercent, "Persentase (%)");
 
             Span s3 = new Span("Allowance");
             s3.getStyle().set("font-weight", "600");
@@ -680,15 +742,13 @@ runWithPreloading("Menghapus data payroll...", () -> {
             FormItem fiAllow = addFormItem(allowanceMultiSelect, "Select Allowance");
             setColspan(fiAllow, 2);
 
-            Span s4 = new Span("Add Component");
+            Span s4 = new Span("Komponen Tambahan");
             s4.getStyle().set("font-weight", "600");
             add(s4);
             setColspan(s4, 2);
 
-            addFormItem(totalBonusField, "Total Bonus (annual)");
-            addFormItem(totalOtherDedField, "Total Other Deductions");
-            FormItem fiTax = addFormItem(totalTaxableField, "Total Taxable");
-            setColspan(fiTax, 2);
+            addFormItem(totalBonusField, "Bonus");
+            addFormItem(totalOtherDedField, "Other Deductions");
 
             HorizontalLayout buttons = new HorizontalLayout(saveButton, cancelButton);
             buttons.setWidthFull();
@@ -706,9 +766,6 @@ runWithPreloading("Menghapus data payroll...", () -> {
                     return;
                 }
 
-                // Ambil user DI UI THREAD
-                AppUserInfo userInfo = currentUser.require();
-
                 String mode = bean.getAllowanceMode() == null ? "" : bean.getAllowanceMode().trim();
                 if ("SELECT ALLOWANCE".equalsIgnoreCase(mode)) {
                     bean.setSelectedAllowances(new ArrayList<>(allowanceMultiSelect.getSelectedItems()));
@@ -716,9 +773,10 @@ runWithPreloading("Menghapus data payroll...", () -> {
                     bean.setSelectedAllowances(new ArrayList<>());
                 }
 
+                AppUserInfo userInfo = currentUser.require();
+
                 BigDecimal bonus = totalBonusField.getValue() == null ? BigDecimal.ZERO : totalBonusField.getValue();
                 BigDecimal otherDed = totalOtherDedField.getValue() == null ? BigDecimal.ZERO : totalOtherDedField.getValue();
-                BigDecimal taxable = totalTaxableField.getValue() == null ? BigDecimal.ZERO : totalTaxableField.getValue();
 
                 loader.run("Recalculating payroll...", () -> {
                     payrollService.recalculateSinglePayroll(
@@ -726,8 +784,8 @@ runWithPreloading("Menghapus data payroll...", () -> {
                             bean,
                             bonus,
                             otherDed,
-                            taxable,
-                            userInfo   // <-- pakai userInfo yang sudah diambil di UI thread
+                            BigDecimal.ZERO,
+                            userInfo
                     );
                 }, () -> {
                     AppNotification.success("Perhitungan ulang berhasil.");
@@ -739,69 +797,7 @@ runWithPreloading("Menghapus data payroll...", () -> {
         }
     }
 
-    private void applyFilters() {
-        Integer selectedYear = yearFilter.getValue();
-        Integer selectedMonth = monthFilter.getValue();
-        String searchTerm = searchField.getValue();
-
-        MutableObject<LocalDate> mFilterDate = new MutableObject<>();
-        if (selectedYear != null && selectedMonth != null) {
-            mFilterDate.setValue(LocalDate.of(selectedYear, selectedMonth, 1));
-        }
-
-        // clear numbering cache setiap applyFilters
-        rowNoByPayrollId.clear();
-
-        DataProvider<HrPayroll, Void> dataProvider = DataProvider.fromCallbacks(
-                query -> {
-                    int offset = query.getOffset();
-                    int limit = query.getLimit();
-
-                    List<QuerySortOrder> sortOrders = query.getSortOrders();
-
-                    int page = offset / limit;
-                    PageRequest pageRequest = PageRequest.of(page, limit);
-
-                    List<HrPayroll> items = payrollService.getPayrollPage(pageRequest, selectedYear, mFilterDate.getValue(), searchTerm)
-                            .getContent();
-
-                    // isi nomor urut berdasarkan offset halaman
-                    for (int i = 0; i < items.size(); i++) {
-                        HrPayroll p = items.get(i);
-                        if (p.getId() != null) {
-                            rowNoByPayrollId.put(p.getId(), offset + i + 1);
-                        }
-                    }
-
-                    return items.stream();
-                },
-                query -> (int) payrollService.countPayroll(selectedYear, mFilterDate.getValue(), searchTerm)
-        );
-
-        grid.setDataProvider(dataProvider);
-    }
-
-    private void openAddPayrollDialog() {
-        addPayrollDialog.removeAll();
-
-        AddPayrollForm form = new AddPayrollForm(
-                payrollService,
-                currentUser,
-                this::runWithPreloading,   // <-- inject loader
-                () -> {
-                    addPayrollDialog.close();
-                    applyFilters();
-                }
-        );
-
-
-        addPayrollDialog.add(form);
-        addPayrollDialog.setWidth("900px");
-        addPayrollDialog.open();
-    }
-
     public static class AddPayrollForm extends FormLayout {
-
         private final PayrollService payrollService;
         private final CurrentUser currentUser;
         private final PreloadRunner preloadRunner;
@@ -809,7 +805,6 @@ runWithPreloading("Menghapus data payroll...", () -> {
 
         private final ComboBox<Integer> yearField = new ComboBox<>();
         private final ComboBox<Integer> monthField = new ComboBox<>();
-
         private final IntegerField attendanceDaysField = new IntegerField();
         private final IntegerField overtimeMinutesField = new IntegerField();
 
@@ -826,12 +821,10 @@ runWithPreloading("Menghapus data payroll...", () -> {
         private final Binder<PayrollService.AddPayrollRequest> binder =
                 new BeanValidationBinder<>(PayrollService.AddPayrollRequest.class);
 
-        public AddPayrollForm(
-                PayrollService payrollService,
-                CurrentUser currentUser,
-                PreloadRunner preloadRunner,
-                Runnable onSaveSuccess
-        ) {
+        public AddPayrollForm(PayrollService payrollService,
+                              CurrentUser currentUser,
+                              PreloadRunner preloadRunner,
+                              Runnable onSaveSuccess) {
             this.payrollService = payrollService;
             this.currentUser = currentUser;
             this.preloadRunner = preloadRunner;
@@ -842,74 +835,49 @@ runWithPreloading("Menghapus data payroll...", () -> {
             configureLayout();
             configureActions();
         }
-        private Dialog openProcessingDialog() {
-            Dialog d = new Dialog();
-            d.setCloseOnEsc(false);
-            d.setCloseOnOutsideClick(false);
-            d.setModal(true);
-
-            com.vaadin.flow.component.progressbar.ProgressBar bar = new com.vaadin.flow.component.progressbar.ProgressBar();
-            bar.setIndeterminate(true);
-
-            VerticalLayout vl = new VerticalLayout(new Span("Processing payroll..."), bar);
-            vl.setPadding(true);
-            vl.setSpacing(true);
-            d.add(vl);
-            d.open();
-            return d;
-        }
 
         private void configureFields() {
             int y = LocalDate.now().getYear();
 
-            yearField.setPlaceholder("Year");
             yearField.setItems(y - 5, y - 4, y - 3, y - 2, y - 1, y, y + 1);
             yearField.setValue(y);
             yearField.setWidthFull();
 
-            monthField.setPlaceholder("Month");
             monthField.setItems(1,2,3,4,5,6,7,8,9,10,11,12);
             monthField.setItemLabelGenerator(m -> Month.of(m).getDisplayName(TextStyle.FULL, new Locale("id", "ID")));
             monthField.setValue(LocalDate.now().getMonthValue());
             monthField.setWidthFull();
 
-            attendanceDaysField.setPlaceholder("0 - 31");
             attendanceDaysField.setMin(0);
             attendanceDaysField.setMax(31);
             attendanceDaysField.setValue(null);
             attendanceDaysField.setWidthFull();
 
-            overtimeMinutesField.setPlaceholder("0 - 60");
             overtimeMinutesField.setMin(0);
             overtimeMinutesField.setMax(60);
             overtimeMinutesField.setValue(null);
             overtimeMinutesField.setWidthFull();
 
-            overtimePaymentType.setLabel(null); // label kita taruh di FormItem
             overtimePaymentType.setItems("STATIC", "PERCENTAGE");
             overtimePaymentType.setValue("STATIC");
             overtimePaymentType.setWidthFull();
 
             overtimeStaticNominal.setPlaceholder("Rp 0");
             overtimeStaticNominal.setWidthFull();
-            overtimeStaticNominal.setValue(null);
+            overtimeStaticNominal.setVisible(true);
 
-            overtimePercent.setPlaceholder("0 - 100 (%)");
             overtimePercent.setMin(0);
             overtimePercent.setMax(100);
             overtimePercent.setValue(null);
             overtimePercent.setWidthFull();
-
-            overtimeStaticNominal.setVisible(true);
             overtimePercent.setVisible(false);
 
             overtimePaymentType.addValueChangeListener(e -> {
-                boolean isStatic = "STATIC".equals(e.getValue());
+                boolean isStatic = "STATIC".equalsIgnoreCase(e.getValue());
                 overtimeStaticNominal.setVisible(isStatic);
                 overtimePercent.setVisible(!isStatic);
             });
 
-            allowanceMode.setLabel(null);
             allowanceMode.setItems("NO ALLOWANCE", "SELECT ALLOWANCE", "BENEFITS PACKAGE");
             allowanceMode.setValue("NO ALLOWANCE");
             allowanceMode.setWidthFull();
@@ -917,7 +885,6 @@ runWithPreloading("Menghapus data payroll...", () -> {
             allowanceMultiSelect.setPlaceholder("Select one or more allowances");
             allowanceMultiSelect.setWidthFull();
             allowanceMultiSelect.setVisible(false);
-
             allowanceMultiSelect.setItemLabelGenerator(a ->
                     a.getName() + " (Rp " + FormattingUtils.formatPayrollAmount(a.getAmount()) + ")"
             );
@@ -928,8 +895,11 @@ runWithPreloading("Menghapus data payroll...", () -> {
             monthField.addValueChangeListener(e -> refreshAllowanceOptions());
 
             allowanceMode.addValueChangeListener(e -> {
-                boolean show = "SELECT ALLOWANCE".equals(e.getValue());
+                boolean show = "SELECT ALLOWANCE".equalsIgnoreCase(e.getValue());
                 allowanceMultiSelect.setVisible(show);
+                if (!show) {
+                    allowanceMultiSelect.deselectAll();
+                }
             });
 
             saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -937,9 +907,12 @@ runWithPreloading("Menghapus data payroll...", () -> {
         }
 
         private void refreshAllowanceOptions() {
-            LocalDate payrollDate = LocalDate.of(yearField.getValue(), monthField.getValue(), 1);
+            Integer year = yearField.getValue();
+            Integer month = monthField.getValue();
+            if (year == null || month == null) return;
+
+            LocalDate payrollDate = LocalDate.of(year, month, 1);
             allowanceMultiSelect.setItems(payrollService.getSelectableAllowancesForPayrollDate(payrollDate));
-            System.out.println("Selected allowances: " + allowanceMultiSelect.getSelectedItems().size());
         }
 
         private void configureBinder() {
@@ -981,61 +954,43 @@ runWithPreloading("Menghapus data payroll...", () -> {
         }
 
         private void configureLayout() {
-            setWidthFull();
-
             setResponsiveSteps(
                     new ResponsiveStep("0", 1),
                     new ResponsiveStep("700px", 2)
             );
 
-            // Section: Periode Payroll
             Span s1 = new Span("Periode Payroll");
             s1.getStyle().set("font-weight", "600");
-            s1.getStyle().set("margin-top", "0.25rem");
-
             add(s1);
             setColspan(s1, 2);
 
-            FormItem fiYear = addFormItem(yearField, "Year");
-            FormItem fiMonth = addFormItem(monthField, "Month");
-            fiYear.getStyle().set("margin-top", "0");
-            fiMonth.getStyle().set("margin-top", "0");
+            addFormItem(yearField, "Year");
+            addFormItem(monthField, "Month");
 
-            // Section: Parameter
             Span s2 = new Span("Parameter Attendance & Overtime");
             s2.getStyle().set("font-weight", "600");
-            s2.getStyle().set("margin-top", "0.75rem");
-
             add(s2);
             setColspan(s2, 2);
 
-            addFormItem(attendanceDaysField, "Total Hari Kerja (input manual)");
-            addFormItem(overtimeMinutesField, "Overtime dihitung (menit 0-60)");
+            addFormItem(attendanceDaysField, "Total Hari Kerja");
+            addFormItem(overtimeMinutesField, "Overtime dihitung (menit)");
 
             addFormItem(overtimePaymentType, "Bayaran Overtime");
-            // slot kanan untuk field sesuai pilihan (static / percentage)
-            // dibuat rapi: kita taruh keduanya, yang tidak aktif hidden
             addFormItem(overtimeStaticNominal, "Nominal Upah (Rp)");
-            addFormItem(overtimePercent, "Persentase (Percentage)");
+            addFormItem(overtimePercent, "Persentase (%)");
 
-            // Section: Allowance
             Span s3 = new Span("Allowance");
             s3.getStyle().set("font-weight", "600");
-            s3.getStyle().set("margin-top", "0.75rem");
-
             add(s3);
             setColspan(s3, 2);
 
             addFormItem(allowanceMode, "Allowance Option");
-
-            // Multi select dibuat full row agar enak
             FormItem fiAllow = addFormItem(allowanceMultiSelect, "Select Allowance");
             setColspan(fiAllow, 2);
 
             HorizontalLayout buttons = new HorizontalLayout(saveButton, cancelButton);
             buttons.setWidthFull();
             buttons.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-
             add(buttons);
             setColspan(buttons, 2);
         }
@@ -1044,35 +999,29 @@ runWithPreloading("Menghapus data payroll...", () -> {
             saveButton.addClickListener(e -> {
                 PayrollService.AddPayrollRequest bean = binder.getBean();
 
-                // 1) Validasi binder dulu (ini akan copy year/month/attendance/overtime/allowanceMode ke bean)
                 if (!binder.writeBeanIfValid(bean)) {
                     AppNotification.error("Form belum valid");
                     return;
                 }
 
-                // 2) WAJIB: inject selected allowances secara manual (karena tidak dibinding)
                 String mode = bean.getAllowanceMode() == null ? "" : bean.getAllowanceMode().trim();
                 if ("SELECT ALLOWANCE".equalsIgnoreCase(mode)) {
                     bean.setSelectedAllowances(new ArrayList<>(allowanceMultiSelect.getSelectedItems()));
+                    if (bean.getSelectedAllowances().isEmpty()) {
+                        AppNotification.error("Silakan pilih allowance minimal 1 item");
+                        return;
+                    }
                 } else {
                     bean.setSelectedAllowances(new ArrayList<>());
                 }
 
-                // 3) Optional: guard supaya user tidak merasa “sudah pilih” tapi kosong
-                if ("SELECT ALLOWANCE".equalsIgnoreCase(mode) && bean.getSelectedAllowances().isEmpty()) {
-                    AppNotification.error("Silakan pilih allowance minimal 1 item");
-                    return;
-                }
-
-                // 4) Ambil user di UI thread
                 AppUserInfo userInfo = currentUser.require();
 
-                // 5) Jalankan async + loading
                 preloadRunner.run(
                         "Creating payroll...",
                         () -> payrollService.createPayrollBulk(bean, userInfo),
                         () -> {
-                            AppNotification.error("Payroll created successfully");
+                            AppNotification.success("Payroll created successfully");
                             onSaveSuccess.run();
                         }
                 );
@@ -1080,7 +1029,6 @@ runWithPreloading("Menghapus data payroll...", () -> {
 
             cancelButton.addClickListener(e -> onSaveSuccess.run());
         }
-
     }
 
     private final java.util.concurrent.ExecutorService executor =
@@ -1095,8 +1043,8 @@ runWithPreloading("Menghapus data payroll...", () -> {
         VerticalLayout box = new VerticalLayout();
         box.setSpacing(true);
         box.add(new Span(message));
-        com.vaadin.flow.component.progressbar.ProgressBar bar =
-                new com.vaadin.flow.component.progressbar.ProgressBar();
+
+        ProgressBar bar = new ProgressBar();
         bar.setIndeterminate(true);
         box.add(bar);
 
@@ -1113,7 +1061,6 @@ runWithPreloading("Menghapus data payroll...", () -> {
                 }, executor)
                 .orTimeout(15, java.util.concurrent.TimeUnit.MINUTES)
                 .whenComplete((ok, ex) -> {
-                    // UI bisa saja sudah detach (user pindah page)
                     if (ui == null || !ui.isAttached()) return;
 
                     ui.access(() -> {
@@ -1139,6 +1086,10 @@ runWithPreloading("Menghapus data payroll...", () -> {
         void run(String message, Runnable task, Runnable onDone);
     }
 
+    @FunctionalInterface
+    public interface UiLoader {
+        void run(String message, Runnable task, Runnable onDoneUi);
+    }
 
     private List<Integer> getRecentYears(int pastYears) {
         int currentYear = LocalDate.now().getYear();
@@ -1164,35 +1115,11 @@ runWithPreloading("Menghapus data payroll...", () -> {
         return v == null ? BigDecimal.ZERO : v;
     }
 
-    @FunctionalInterface
-    public interface UiLoader {
-        void run(String message, Runnable task, Runnable onDoneUi);
+    private String fmt(BigDecimal v) {
+        return FormattingUtils.formatPayrollAmount(nvl(v));
     }
 
-    private static class OvertimePaymentParsed {
-        final int percent;
-        final BigDecimal nominal;
-        OvertimePaymentParsed(int percent, BigDecimal nominal) {
-            this.percent = percent;
-            this.nominal = nominal;
-        }
+    private String blankToDash(String v) {
+        return (v == null || v.trim().isEmpty()) ? "-" : v;
     }
-
-    private static OvertimePaymentParsed parseOvertimeValuePayment(String raw) {
-        if (raw == null || raw.trim().isEmpty()) return new OvertimePaymentParsed(0, BigDecimal.ZERO);
-
-        // format: "NilaiPersen | NilaiUang"
-        String[] parts = raw.split("\\|");
-        String p = parts.length > 0 ? parts[0].trim() : "0";
-        String n = parts.length > 1 ? parts[1].trim() : "0";
-
-        int pct = 0;
-        try { pct = Integer.parseInt(p.replace(",", "")); } catch (Exception ignored) {}
-
-        BigDecimal nominal = BigDecimal.ZERO;
-        try { nominal = new BigDecimal(n.replace(",", "")); } catch (Exception ignored) {}
-
-        return new OvertimePaymentParsed(pct, nominal);
-    }
-
 }

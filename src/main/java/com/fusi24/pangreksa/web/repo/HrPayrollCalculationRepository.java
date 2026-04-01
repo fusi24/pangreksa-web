@@ -10,9 +10,8 @@ import java.util.List;
 
 public interface HrPayrollCalculationRepository extends CrudRepository<HrPayrollCalculation, Long> {
 
-    public HrPayrollCalculation findFirstByPayrollInputId(Long payrollId);
+    public HrPayrollCalculation findFirstByPayrollId(Long payrollId);
 
-    @Modifying
-    @Query("DELETE FROM HrPayrollCalculation c WHERE c.payrollInput.id IN :payrollIds")
-    void deleteByPayrollIds(@Param("payrollIds") List<Long> payrollIds);
+    void deleteByPayrollIdIn(List<Long> payrollIds);
+
 }

@@ -1,6 +1,5 @@
 package com.fusi24.pangreksa.web.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,86 +25,84 @@ public class HrPayroll extends AuditableEntity<HrPayroll> {
     @JoinColumn(name = "person_id", nullable = false, foreignKey = @ForeignKey(name = "fk_hr_payroll_person"))
     private HrPerson person;
 
-    @Column(name = "first_name", nullable = false, length = 50)
+    // SNAPSHOT IDENTITAS
+    @Column(name = "employee_number")
+    private String employeeNumber;
+
+    @Column(name = "first_name", nullable = false)
     private String firstName;
 
-    @Column(name = "middle_name", length = 50)
+    @Column(name = "middle_name")
     private String middleName;
 
-    @Column(name = "last_name", nullable = false, length = 50)
+    @Column(name = "last_name", nullable = false)
     private String lastName;
 
-    @Column(name = "position", nullable = false, length = 100)
+    // ORGANIZATION
+    @Column(name = "position", nullable = false)
     private String position;
 
-    @Column(name = "position_code", nullable = false, length = 20)
+    @Column(name = "position_code", nullable = false)
     private String positionCode;
 
-    @Column(name = "department", nullable = false, length = 100)
+    @Column(name = "department", nullable = false)
     private String department;
 
-    @Column(name = "department_code", nullable = false, length = 50)
+    @Column(name = "department_code", nullable = false)
     private String departmentCode;
 
-    @Column(name = "pob", length = 50)
+    // PERSONAL
+    @Column(name = "pob")
     private String pob;
 
     @Column(name = "dob")
     private LocalDate dob;
 
-    @Column(name = "gender", length = 50)
+    @Column(name = "gender")
     private String gender;
 
-    @Column(name = "ktp_number", length = 16)
+    @Column(name = "ktp_number")
     private String ktpNumber;
 
-    // Payroll period (DDL: payroll_date date NOT NULL)
+    // EMPLOYMENT
+    @Column(name = "status_employee")
+    private String statusEmployee;
+
+    @Column(name = "join_date")
+    private LocalDate joinDate;
+
+    // PAYROLL CONTEXT
     @Column(name = "payroll_date", nullable = false)
     private LocalDate payrollDate;
 
-    // Parameter (DDL: param_attendance_days int4 NULL)
-    @Column(name = "param_attendance_days")
+    @Column(name = "param_attendance_days", nullable = false)
     private Integer paramAttendanceDays;
 
-    @Column(name = "sum_attendance")
-    private Integer sumAttendance;
+    // SALARY
+    @Column(name = "base_salary", nullable = false, precision = 19, scale = 2)
+    private BigDecimal baseSalary;
 
-    // Allowances (DDL: allowances_type varchar(50) default 'STATIC', allowances_value text)
-    @Column(name = "allowances_type", length = 50)
-    private String allowancesType;
+    // VARIABLE INPUT
+    @Column(name = "overtime_hours", precision = 10, scale = 2)
+    private BigDecimal overtimeHours;
 
-    @Column(name = "allowances_value", columnDefinition = "text")
-    private String allowancesValue;
+    @Column(name = "overtime_amount", precision = 19, scale = 2)
+    private BigDecimal overtimeAmount;
 
-    // Overtime (DDL: overtime_hours numeric(5,2), overtime_type, overtime_value_payment numeric(15,2))
-    @Column(name = "overtime_hours", precision = 5, scale = 2)
-    private BigDecimal overtimeHours = BigDecimal.ZERO;
+    @Column(name = "bonus_amount", precision = 19, scale = 2)
+    private BigDecimal bonusAmount;
 
-    @Column(name = "overtime_type", length = 50)
-    private String overtimeType;
+    @Column(name = "other_deductions", precision = 19, scale = 2)
+    private BigDecimal otherDeductions;
 
-    @Column(name = "overtime_value_payment", columnDefinition = "text")
-    private String overtimeValuePayment;
-
-    // Others
-    @Column(name = "annual_bonus", precision = 15, scale = 2)
-    private BigDecimal annualBonus = BigDecimal.ZERO;
-
-    @Column(name = "other_deductions", precision = 15, scale = 2)
-    private BigDecimal otherDeductions = BigDecimal.ZERO;
-
-    // Tax snapshot
-    @Column(name = "ptkp_code", nullable = false, length = 20)
+    // PTKP
+    @Column(name = "ptkp_code", nullable = false)
     private String ptkpCode;
 
-    @Column(name = "ptkp_amount", nullable = false, precision = 18, scale = 2)
+    @Column(name = "ptkp_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal ptkpAmount;
 
-    // Additional (DDL: total_leave_year numeric(15,2) default 0)
-    @Column(name = "total_leave_year", precision = 15, scale = 2)
-    private BigDecimal totalLeaveYear = BigDecimal.ZERO;
-
-    @JsonIgnoreProperties(value = "payrollInput", allowSetters = true)
-    @OneToOne(fetch = FetchType.LAZY, mappedBy = "payrollInput", cascade = { CascadeType.DETACH, CascadeType.REMOVE })
-    private HrPayrollCalculation calculation;
+    // ATTENDANCE
+    @Column(name = "sum_attendance")
+    private Integer sumAttendance;
 }
