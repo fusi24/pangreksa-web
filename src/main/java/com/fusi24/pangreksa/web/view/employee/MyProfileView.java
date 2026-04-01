@@ -93,6 +93,7 @@ public class MyProfileView extends Main {
 
 
     // Person Fields
+    private TextField nip = new TextField("NIP");
     private TextField firstName = new TextField("Nama Awal");
     private TextField middleName = new TextField("Nama Tengah");
     private TextField lastName = new TextField("Nama Akhir");
@@ -194,8 +195,7 @@ public class MyProfileView extends Main {
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
-
-        // KTP/NIK tidak boleh diubah lewat UI profil saya
+        nip.setReadOnly(true);
         ktpNumber.setReadOnly(true);
         firstName.setReadOnly(true);
         middleName.setReadOnly(true);
@@ -222,6 +222,7 @@ public class MyProfileView extends Main {
             gridTanggungan.setItems(tanggunganList);
 
         // Populate Person fields
+        nip.setValue(personData.getNip() != null ? personData.getNip() : "");
         firstName.setValue(personData.getFirstName() != null ? personData.getFirstName() : "");
         middleName.setValue(personData.getMiddleName() != null ? personData.getMiddleName() : "");
         lastName.setValue(personData.getLastName() != null ? personData.getLastName() : "");
@@ -451,6 +452,7 @@ public class MyProfileView extends Main {
         // Add all fields to the form layout
         personFormLayout.add(
                 ktpNumber,
+                nip,
                 firstName,
                 middleName,
                 lastName,

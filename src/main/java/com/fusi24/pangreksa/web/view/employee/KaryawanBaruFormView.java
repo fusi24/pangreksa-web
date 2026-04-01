@@ -109,6 +109,7 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
 
     // Person Fields
+    private TextField nip = new TextField("NIP");
     private TextField firstName = new TextField("Nama Awal");
     private TextField middleName = new TextField("Nama Tengah");
     private TextField lastName = new TextField("Nama Akhir");
@@ -620,6 +621,7 @@ switch (tabNo) {
         dob.setMax(LocalDate.now());
         personFormLayout.add(
                 ktpNumber,
+                nip,
                 firstName,
                 middleName,
                 lastName,
@@ -1327,6 +1329,7 @@ switch (tabNo) {
             JsonNode user = root.path("results").get(0);
 
             // Person Fields
+
             firstName.setValue(user.path("name").path("first").asText(""));
             lastName.setValue(user.path("name").path("last").asText(""));
             middleName.setValue(""); // Not available
@@ -1344,7 +1347,8 @@ switch (tabNo) {
             ktpNumber.setValue(String.format("%08d%08d",
                     new java.util.Random().nextInt(100_000_000),
                     new java.util.Random().nextInt(100_000_000))); // dummy value
-
+            nip.setValue("FST-" + new java.util.Random().nextInt(10000));
+            personData.setStatusEmployee("PKWTT");
             // Get photo URL and download image
             String photo_url = user.path("picture").path("large").asText("");
             // get image byte[] from photo_url and put on uploadedImageBytes
@@ -1441,7 +1445,10 @@ switch (tabNo) {
         );
 
         HrPerson person = this.personData != null ? this.personData : new HrPerson();
-
+        if (person.getStatusEmployee() == null) {
+            person.setStatusEmployee("PKWTT");
+        }
+        person.setNip(nip.getValue());
         person.setFirstName(firstName.getValue());
         person.setMiddleName(middleName.getValue());
         person.setLastName(lastName.getValue());
@@ -1482,7 +1489,7 @@ switch (tabNo) {
                 Boolean.TRUE.equals(jointIncomeField.getValue())
         );
 
-        AppNotification.error("Data saved successfully");
+        AppNotification.success("Data karyawan baru berhasil tersimpan");
 
         // ================= RESET UI SETELAH SAVE =================
 
@@ -1513,6 +1520,7 @@ switch (tabNo) {
     public void clearForm(boolean person, boolean address, boolean contact, boolean education, boolean document) {
         // Person Fields
         if  (person) {
+            nip.setValue("");
             firstName.setValue("");
             middleName.setValue("");
             lastName.setValue("");
@@ -1610,6 +1618,7 @@ switch (tabNo) {
             this.documentList = personService.getPersonDocuments();
 
             // Populate Person Data
+            nip.setValue(personData.getNip() != null ? personData.getNip() : "");
             firstName.setValue(personData.getFirstName() != null ? personData.getFirstName() : "");
             middleName.setValue(personData.getMiddleName() != null ? personData.getMiddleName() : "");
             lastName.setValue(personData.getLastName() != null ? personData.getLastName() : "");
