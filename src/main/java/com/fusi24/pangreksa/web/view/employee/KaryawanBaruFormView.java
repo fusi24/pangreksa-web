@@ -1443,7 +1443,6 @@ switch (tabNo) {
         FwAppUser appUser = commonService.getLoginUser(
                 currentUser.require().getUserId().toString()
         );
-
         HrPerson person = this.personData != null ? this.personData : new HrPerson();
         if (person.getStatusEmployee() == null) {
             person.setStatusEmployee("PKWTT");
@@ -1461,12 +1460,9 @@ switch (tabNo) {
         person.setKtpNumber(ktpNumber.getValue());
 
         // upload photo dll...
-
         personService.workingWithPerson(person, appUser);
         personService.savePerson();
         this.personData = person;
-
-
         personService.saveAllInformation(
                 addressList,
                 contactList,

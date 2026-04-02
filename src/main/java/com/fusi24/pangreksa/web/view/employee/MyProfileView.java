@@ -233,7 +233,6 @@ public class MyProfileView extends Main {
         nationality.setValue(personData.getNationality());
         religion.setValue(personData.getReligion());
         marriage.setValue(personData.getMarriage());
-
         // Load photo if exists
         if (personData.getPhotoFilename() != null) {
             try {
