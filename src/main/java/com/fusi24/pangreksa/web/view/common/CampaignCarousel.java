@@ -21,6 +21,8 @@ public class CampaignCarousel extends Div {
         // Mengambil data campaign yang sedang aktif saja
         List<Campaign> activeCampaigns = campaignService.getActiveCampaigns();
 
+        System.out.println("Jumlah Campaign Aktif: " + activeCampaigns.size());
+
         if (activeCampaigns.isEmpty()) {
             setVisible(false); // Sembunyikan jika tidak ada promo
             return;
