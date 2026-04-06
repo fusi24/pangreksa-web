@@ -7,6 +7,7 @@ import com.fusi24.pangreksa.web.model.entity.HrAttendance;
 import com.fusi24.pangreksa.web.model.entity.HrLeaveBalance;
 import com.fusi24.pangreksa.web.model.entity.HrPerson;
 import com.fusi24.pangreksa.web.service.AttendanceService;
+import com.fusi24.pangreksa.web.service.CampaignService;
 import com.fusi24.pangreksa.web.service.LeaveService;
 import com.fusi24.pangreksa.web.service.PersonService;
 
@@ -23,7 +24,7 @@ import jakarta.annotation.security.PermitAll;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-
+import com.fusi24.pangreksa.web.view.common.CampaignCarousel;
 @Route(value = "dashboard", layout = MainLayout.class)
 @PageTitle("Dashboard")
 @PermitAll
@@ -33,18 +34,21 @@ public class DashboardView extends VerticalLayout {
     private final AttendanceService attendanceService;
     private final LeaveService leaveService;
     private final PersonService personService;
+    private final CampaignService campaignService;
 
     public DashboardView(
             CurrentUser currentUser,
             AttendanceService attendanceService,
             LeaveService leaveService,
-            PersonService personService
+            PersonService personService,
+            CampaignService campaignService
     ) {
 
         this.currentUser = currentUser;
         this.attendanceService = attendanceService;
         this.leaveService = leaveService;
         this.personService = personService;
+        this.campaignService = campaignService;
 
 
         setWidthFull();
@@ -59,6 +63,8 @@ public class DashboardView extends VerticalLayout {
         Div grid = new Div();
         grid.addClassName("dashboard-grid");
 
+        CampaignCarousel campaignCarousel = new CampaignCarousel(campaignService);
+
         // Baris 1: Sisa Cuti, Kehadiran, Notifikasi (Masing-masing ambil 2 slot dari total 6)
         grid.add(
                 createLeaveBalanceCard(user),
@@ -72,7 +78,7 @@ public class DashboardView extends VerticalLayout {
                 createBirthdayCard()
         );
 
-        add(title, grid);
+        add(title,campaignCarousel, grid);
     }
 
     /* =====================================================
