@@ -41,6 +41,17 @@ public class CampaignService {
         return repository.save(campaign);
     }
 
+    public byte[] getImagePathAsByteArray(String path) {
+        try {
+            // Pastikan path yang dikirim adalah path relatif/absolut yang benar di disk
+            // Jika di DB "/uploads/campaigns/abc.png", pastikan filenya ada di sana
+            java.nio.file.Path file = java.nio.file.Paths.get(path.startsWith("/") ? path.substring(1) : path);
+            return java.nio.file.Files.readAllBytes(file);
+        } catch (java.io.IOException e) {
+            return null;
+        }
+    }
+
     @Transactional
     public void delete(Long id) {
         repository.deleteById(id);
