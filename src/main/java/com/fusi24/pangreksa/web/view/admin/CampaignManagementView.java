@@ -13,11 +13,7 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Image;
-import com.vaadin.flow.component.html.Main;
-import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -48,20 +44,15 @@ import java.util.concurrent.atomic.AtomicReference;
 @RolesAllowed("CAMPAIGN")
 public class CampaignManagementView extends Main {
 
-    private static final long serialVersionUID = 20L;
-    private static final Logger log = LoggerFactory.getLogger(CampaignManagementView.class);
-
     private final CampaignService campaignService;
     private final CommonService commonService;
     private final CurrentUser currentUser;
     private Authorization auth;
 
-    public static final String VIEW_NAME = "Manajemen Campaign";
-
     private final Binder<Campaign> binder = new Binder<>(Campaign.class);
     private Campaign currentCampaign;
+    private AtomicReference<byte[]> uploadedImageBytes = new AtomicReference<>();
 
-    // Nama variabel disamakan dengan property di Entity Campaign agar bindInstanceFields bekerja
     private TextField title = new TextField("Judul Campaign");
     private TextArea description = new TextArea("Deskripsi");
     private TextField linkUrl = new TextField("Link Tautan (URL)");
@@ -70,205 +61,114 @@ public class CampaignManagementView extends Main {
     private IntegerField priority = new IntegerField("Prioritas");
     private Checkbox isActive = new Checkbox("Aktif");
 
-    private Image photoPreview;
     private Div photoPlaceholder;
-    private AtomicReference<byte[]> uploadedImageBytes = new AtomicReference<>();
+    private Image photoPreview;
 
-    public CampaignManagementView(CampaignService campaignService,
-                                  CommonService commonService,
-                                  CurrentUser currentUser) {
+    public CampaignManagementView(CampaignService campaignService, CommonService commonService, CurrentUser currentUser) {
         this.campaignService = campaignService;
         this.commonService = commonService;
         this.currentUser = currentUser;
 
-        // Ambil responsibility dari session
-        String responsibility = (String) UI.getCurrent().getSession().getAttribute("responsibility");
-
-        try {
-            // Ambil otorisasi
-            this.auth = commonService.getAuthorization(
-                    currentUser.require(),
-                    responsibility,
-                    serialVersionUID);
-
-            if (this.auth != null) {
-                log.debug("Page {}, Authorization: View={}, Create={}, Edit={}, Delete={}",
-                        VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
-            }
-        } catch (Exception e) {
-            log.error("Gagal mendapatkan otorisasi: {}", e.getMessage());
-        }
+        this.auth = commonService.getAuthorization(
+                currentUser.require(),
+                (String) UI.getCurrent().getSession().getAttribute("responsibility"),
+                20L);
 
         addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
                 LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL, LumoUtility.Background.CONTRAST_5);
 
-        add(new ViewToolbar(VIEW_NAME));
+        add(new ViewToolbar("Manajemen Campaign"));
         createBody();
 
-        // Inisialisasi data
         this.currentCampaign = new Campaign();
-
-        // Memetakan field secara otomatis ke entity
         binder.bindInstanceFields(this);
         binder.setBean(currentCampaign);
     }
 
     private void createBody() {
         VerticalLayout card = new VerticalLayout();
-        card.addClassNames(LumoUtility.Background.BASE, LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.BoxShadow.SMALL, LumoUtility.Padding.LARGE, LumoUtility.Margin.AUTO);
+        card.addClassNames(LumoUtility.Background.BASE, LumoUtility.BorderRadius.MEDIUM, LumoUtility.BoxShadow.SMALL, LumoUtility.Padding.LARGE, LumoUtility.Margin.AUTO);
         card.setMaxWidth("1100px");
-        card.setSpacing(true);
 
-        // --- HEADER SECTION ---
+        // Header
         HorizontalLayout header = new HorizontalLayout();
         header.setWidthFull();
-        header.setAlignItems(FlexComponent.Alignment.CENTER);
         header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
 
-        HorizontalLayout titleGroup = new HorizontalLayout();
-        titleGroup.setAlignItems(FlexComponent.Alignment.CENTER);
-        Icon megaphoneIcon = VaadinIcon.MEGAPHONE.create();
-        megaphoneIcon.getStyle().set("color", "#002d5d");
         H2 titleText = new H2("Ubah Campaign");
         titleText.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.Margin.NONE);
-        Icon editIcon = VaadinIcon.PENCIL.create();
-        editIcon.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.TERTIARY);
-        titleGroup.add(megaphoneIcon, titleText, editIcon);
 
-        HorizontalLayout actions = new HorizontalLayout();
         Button btnSimpan = new Button("Simpan", VaadinIcon.CHECK.create(), e -> save());
         btnSimpan.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         btnSimpan.getStyle().set("background-color", "#002d5d");
 
-        Button btnBatal = new Button("Batal", VaadinIcon.CLOSE.create(), e -> cancel());
-        btnBatal.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        actions.add(btnSimpan, btnBatal);
+        header.add(titleText, btnSimpan);
 
-        header.add(titleGroup, actions);
-
-        // --- FORM SECTION ---
-        FormLayout formLayout = new FormLayout();
-        formLayout.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1), new FormLayout.ResponsiveStep("600px", 2));
-
-        formLayout.add(title, priority, startDate, linkUrl, endDate);
-        description.setMinHeight("100px");
-        formLayout.add(description);
+        // Form
+        FormLayout formLayout = new FormLayout(title, priority, startDate, linkUrl, endDate, description);
         formLayout.setColspan(description, 2);
 
-        // --- UPLOAD SECTION ---
-        VerticalLayout uploadSection = new VerticalLayout();
-        uploadSection.setPadding(false);
-        uploadSection.setSpacing(false);
-
-        Span previewLabel = new Span("Preview Image");
-        previewLabel.addClassNames(LumoUtility.FontWeight.BOLD, LumoUtility.Margin.Bottom.SMALL);
-
-        HorizontalLayout uploadControl = new HorizontalLayout();
-        uploadControl.setAlignItems(FlexComponent.Alignment.START);
-        uploadControl.setSpacing(true);
-
+        // Upload Section (Mengikuti pola KaryawanBaruFormView)
         photoPlaceholder = new Div();
-        photoPlaceholder.addClassNames(LumoUtility.Background.CONTRAST_10, LumoUtility.BorderRadius.SMALL,
-                LumoUtility.Display.FLEX, LumoUtility.AlignItems.CENTER, LumoUtility.JustifyContent.CENTER);
-        photoPlaceholder.setWidth("120px");
-        photoPlaceholder.setHeight("120px");
+        photoPlaceholder.addClassNames(LumoUtility.Background.CONTRAST_10, LumoUtility.Display.FLEX, LumoUtility.AlignItems.CENTER, LumoUtility.JustifyContent.CENTER);
+        photoPlaceholder.setWidth("300px");
+        photoPlaceholder.setHeight("100px");
 
-        Icon imageIcon = VaadinIcon.PICTURE.create();
-        imageIcon.addClassNames(LumoUtility.TextColor.TERTIARY, LumoUtility.FontSize.XXLARGE);
-
-        photoPreview = new Image();
-        photoPreview.setWidthFull();
-        photoPreview.setHeightFull();
-        photoPreview.getStyle().set("object-fit", "cover");
-        photoPreview.setVisible(false);
-
-        photoPlaceholder.add(imageIcon, photoPreview);
-
-        VerticalLayout uploadButtons = new VerticalLayout();
-        uploadButtons.setPadding(false);
+        Icon placeholderIcon = VaadinIcon.PICTURE.create();
+        placeholderIcon.addClassNames(LumoUtility.TextColor.TERTIARY, LumoUtility.FontSize.XXLARGE);
+        photoPlaceholder.add(placeholderIcon);
 
         var handler = UploadHandler.inMemory((metadata, data) -> {
             uploadedImageBytes.set(data);
             StreamResource res = new StreamResource(UUID.randomUUID().toString(), () -> new ByteArrayInputStream(data));
+
             UI.getCurrent().access(() -> {
-                photoPreview.setSrc(res);
-                photoPreview.setVisible(true);
-                imageIcon.setVisible(false);
+                photoPreview = new Image(res, "Preview");
+                photoPreview.setWidthFull();
+                photoPreview.setHeightFull();
+                photoPreview.getStyle().set("object-fit", "cover");
+
+                photoPlaceholder.removeAll(); // Pola: removeAll container sebelum add preview baru
+                photoPlaceholder.add(photoPreview);
             });
         });
+
         Upload upload = new Upload(handler);
         upload.setAcceptedFileTypes("image/png", "image/jpeg");
 
-// 2. Sembunyikan komponen upload asli agar tidak merusak UI kustom kita
-        upload.getStyle().set("display", "none");
+        // Tetap tampilkan upload jika tombol kustom bermasalah, atau pastikan tombol memicu dengan benar
+        Button uploadBtn = new Button("Pilih Gambar", VaadinIcon.UPLOAD.create());
+        upload.setUploadButton(uploadBtn);
 
-        Button uploadBtn = new Button("Upload Gambar Banner", VaadinIcon.UPLOAD.create());
-        uploadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        uploadBtn.getStyle().set("background-color", "#002d5d");
-
-// 3. Gunakan JS untuk memicu klik pada input file internal milik vaadin-upload
-        uploadBtn.addClickListener(e -> {
-            upload.getElement().executeJs("this.shadowRoot.querySelector('input').click()");
-        });
-
-// 4. PENTING: Tambahkan 'upload' ke dalam layout agar ia eksis di DOM
-        uploadButtons.add(upload, uploadBtn, isActive);
-
-        uploadControl.add(photoPlaceholder, uploadButtons);
-        uploadSection.add(previewLabel, uploadControl);
-
-        card.add(header, formLayout, uploadSection);
+        card.add(header, formLayout, new Span("Preview Image"), photoPlaceholder, upload, isActive);
         add(card);
     }
 
     private void save() {
         if (this.auth != null && !this.auth.canCreate && currentCampaign.getId() == null) {
-            AppNotification.error("Anda tidak memiliki izin menyimpan data");
+            AppNotification.error("Anda tidak memiliki izin");
             return;
         }
 
         if (binder.validate().isOk()) {
             try {
-                // 1. Cek apakah ada gambar baru yang diunggah
+                // Simpan file fisik jika ada byte baru[cite: 1, 6]
                 if (uploadedImageBytes.get() != null) {
-                    // Skenario: Simpan ke folder atau tentukan path-nya
-                    // Untuk sementara kita buat nama file unik
-                    String fileName = "banner_" + UUID.randomUUID().toString().substring(0, 8) + ".png";
-                    String manualPath = "/uploads/campaigns/" + fileName;
-
-                    // Set ke entity agar lolos validasi @NotBlank
-                    currentCampaign.setImagePath(manualPath);
-
-                    // TODO: Di sini Anda harusnya memanggil logic untuk menulis byte[]
-                    // ke folder fisik server atau storage S3.
-                    log.debug("Menyimpan gambar ke: {}", manualPath);
-                } else if (currentCampaign.getImagePath() == null || currentCampaign.getImagePath().isEmpty()) {
-                    // Jika tidak ada gambar baru DAN data lama juga kosong
-                    AppNotification.error("Gambar banner wajib diunggah!");
+                    String path = campaignService.saveImage(uploadedImageBytes.get());
+                    currentCampaign.setImagePath(path);
+                } else if (currentCampaign.getImagePath() == null) {
+                    AppNotification.error("Gambar wajib diunggah!");
                     return;
                 }
 
-                // 2. Ambil User Login
                 var loginUser = commonService.getLoginUser(currentUser.require().getUserId().toString());
-
-                // 3. Simpan ke database
                 campaignService.save(currentCampaign, loginUser.getId());
 
-                AppNotification.success("Data campaign berhasil tersimpan");
-                cancel(); // Reset form dan reload
+                AppNotification.success("Data berhasil tersimpan");
+                UI.getCurrent().getPage().reload();
             } catch (Exception ex) {
-                AppNotification.error("Gagal menyimpan data: " + ex.getMessage());
-                log.error("Save error", ex);
+                AppNotification.error("Gagal simpan: " + ex.getMessage());
             }
         }
-    }
-
-    private void cancel() {
-        this.currentCampaign = new Campaign();
-        binder.setBean(currentCampaign);
-        photoPreview.setVisible(false);
-        uploadedImageBytes.set(null);
-        UI.getCurrent().getPage().reload();
     }
 }
