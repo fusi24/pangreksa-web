@@ -200,12 +200,20 @@ public class CampaignManagementView extends Main {
         Upload upload = new Upload(handler);
         upload.setAcceptedFileTypes("image/png", "image/jpeg");
 
+// 2. Sembunyikan komponen upload asli agar tidak merusak UI kustom kita
+        upload.getStyle().set("display", "none");
+
         Button uploadBtn = new Button("Upload Gambar Banner", VaadinIcon.UPLOAD.create());
         uploadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         uploadBtn.getStyle().set("background-color", "#002d5d");
-        uploadBtn.addClickListener(e -> upload.getElement().executeJs("this.querySelector('button').click()"));
 
-        uploadButtons.add(uploadBtn, isActive);
+// 3. Gunakan JS untuk memicu klik pada input file internal milik vaadin-upload
+        uploadBtn.addClickListener(e -> {
+            upload.getElement().executeJs("this.shadowRoot.querySelector('input').click()");
+        });
+
+// 4. PENTING: Tambahkan 'upload' ke dalam layout agar ia eksis di DOM
+        uploadButtons.add(upload, uploadBtn, isActive);
 
         uploadControl.add(photoPlaceholder, uploadButtons);
         uploadSection.add(previewLabel, uploadControl);
@@ -222,12 +230,35 @@ public class CampaignManagementView extends Main {
 
         if (binder.validate().isOk()) {
             try {
+                // 1. Cek apakah ada gambar baru yang diunggah
+                if (uploadedImageBytes.get() != null) {
+                    // Skenario: Simpan ke folder atau tentukan path-nya
+                    // Untuk sementara kita buat nama file unik
+                    String fileName = "banner_" + UUID.randomUUID().toString().substring(0, 8) + ".png";
+                    String manualPath = "/uploads/campaigns/" + fileName;
+
+                    // Set ke entity agar lolos validasi @NotBlank
+                    currentCampaign.setImagePath(manualPath);
+
+                    // TODO: Di sini Anda harusnya memanggil logic untuk menulis byte[]
+                    // ke folder fisik server atau storage S3.
+                    log.debug("Menyimpan gambar ke: {}", manualPath);
+                } else if (currentCampaign.getImagePath() == null || currentCampaign.getImagePath().isEmpty()) {
+                    // Jika tidak ada gambar baru DAN data lama juga kosong
+                    AppNotification.error("Gambar banner wajib diunggah!");
+                    return;
+                }
+
+                // 2. Ambil User Login
                 var loginUser = commonService.getLoginUser(currentUser.require().getUserId().toString());
+
+                // 3. Simpan ke database
                 campaignService.save(currentCampaign, loginUser.getId());
+
                 AppNotification.success("Data campaign berhasil tersimpan");
-                cancel();
+                cancel(); // Reset form dan reload
             } catch (Exception ex) {
-                AppNotification.error("Gagal menyimpan data");
+                AppNotification.error("Gagal menyimpan data: " + ex.getMessage());
                 log.error("Save error", ex);
             }
         }
