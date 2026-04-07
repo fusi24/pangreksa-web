@@ -174,20 +174,20 @@ public class CampaignListView extends VerticalLayout {
             Span title = new Span(c.getTitle());
             title.addClassNames(LumoUtility.FontWeight.BOLD, LumoUtility.TextColor.HEADER);
             return title;
-        })).setHeader("Judul Campaign").setSortable(true).setFlexGrow(2);
+        })).setHeader("Judul").setSortable(true).setFlexGrow(2);
 
         grid.addColumn(Campaign::getCategory).setHeader("Kategori").setAutoWidth(true);
         grid.addColumn(c -> c.getStartDate().format(df) + " - " + c.getEndDate().format(df))
                 .setHeader("Periode Tayang").setAutoWidth(true);
 
-        grid.addColumn(Campaign::getTargetAudience).setHeader("Target Audience").setAutoWidth(true);
+        grid.addColumn(Campaign::getTargetAudience).setHeader("Target").setAutoWidth(true);
 
         // 3. Engagement (Gunakan Badge untuk angka agar menonjol)
         grid.addComponentColumn(c -> {
             Span s = new Span(c.getClickCount() + " / " + c.getViewCount());
             s.getElement().getThemeList().add("badge contrast small");
             return s;
-        }).setHeader("Engagement (Klik/Lihat)").setAutoWidth(true);
+        }).setHeader("Engagement").setAutoWidth(true);
 
         // 4. Status dengan Warna Lumo (Success, Error, Contrast)
         grid.addComponentColumn(c -> {
