@@ -11,6 +11,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.*;
@@ -60,7 +61,7 @@ public class CampaignManagementView extends Main {
     private DatePicker endDate = new DatePicker("Tanggal Berakhir");
     private IntegerField priority = new IntegerField("Prioritas");
     private Checkbox isActive = new Checkbox("Aktif");
-
+    private ComboBox<String> category = new ComboBox<>("Kategori");
     private Div photoPlaceholder;
     private Image photoPreview;
 
@@ -107,7 +108,8 @@ public class CampaignManagementView extends Main {
         // Form
         FormLayout formLayout = new FormLayout(title, priority, startDate, linkUrl, endDate, description);
         formLayout.setColspan(description, 2);
-
+        category.setItems("Event", "Kebijakan", "Wellness", "Lainnya");
+        formLayout.add(title, category, priority, startDate, linkUrl, endDate, description);
         // Upload Section (Mengikuti pola KaryawanBaruFormView)
         photoPlaceholder = new Div();
         photoPlaceholder.addClassNames(LumoUtility.Background.CONTRAST_10, LumoUtility.Display.FLEX, LumoUtility.AlignItems.CENTER, LumoUtility.JustifyContent.CENTER);

@@ -64,6 +64,17 @@ public class Campaign {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "category")
+    private String category;
+
+    @Column(name = "target_audience")
+    private String targetAudience = "Semua Karyawan";
+
+    @Column(name = "view_count")
+    private Integer viewCount = 0;
+
+    @Column(name = "click_count")
+    private Integer clickCount = 0;
     /**
      * Helper method untuk mengecek apakah campaign saat ini aktif
      * berdasarkan status boolean dan rentang tanggal.

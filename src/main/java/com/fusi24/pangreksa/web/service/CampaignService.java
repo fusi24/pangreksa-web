@@ -5,17 +5,21 @@ import com.fusi24.pangreksa.web.repo.CampaignRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class CampaignService {
 
+    private static final Logger log = LoggerFactory.getLogger(CampaignService.class);
     private final CampaignRepository repository;
     private final String UPLOAD_DIR = "uploads/campaigns/";
 
@@ -24,7 +28,6 @@ public class CampaignService {
         this.repository = repository;
     }
 
-    // Method untuk menyimpan gambar fisik dan mengembalikan path-nya
     public String saveImage(byte[] imageBytes) throws IOException {
         if (imageBytes == null) return null;
 
@@ -37,7 +40,7 @@ public class CampaignService {
         Path filePath = directoryPath.resolve(fileName);
         Files.write(filePath, imageBytes);
 
-        return "/" + UPLOAD_DIR + fileName; // Mengembalikan path untuk web
+        return "/" + UPLOAD_DIR + fileName;
     }
 
     @Transactional
@@ -58,24 +61,58 @@ public class CampaignService {
     }
 
     public byte[] getImagePathAsByteArray(String imagePath) {
-        if (imagePath == null || imagePath.isEmpty()) {
-            return null;
-        }
+        if (imagePath == null || imagePath.isEmpty()) return null;
 
         try {
-            // Hilangkan garis miring di awal jika ada agar terbaca sebagai relative path dari root project
             String cleanPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
             Path path = Paths.get(cleanPath);
-
             if (Files.exists(path)) {
                 return Files.readAllBytes(path);
-            } else {
-                // Log jika file tidak ditemukan untuk memudahkan debugging
-                System.err.println("File tidak ditemukan di path: " + path.toAbsolutePath());
             }
         } catch (IOException e) {
-            System.err.println("Gagal membaca file gambar: " + e.getMessage());
+            log.error("Gagal membaca file gambar: {}", e.getMessage());
         }
         return null;
+    }
+
+    public String calculateStatus(Campaign c) {
+        if (!c.isActive()) return "DRAFT";
+
+        LocalDate now = LocalDate.now();
+        if (now.isBefore(c.getStartDate())) return "TERJADWAL";
+        if (now.isAfter(c.getEndDate())) return "BERAKHIR";
+        return "AKTIF";
+    }
+
+    @Transactional
+    public void incrementViewCount(Long campaignId) {
+        // PERBAIKAN: Gunakan parameter campaignId
+        repository.findById(campaignId).ifPresent(c -> {
+            c.setViewCount(c.getViewCount() + 1);
+            repository.save(c);
+        });
+    }
+
+    @Transactional
+    public void incrementClickCount(Long campaignId) {
+        // PERBAIKAN: Gunakan parameter campaignId
+        repository.findById(campaignId).ifPresent(c -> {
+            c.setClickCount(c.getClickCount() + 1);
+            repository.save(c);
+        });
+    }
+
+    @Transactional
+    public void deleteCampaign(Campaign campaign) {
+        if (campaign.getImagePath() != null) {
+            try {
+                String cleanPath = campaign.getImagePath().startsWith("/") ?
+                        campaign.getImagePath().substring(1) : campaign.getImagePath();
+                Files.deleteIfExists(Paths.get(cleanPath));
+            } catch (IOException e) {
+                log.error("Gagal menghapus file gambar: {}", e.getMessage());
+            }
+        }
+        repository.delete(campaign);
     }
 }
