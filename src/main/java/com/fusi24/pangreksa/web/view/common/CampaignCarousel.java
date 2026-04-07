@@ -2,6 +2,7 @@ package com.fusi24.pangreksa.web.view.common;
 
 import com.fusi24.pangreksa.web.model.entity.Campaign;
 import com.fusi24.pangreksa.web.service.CampaignService;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Image;
@@ -55,13 +56,19 @@ public class CampaignCarousel extends Div {
                 img.addClassNames(LumoUtility.Width.FULL, LumoUtility.Height.FULL, LumoUtility.BorderRadius.MEDIUM);
                 img.getStyle().set("object-fit", "cover");
 
-                if (campaign.getLinkUrl() != null && !campaign.getLinkUrl().isEmpty()) {
-                    Anchor link = new Anchor(campaign.getLinkUrl(), img);
-                    link.setTarget("_blank");
-                    slide.add(link);
-                } else {
-                    slide.add(img);
-                }
+                // 1. Tambahkan Tracking View: Catat setiap kali banner muncul di dashboard
+                campaignService.incrementViewCount(campaign.getId());
+
+// 2. Ubah kursor menjadi pointer agar user tahu gambar bisa diklik
+                img.getStyle().set("cursor", "pointer");
+
+// 3. Tambahkan Click Listener untuk navigasi ke halaman Detail
+                img.addClickListener(e -> {
+                    UI.getCurrent().navigate(CampaignDetailView.class, campaign.getId().toString());
+                });
+
+// 4. Masukkan gambar langsung ke slide (tanpa Anchor luar)
+                slide.add(img);
             }
             container.add(slide);
         }
