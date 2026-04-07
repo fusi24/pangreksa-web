@@ -64,6 +64,7 @@ public class CampaignCarousel extends Div {
 
 // 3. Tambahkan Click Listener untuk navigasi ke halaman Detail
                 img.addClickListener(e -> {
+                    campaignService.incrementClickCount(campaign.getId());
                     UI.getCurrent().navigate(CampaignDetailView.class, campaign.getId().toString());
                 });
 

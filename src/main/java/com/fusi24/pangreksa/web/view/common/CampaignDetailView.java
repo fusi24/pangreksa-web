@@ -90,28 +90,25 @@ public class CampaignDetailView extends VerticalLayout implements HasUrlParamete
 
         // 4. Tombol Link Eksternal (Jika ada)
         if (campaign.getLinkUrl() != null && !campaign.getLinkUrl().isEmpty()) {
-            // 1. Buat komponen ikon secara terpisah
-            Icon icon = VaadinIcon.EXTERNAL_LINK.create();
-            icon.getStyle().set("margin-left", "8px"); // Beri sedikit jarak dari teks
+            // 1. Buat tombol standar (tanpa Anchor di dalamnya)
+            Button btnLink = new Button("Buka Tautan Selengkapnya", VaadinIcon.EXTERNAL_LINK.create());
 
-            // 2. Buat Anchor (Tautan)
-            Anchor anchor = new Anchor(campaign.getLinkUrl(), "Buka Tautan Selengkapnya");
-            anchor.setTarget("_blank");
-            anchor.getStyle().set("color", "white"); // Pastikan teks tetap putih jika di dalam tombol biru
-            anchor.getStyle().set("text-decoration", "none");
-
-            // 3. Masukkan Anchor dan Icon ke dalam Button
-            // Kita gunakan HorizontalLayout di dalam Button agar tata letaknya rapi
-            Button btnLink = new Button(new HorizontalLayout(anchor, icon));
+            // Styling
             btnLink.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
             btnLink.setWidthFull();
             btnLink.getStyle().set("background-color", "#002d5d");
-            btnLink.getStyle().set("cursor", "pointer");
+            btnLink.setIconAfterText(true);
+
+            // 2. Logika Klik
+            btnLink.addClickListener(e -> {
+                // A. Update database terlebih dahulu
+                campaignService.incrementClickCount(campaign.getId());
+
+                // B. Buka link di tab baru lewat Java/JavaScript
+                UI.getCurrent().getPage().open(campaign.getLinkUrl(), "_blank");
+            });
 
             container.add(btnLink);
-
-            // Track Click
-            btnLink.addClickListener(e -> campaignService.incrementClickCount(campaign.getId()));
         }
     }
 }
