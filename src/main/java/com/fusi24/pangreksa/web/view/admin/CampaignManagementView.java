@@ -41,9 +41,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @Route("management-campaign")
 @PageTitle("Manajemen Campaign")
-@Menu(order = 20, icon = "vaadin:megaphone", title = "Manajemen Campaign")
 @RolesAllowed("CAMPAIGN")
-public class CampaignManagementView extends Main {
+public class CampaignManagementView extends Main implements com.vaadin.flow.router.HasUrlParameter<String> {
+
+    private static final Logger log = LoggerFactory.getLogger(CampaignManagementView.class);
 
     private final CampaignService campaignService;
     private final CommonService commonService;
@@ -62,8 +63,9 @@ public class CampaignManagementView extends Main {
     private IntegerField priority = new IntegerField("Prioritas");
     private Checkbox isActive = new Checkbox("Aktif");
     private ComboBox<String> category = new ComboBox<>("Kategori");
+
     private Div photoPlaceholder;
-    private Image photoPreview;
+    private Image photoPreview = new Image(); // Inisialisasi awal agar tidak null
 
     public CampaignManagementView(CampaignService campaignService, CommonService commonService, CurrentUser currentUser) {
         this.campaignService = campaignService;
@@ -81,9 +83,44 @@ public class CampaignManagementView extends Main {
         add(new ViewToolbar("Manajemen Campaign"));
         createBody();
 
-        this.currentCampaign = new Campaign();
+        // Bind data
         binder.bindInstanceFields(this);
-        binder.setBean(currentCampaign);
+    }
+
+    @Override
+    public void setParameter(com.vaadin.flow.router.BeforeEvent event,
+                             @com.vaadin.flow.router.OptionalParameter String parameter) {
+        if (parameter != null && !parameter.isEmpty()) {
+            try {
+                Long id = Long.parseLong(parameter);
+                campaignService.getById(id).ifPresentOrElse(campaign -> {
+                    this.currentCampaign = campaign;
+                    binder.setBean(currentCampaign); // Mengisi data ke form
+                    showExistingImage(campaign.getImagePath());
+                }, () -> {
+                    AppNotification.error("Data tidak ditemukan");
+                    UI.getCurrent().navigate(CampaignListView.class);
+                });
+            } catch (NumberFormatException e) {
+                log.error("Invalid ID format: {}", parameter);
+            }
+        } else {
+            this.currentCampaign = new Campaign();
+            binder.setBean(currentCampaign);
+        }
+    }
+
+    private void showExistingImage(String path) {
+        if (path != null && !path.isEmpty()) {
+            byte[] bytes = campaignService.getImagePathAsByteArray(path);
+            if (bytes != null) {
+                StreamResource res = new StreamResource("current-img", () -> new ByteArrayInputStream(bytes));
+                photoPreview.setSrc(res);
+                photoPreview.setVisible(true);
+                photoPlaceholder.removeAll();
+                photoPlaceholder.add(photoPreview);
+            }
+        }
     }
 
     private void createBody() {
@@ -91,7 +128,6 @@ public class CampaignManagementView extends Main {
         card.addClassNames(LumoUtility.Background.BASE, LumoUtility.BorderRadius.MEDIUM, LumoUtility.BoxShadow.SMALL, LumoUtility.Padding.LARGE, LumoUtility.Margin.AUTO);
         card.setMaxWidth("1100px");
 
-        // Header
         HorizontalLayout header = new HorizontalLayout();
         header.setWidthFull();
         header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
@@ -105,12 +141,11 @@ public class CampaignManagementView extends Main {
 
         header.add(titleText, btnSimpan);
 
-        // Form
-        FormLayout formLayout = new FormLayout(title, priority, startDate, linkUrl, endDate, description);
-        formLayout.setColspan(description, 2);
         category.setItems("Event", "Kebijakan", "Wellness", "Lainnya");
+        FormLayout formLayout = new FormLayout();
         formLayout.add(title, category, priority, startDate, linkUrl, endDate, description);
-        // Upload Section (Mengikuti pola KaryawanBaruFormView)
+        formLayout.setColspan(description, 2);
+
         photoPlaceholder = new Div();
         photoPlaceholder.addClassNames(LumoUtility.Background.CONTRAST_10, LumoUtility.Display.FLEX, LumoUtility.AlignItems.CENTER, LumoUtility.JustifyContent.CENTER);
         photoPlaceholder.setWidth("300px");
@@ -120,57 +155,62 @@ public class CampaignManagementView extends Main {
         placeholderIcon.addClassNames(LumoUtility.TextColor.TERTIARY, LumoUtility.FontSize.XXLARGE);
         photoPlaceholder.add(placeholderIcon);
 
+        // Styling awal preview (tersembunyi)[cite: 7]
+        photoPreview.setWidthFull();
+        photoPreview.setHeightFull();
+        photoPreview.getStyle().set("object-fit", "cover");
+        photoPreview.setVisible(false);
+
         var handler = UploadHandler.inMemory((metadata, data) -> {
             uploadedImageBytes.set(data);
             StreamResource res = new StreamResource(UUID.randomUUID().toString(), () -> new ByteArrayInputStream(data));
 
             UI.getCurrent().access(() -> {
-                photoPreview = new Image(res, "Preview");
-                photoPreview.setWidthFull();
-                photoPreview.setHeightFull();
-                photoPreview.getStyle().set("object-fit", "cover");
-
-                photoPlaceholder.removeAll(); // Pola: removeAll container sebelum add preview baru
+                photoPreview.setSrc(res);
+                photoPreview.setVisible(true);
+                photoPlaceholder.removeAll();
                 photoPlaceholder.add(photoPreview);
             });
         });
 
         Upload upload = new Upload(handler);
         upload.setAcceptedFileTypes("image/png", "image/jpeg");
-
-        // Tetap tampilkan upload jika tombol kustom bermasalah, atau pastikan tombol memicu dengan benar
-        Button uploadBtn = new Button("Pilih Gambar", VaadinIcon.UPLOAD.create());
-        upload.setUploadButton(uploadBtn);
+        upload.setUploadButton(new Button("Pilih Gambar", VaadinIcon.UPLOAD.create()));
 
         card.add(header, formLayout, new Span("Preview Image"), photoPlaceholder, upload, isActive);
         add(card);
     }
 
     private void save() {
-        if (this.auth != null && !this.auth.canCreate && currentCampaign.getId() == null) {
-            AppNotification.error("Anda tidak memiliki izin");
-            return;
-        }
-
         if (binder.validate().isOk()) {
             try {
-                // Simpan file fisik jika ada byte baru[cite: 1, 6]
                 if (uploadedImageBytes.get() != null) {
-                    String path = campaignService.saveImage(uploadedImageBytes.get());
-                    currentCampaign.setImagePath(path);
-                } else if (currentCampaign.getImagePath() == null) {
-                    AppNotification.error("Gambar wajib diunggah!");
-                    return;
+                    // Hapus file lama jika ada (Skenario Edit)[cite: 7]
+                    if (currentCampaign.getImagePath() != null) {
+                        deleteOldFile(currentCampaign.getImagePath());
+                    }
+                    String newPath = campaignService.saveImage(uploadedImageBytes.get());
+                    currentCampaign.setImagePath(newPath);
                 }
 
                 var loginUser = commonService.getLoginUser(currentUser.require().getUserId().toString());
                 campaignService.save(currentCampaign, loginUser.getId());
 
-                AppNotification.success("Data berhasil tersimpan");
-                UI.getCurrent().getPage().reload();
+                AppNotification.success("Data campaign berhasil diperbarui");
+                UI.getCurrent().navigate(CampaignListView.class);
             } catch (Exception ex) {
-                AppNotification.error("Gagal simpan: " + ex.getMessage());
+                AppNotification.error("Gagal menyimpan: " + ex.getMessage());
+                log.error("Save error", ex);
             }
+        }
+    }
+
+    private void deleteOldFile(String oldPath) {
+        try {
+            String cleanPath = oldPath.startsWith("/") ? oldPath.substring(1) : oldPath;
+            java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(cleanPath));
+        } catch (Exception e) {
+            log.error("Gagal menghapus file lama: {}", e.getMessage());
         }
     }
 }

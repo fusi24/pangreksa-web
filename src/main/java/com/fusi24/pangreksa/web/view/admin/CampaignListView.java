@@ -111,25 +111,59 @@ public class CampaignListView extends VerticalLayout {
         }).setHeader("Status");
 
         // 5. Aksi
+        // ... di dalam method configureGrid()
         grid.addComponentColumn(c -> {
             HorizontalLayout actions = new HorizontalLayout();
+            actions.setSpacing(true);
 
             Button edit = new Button(VaadinIcon.PENCIL.create(), e -> {
-                // Navigasi ke form edit (logika navigasi sesuaikan)
-                AppNotification.success("Edit " + c.getTitle());
+                // Navigasi yang benar untuk HasUrlParameter
+                getUI().ifPresent(ui -> ui.navigate(CampaignManagementView.class, c.getId().toString()));
             });
+            edit.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
+            // Tombol Hapus
             Button delete = new Button(VaadinIcon.TRASH.create(), e -> {
-                // Logika hapus
-                AppNotification.success("Hapus " + c.getTitle());
+                confirmDelete(c);
             });
+            delete.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
+            delete.setTooltipText("Hapus Campaign");
 
             actions.add(edit, delete);
             return actions;
-        }).setHeader("Aksi");
+        }).setHeader("Aksi").setFlexGrow(0).setWidth("120px");
+
+
+
 
         grid.setSizeFull();
         grid.addThemeVariants(com.vaadin.flow.component.grid.GridVariant.LUMO_ROW_STRIPES);
+    }
+
+    private void confirmDelete(Campaign campaign) {
+        com.vaadin.flow.component.confirmdialog.ConfirmDialog dialog = new com.vaadin.flow.component.confirmdialog.ConfirmDialog();
+        dialog.setHeader("Hapus Campaign");
+        dialog.setText("Apakah Anda yakin ingin menghapus campaign '" + campaign.getTitle() + "'? File gambar juga akan dihapus dari server.");
+
+        dialog.setCancelable(true);
+        dialog.setCancelText("Batal");
+
+        dialog.setConfirmText("Hapus");
+        dialog.setConfirmButtonTheme("error primary");
+
+        dialog.addConfirmListener(e -> {
+            try {
+                // Memanggil service yang sudah kita buat (menghapus file & DB)
+                campaignService.deleteCampaign(campaign);
+
+                AppNotification.success("Campaign berhasil dihapus");
+                updateList(); // Refresh Grid
+            } catch (Exception ex) {
+                AppNotification.error("Gagal menghapus data: " + ex.getMessage());
+            }
+        });
+
+        dialog.open();
     }
 
     private void updateList() {

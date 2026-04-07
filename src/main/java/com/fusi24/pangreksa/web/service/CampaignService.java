@@ -102,6 +102,10 @@ public class CampaignService {
         });
     }
 
+    public java.util.Optional<Campaign> getById(Long id) {
+        return repository.findById(id);
+    }
+
     @Transactional
     public void deleteCampaign(Campaign campaign) {
         if (campaign.getImagePath() != null) {
