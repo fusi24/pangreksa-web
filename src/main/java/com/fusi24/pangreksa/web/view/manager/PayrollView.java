@@ -237,7 +237,7 @@ public class PayrollView extends Main {
         // Kolom-kolom Dasar (Identitas)
 //        grid.addColumn(p -> "").setHeader("No").setWidth("50px").setFlexGrow(0);
         grid.addColumn(p -> p.getPerson() != null ? p.getPerson().getKtpNumber() : "-").setHeader("Nomor KTP").setWidth("180px");
-        grid.addColumn(HrPayroll::getEmployeeNumber).setHeader("NIK").setWidth("140px");
+//        grid.addColumn(HrPayroll::getEmployeeNumber).setHeader("NIK").setWidth("140px");
         grid.addColumn(this::getEmployeeName).setHeader("Nama Tenaga Kerja").setWidth("200px");
 
         grid.addColumn(p -> p.getDob() != null ? p.getDob().toString() : "-").setHeader("Tgl Lahir").setWidth("120px");
