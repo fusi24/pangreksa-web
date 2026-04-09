@@ -9,11 +9,13 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import java.util.Optional;
 
 @Service
 public class SystemService {
     private static final Logger log = LoggerFactory.getLogger(SystemService.class);
 
+    // Variabel repository sesuai dengan constructor Anda
     private final FwSystemRepository systemRepository;
 
     public SystemService(FwSystemRepository systemRepository) {
@@ -27,10 +29,7 @@ public class SystemService {
 
     public List<FwSystem> findSystemsByIds(List<String> idStrings) {
         log.debug("Fetching systems ordered by idStrings: {}", idStrings.size());
-
-        // create list of UUIDs from list of strings
         List<UUID> ids = idStrings.stream().map(UUID::fromString).toList();
-
         return systemRepository.findByIdInOrderBySortOrderAsc(ids);
     }
 
@@ -40,10 +39,15 @@ public class SystemService {
                 .orElseThrow(() -> new IllegalArgumentException("System not found with ID: " + id));
     }
 
+    /**
+     * Mencari data FwSystem berdasarkan key.
+     * Karena findByKey mengembalikan List, kita ambil yang pertama saja.
+     */
     public FwSystem findSystemByKey(String configKey) {
         log.debug("Fetching system with Key: {}", configKey);
         return systemRepository.findByKey(configKey)
-                .stream().findFirst()
+                .stream()
+                .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("System not found with Key: " + configKey));
     }
 
@@ -51,6 +55,8 @@ public class SystemService {
         log.debug("Saving system with key: {}", system.getKey());
         return systemRepository.save(system);
     }
+
+    // --- HELPER UNTUK MENGAMBIL NILAI CONFIG ---
 
     public String getStringAppName() {
         return findSystemById(UUID.fromString("2af9be5b-426e-499e-b03a-57849e5217c4")).getStringVal();
@@ -72,28 +78,38 @@ public class SystemService {
         return findSystemById(UUID.fromString("f56c31fb-f1c0-4660-adc5-1a458fccb970")).getIntVal();
     }
 
-    public BigDecimal getConfigNumericValue(String configKey) {
-        FwSystem config = findSystemByKey(configKey); // Assuming findSystemById(key) returns FwSystem by 'key'
-        if (config == null) {
-            throw new RuntimeException("Config not found: " + configKey);
-        }
+    /**
+     * Method ini sudah diperbaiki untuk menangani List hasil findByKey
+     * dan menggunakan variabel systemRepository yang benar.
+     */
+    public BigDecimal getDecimalConfig(String key) {
+        return systemRepository.findByKey(key).stream()
+                .findFirst()
+                .map(sys -> {
+                    // Cek jika field decimal_val memiliki data
+                    if (sys.getDecimalVal() != null) return sys.getDecimalVal();
 
-        if (config.getIntVal() != null) {
-            return BigDecimal.valueOf(config.getIntVal());
-        } else if (config.getStringVal() != null) {
-            // Handle formatted numbers like "12,000,000" → remove commas
-            String clean = config.getStringVal().replace(",", "");
-            return new BigDecimal(clean);
-        } else {
-            throw new RuntimeException("Config value not available or invalid for key: " + configKey);
-        }
+                    // Jika null, coba parsing dari string_val (menghapus koma jika ada)
+                    try {
+                        String rawValue = sys.getStringVal();
+                        if (rawValue != null && !rawValue.isEmpty()) {
+                            return new BigDecimal(rawValue.replace(",", ""));
+                        }
+                    } catch (Exception e) {
+                        log.warn("Failed to parse config string_val to BigDecimal for key: {}", key);
+                    }
+                    return BigDecimal.ZERO;
+                })
+                .orElse(BigDecimal.ZERO);
     }
 
+    // Method tambahan jika Anda membutuhkan nilai String secara langsung
     public String getConfigStringValue(String configKey) {
-        FwSystem config = findSystemByKey(configKey);
-        if (config == null || config.getStringVal() == null) {
-            throw new RuntimeException("String config not found: " + configKey);
+        try {
+            FwSystem config = findSystemByKey(configKey);
+            return config.getStringVal();
+        } catch (Exception e) {
+            return "";
         }
-        return config.getStringVal();
     }
 }

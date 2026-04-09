@@ -87,4 +87,17 @@ public class HrPayrollCalculation {
 
     @Column(name = "notes")
     private String notes;
+
+    @Column(name = "bpjs_jkk_company")
+    private BigDecimal bpjsJkkCompany;
+
+    @Column(name = "bpjs_jkm_company")
+    private BigDecimal bpjsJkmCompany;
+
+    // Jika Anda menggunakan iuran JKK/JKM dari sisi karyawan (jarang, tapi jaga-jaga)
+    @Column(name = "bpjs_jkk_deduction")
+    private BigDecimal bpjsJkkDeduction;
+
+    @Column(name = "bpjs_jkm_deduction")
+    private BigDecimal bpjsJkmDeduction;
 }

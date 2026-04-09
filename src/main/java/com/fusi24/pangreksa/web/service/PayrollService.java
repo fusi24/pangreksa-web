@@ -527,6 +527,8 @@ public class PayrollService {
                 .bpjsJhtCompany(scale(bpjs.companyJht))
                 .bpjsJpCompany(scale(bpjs.companyJp))
                 .bpjsJknCompany(scale(bpjs.companyJkn))
+                .bpjsJkkCompany(scale(bpjs.getCompanyJkk()))
+                .bpjsJkmCompany(scale(bpjs.getCompanyJk()))
                 .pph21Deduction(scale(pph21Deduction))
                 .totalDeduction(scale(totalDeduction))
                 .netTakeHomePay(scale(netTakeHomePay))
@@ -744,6 +746,8 @@ public class PayrollService {
     }
 
     private BpjsResult resolveBpjsResult(BigDecimal baseForBpjs) {
+
+
         BigDecimal gross = nvl(baseForBpjs);
         if (gross.signum() <= 0) {
             return BpjsResult.zero();
@@ -1154,6 +1158,8 @@ public class PayrollService {
         }
     }
 
+    // Tambahkan @Getter di sini
+    @Getter
     private static class BpjsResult {
         private final BigDecimal employeeJht;
         private final BigDecimal employeeJp;
@@ -1204,7 +1210,61 @@ public class PayrollService {
         }
     }
 
+    // Tambahkan class ini di dalam PayrollService
+    @Getter
+    @Setter
+    public static class BpjsCalculation {
+        private BigDecimal jkk;
+        private BigDecimal jkm;
+        private BigDecimal jhtPrsh;
+        private BigDecimal jhtTk;
+        private BigDecimal jpPrsh;
+        private BigDecimal jpTk;
+        private BigDecimal jknPrsh;
+        private BigDecimal jknTk;
+
+        // Constructor untuk membuat objek baru
+        public BpjsCalculation(BigDecimal jkk, BigDecimal jkm, BigDecimal jhtPrsh, BigDecimal jhtTk,
+                               BigDecimal jpPrsh, BigDecimal jpTk, BigDecimal jknPrsh, BigDecimal jknTk) {
+            this.jkk = jkk;
+            this.jkm = jkm;
+            this.jhtPrsh = jhtPrsh;
+            this.jhtTk = jhtTk;
+            this.jpPrsh = jpPrsh;
+            this.jpTk = jpTk;
+            this.jknPrsh = jknPrsh;
+            this.jknTk = jknTk;
+        }
+    }
+
+    public class BpjsService {
+
+        public BpjsCalculation calculate(BigDecimal baseSalary, SystemService systemService) {
+            // Ambil plafon dari fw_system
+            BigDecimal limitJp = systemService.getDecimalConfig("Batas Upah BPJS JP"); // 10.547.400
+            BigDecimal limitJkn = systemService.getDecimalConfig("Batas Upah BPJS Kesehatan"); // 12.000.000
+
+            BigDecimal upahJp = baseSalary.min(limitJp);
+            BigDecimal upahJkn = baseSalary.min(limitJkn);
+
+            // Hitung Komponen
+            BigDecimal jkk = baseSalary.multiply(new BigDecimal("0.0024"));
+            BigDecimal jkm = baseSalary.multiply(new BigDecimal("0.003"));
+            BigDecimal jhtPrsh = baseSalary.multiply(new BigDecimal("0.037"));
+            BigDecimal jhtTk = baseSalary.multiply(new BigDecimal("0.02"));
+            BigDecimal jpPrsh = upahJp.multiply(new BigDecimal("0.02"));
+            BigDecimal jpTk = upahJp.multiply(new BigDecimal("0.01"));
+            BigDecimal jknPrsh = upahJkn.multiply(new BigDecimal("0.04"));
+            BigDecimal jknTk = upahJkn.multiply(new BigDecimal("0.01"));
+
+            // Kembalikan objek berisi semua hasil hitungan
+            return new BpjsCalculation(jkk, jkm, jhtPrsh, jhtTk, jpPrsh, jpTk, jknPrsh, jknTk);
+        }
+    }
+
     public List<HrPayrollComponent> getPayrollComponentsByCalculationId(Long calculationId) {
         return hrPayrollComponentRepository.findByPayrollCalculationId(calculationId);
     }
+
+
 }
