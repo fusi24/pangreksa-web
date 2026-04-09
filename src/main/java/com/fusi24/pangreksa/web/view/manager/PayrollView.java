@@ -186,28 +186,48 @@ public class PayrollView extends Main {
 
         // BPJS TK perusahaan = JHT+JP perusahaan
         Grid.Column<HrPayroll> bpjsTkCompanyCol = grid.addColumn(payroll -> {
-            HrPayrollCalculation calc = getCalc(payroll).orElse(null);
-            if (calc == null) return fmt(BigDecimal.ZERO);
-
-            BigDecimal val = nvl(calc.getBpjsJhtCompany())
-                    .add(nvl(calc.getBpjsJpCompany()));
+            BigDecimal val = sumComponentByCodes(payroll, Set.of(
+                    "BPJS_JHT_COMPANY",
+                    "BPJS_JP_COMPANY",
+                    "BPJS_JKK_COMPANY",
+                    "BPJS_JK_COMPANY",
+                    "BPJS_JHT",
+                    "BPJS_JP",
+                    "BPJS_JKK",
+                    "BPJS_JK"
+            ));
             return fmt(val);
         }).setHeader("BPJS TK").setWidth("140px").setFlexGrow(0);
 
         // BPJS JKN perusahaan
-        Grid.Column<HrPayroll> bpjsJknCompanyCol = grid.addColumn(payroll ->
-                        fmt(getCalc(payroll).map(HrPayrollCalculation::getBpjsJknCompany).orElse(BigDecimal.ZERO)))
-                .setHeader("BPJS JKN")
-                .setWidth("140px")
-                .setFlexGrow(0);
+        Grid.Column<HrPayroll> bpjsJknCompanyCol = grid.addColumn(payroll -> {
+            BigDecimal val = sumComponentByCodes(payroll, Set.of(
+                    "BPJS_JKN_COMPANY",
+                    "BPJS_JKN"
+            ));
+            return fmt(val);
+        }).setHeader("BPJS JKN").setWidth("140px").setFlexGrow(0);
 
         // Tunjangan Tidak Tetap = allowance + bpjs tk company + bpjs jkn company
         Grid.Column<HrPayroll> variableTotalCol = grid.addColumn(payroll -> {
             HrPayrollCalculation calc = getCalc(payroll).orElse(null);
             if (calc == null) return fmt(BigDecimal.ZERO);
 
-            BigDecimal bpjsTk = nvl(calc.getBpjsJhtCompany()).add(nvl(calc.getBpjsJpCompany()));
-            BigDecimal bpjsJkn = nvl(calc.getBpjsJknCompany());
+            BigDecimal bpjsTk = sumComponentByCodes(payroll, Set.of(
+                    "BPJS_JHT_COMPANY",
+                    "BPJS_JP_COMPANY",
+                    "BPJS_JKK_COMPANY",
+                    "BPJS_JK_COMPANY",
+                    "BPJS_JHT",
+                    "BPJS_JP",
+                    "BPJS_JKK",
+                    "BPJS_JK"
+            ));
+
+            BigDecimal bpjsJkn = sumComponentByCodes(payroll, Set.of(
+                    "BPJS_JKN_COMPANY",
+                    "BPJS_JKN"
+            ));
 
             BigDecimal val = nvl(calc.getVariableAllowanceTotal())
                     .add(bpjsTk)
@@ -225,11 +245,21 @@ public class PayrollView extends Main {
 
         // Asuransi = BPJS TK employee + BPJS JKN employee
         Grid.Column<HrPayroll> insuranceCol = grid.addColumn(payroll -> {
-            HrPayrollCalculation calc = getCalc(payroll).orElse(null);
-            if (calc == null) return fmt(BigDecimal.ZERO);
+            BigDecimal bpjsTk = sumComponentByCodes(payroll, Set.of(
+                    "BPJS_JHT_COMPANY",
+                    "BPJS_JP_COMPANY",
+                    "BPJS_JKK_COMPANY",
+                    "BPJS_JK_COMPANY",
+                    "BPJS_JHT",
+                    "BPJS_JP",
+                    "BPJS_JKK",
+                    "BPJS_JK"
+            ));
 
-            BigDecimal bpjsTk = nvl(calc.getBpjsJhtDeduction()).add(nvl(calc.getBpjsJpDeduction()));
-            BigDecimal bpjsJkn = nvl(calc.getBpjsJknDeduction());
+            BigDecimal bpjsJkn = sumComponentByCodes(payroll, Set.of(
+                    "BPJS_JKN_COMPANY",
+                    "BPJS_JKN"
+            ));
 
             return fmt(bpjsTk.add(bpjsJkn));
         }).setHeader("Asuransi").setWidth("140px").setFlexGrow(0);
@@ -1122,4 +1152,22 @@ public class PayrollView extends Main {
     private String blankToDash(String v) {
         return (v == null || v.trim().isEmpty()) ? "-" : v;
     }
+
+    private BigDecimal sumComponentByCodes(HrPayroll payroll, Set<String> codes) {
+        HrPayrollCalculation calc = getCalc(payroll).orElse(null);
+        if (calc == null) return BigDecimal.ZERO;
+
+        List<HrPayrollComponent> components = payrollService.getPayrollComponentsByCalculationId(calc.getId());
+        if (components == null || components.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        return components.stream()
+                .filter(c -> c.getComponentCode() != null)
+                .filter(c -> codes.contains(c.getComponentCode().toUpperCase()))
+                .map(HrPayrollComponent::getAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
 }
