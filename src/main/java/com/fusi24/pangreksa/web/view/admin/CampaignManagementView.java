@@ -10,7 +10,6 @@ import com.fusi24.pangreksa.web.service.CommonService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
@@ -25,7 +24,6 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.data.binder.Binder;
-import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
@@ -36,13 +34,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Route("management-campaign")
 @PageTitle("Manajemen Campaign")
 @RolesAllowed("CAMPAIGN")
-public class CampaignManagementView extends Main implements com.vaadin.flow.router.HasUrlParameter<String> {
+public class CampaignManagementView extends VerticalLayout implements com.vaadin.flow.router.HasUrlParameter<String> {
 
     private static final Logger log = LoggerFactory.getLogger(CampaignManagementView.class);
 
@@ -65,8 +64,9 @@ public class CampaignManagementView extends Main implements com.vaadin.flow.rout
     private ComboBox<String> category = new ComboBox<>("Kategori");
 
     private Div photoPlaceholder;
-    private Image photoPreview = new Image(); // Inisialisasi awal agar tidak null
+    private Image photoPreview = new Image();
     private H2 titleText = new H2("Tambah Campaign");
+
     public CampaignManagementView(CampaignService campaignService, CommonService commonService, CurrentUser currentUser) {
         this.campaignService = campaignService;
         this.commonService = commonService;
@@ -84,7 +84,22 @@ public class CampaignManagementView extends Main implements com.vaadin.flow.rout
         add(new ViewToolbar("Manajemen Campaign"));
         createBody();
 
-        // Bind data
+        binder.forField(title)
+                .asRequired("Judul tidak boleh kosong")
+                .bind(Campaign::getTitle, Campaign::setTitle);
+
+        binder.forField(startDate)
+                .asRequired("Tanggal mulai harus diisi")
+                .bind(Campaign::getStartDate, Campaign::setStartDate);
+
+        binder.forField(endDate)
+                .asRequired("Tanggal berakhir harus diisi")
+                .bind(Campaign::getEndDate, Campaign::setEndDate);
+
+        binder.forField(category)
+                .asRequired("Pilih salah satu kategori")
+                .bind(Campaign::getCategory, Campaign::setCategory);
+
         binder.bindInstanceFields(this);
     }
 
@@ -96,17 +111,11 @@ public class CampaignManagementView extends Main implements com.vaadin.flow.rout
             campaignService.getById(id).ifPresent(campaign -> {
                 this.currentCampaign = campaign;
                 binder.setBean(currentCampaign);
-
-                // Update judul menjadi Ubah
                 titleText.setText("Ubah Campaign");
-
-                // Update status ComboBox agar sinkron dengan data DB
                 status.setValue(campaign.isActive() ? "PUBLISH (AKTIF)" : "DRAFT");
-
                 showExistingImage(campaign.getImagePath());
             });
         } else {
-            // Skenario Tambah Baru
             this.currentCampaign = new Campaign();
             binder.setBean(currentCampaign);
             titleText.setText("Tambah Campaign");
@@ -133,51 +142,41 @@ public class CampaignManagementView extends Main implements com.vaadin.flow.rout
                 LumoUtility.BoxShadow.SMALL, LumoUtility.Padding.LARGE, LumoUtility.Margin.AUTO);
         card.setMaxWidth("1100px");
 
-        // --- HEADER ---
         HorizontalLayout header = new HorizontalLayout();
         header.setWidthFull();
+        header.setAlignItems(FlexComponent.Alignment.CENTER);
         header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+
         titleText.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.Margin.NONE);
-        H2 titleText = new H2(currentCampaign.getId() == null ? "Tambah Campaign" : "Ubah Campaign");
-        titleText.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.Margin.NONE);
+
+        HorizontalLayout actions = new HorizontalLayout();
+        Button btnKembali = new Button("Kembali", VaadinIcon.ARROW_LEFT.create(),
+                e -> UI.getCurrent().navigate("campaign-list")); // Sesuaikan rute list Anda
+        btnKembali.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
 
         Button btnSimpan = new Button("Simpan", VaadinIcon.CHECK.create(), e -> save());
         btnSimpan.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         btnSimpan.getStyle().set("background-color", "#002d5d");
 
-        header.add(titleText, btnSimpan);
+        actions.add(btnKembali, btnSimpan);
+        header.add(titleText, actions);
 
-        // --- FORM LAYOUT ---
         category.setItems("Event", "Kebijakan", "Wellness", "Lainnya");
-
-        // Konfigurasi Status Publikasi
         status.setItems("DRAFT", "PUBLISH (AKTIF)");
-        status.setPlaceholder("Pilih status...");
         status.setHelperText("Pilih PUBLISH agar campaign dapat tayang sesuai jadwal.");
 
-        // Set nilai awal berdasarkan data di database
-        if (currentCampaign.isActive()) {
-            status.setValue("PUBLISH (AKTIF)");
-        } else {
-            status.setValue("DRAFT");
-        }
-
         FormLayout formLayout = new FormLayout();
-        // Masukkan status ke dalam formLayout agar rapi sejajar dengan category/priority
         formLayout.add(title, category, status, priority, startDate, endDate, linkUrl, description);
-
-        // Atur lebar field (2 kolom untuk title, link, dan deskripsi agar lebih luas)
         formLayout.setColspan(title, 2);
         formLayout.setColspan(linkUrl, 2);
         formLayout.setColspan(description, 2);
 
-        // --- PHOTO SECTION ---
         photoPlaceholder = new Div();
         photoPlaceholder.addClassNames(LumoUtility.Background.CONTRAST_10, LumoUtility.Display.FLEX,
                 LumoUtility.AlignItems.CENTER, LumoUtility.JustifyContent.CENTER, LumoUtility.BorderRadius.MEDIUM);
         photoPlaceholder.setWidth("100%");
-        photoPlaceholder.setMaxWidth("600px"); // Preview jangan terlalu lebar
-        photoPlaceholder.setHeight("200px"); // Tinggi preview lebih proporsional (3:1)
+        photoPlaceholder.setMaxWidth("600px");
+        photoPlaceholder.setHeight("200px");
 
         Icon placeholderIcon = VaadinIcon.PICTURE.create();
         placeholderIcon.addClassNames(LumoUtility.TextColor.TERTIARY, LumoUtility.FontSize.XXLARGE);
@@ -188,11 +187,9 @@ public class CampaignManagementView extends Main implements com.vaadin.flow.rout
         photoPreview.getStyle().set("object-fit", "cover");
         photoPreview.setVisible(false);
 
-        // Handler Upload
         var handler = UploadHandler.inMemory((metadata, data) -> {
             uploadedImageBytes.set(data);
             StreamResource res = new StreamResource(UUID.randomUUID().toString(), () -> new ByteArrayInputStream(data));
-
             UI.getCurrent().access(() -> {
                 photoPreview.setSrc(res);
                 photoPreview.setVisible(true);
@@ -201,55 +198,77 @@ public class CampaignManagementView extends Main implements com.vaadin.flow.rout
             });
         });
 
+        // ... (Bagian handler upload tetap sama)
+
         Upload upload = new Upload(handler);
         upload.setAcceptedFileTypes("image/png", "image/jpeg");
         upload.setUploadButton(new Button("Pilih Gambar Banner", VaadinIcon.UPLOAD.create()));
         upload.setWidthFull();
 
-        // --- PENYUSUNAN AKHIR ---
-        // Tambahkan komponen ke card secara berurutan
+// Mengganti setHelperText dengan Span manual
+        Span uploadHelper = new Span("Rekomendasi ukuran: 1200 x 400 px (Rasio 3:1) untuk menghindari pemotongan otomatis.");
+        uploadHelper.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+
+// --- PENYUSUNAN AKHIR ---
         card.add(
                 header,
-                new Hr(), // Garis pemisah antara header dan form
+                new Hr(),
                 formLayout,
                 new Span("Banner Preview"),
                 photoPlaceholder,
-                upload
+                upload,
+                uploadHelper // Tambahkan span helper tepat di bawah komponen upload
         );
-
         add(card);
     }
 
     private void save() {
-        if (binder.validate().isOk()) {
-            try {
-                // Mapping Status ComboBox ke Boolean isActive
-                // Jika pilih PUBLISH, maka isActive = true
-                currentCampaign.setActive("PUBLISH (AKTIF)".equals(status.getValue()));
-
-                // Logika simpan gambar dan service tetap sama
-                if (uploadedImageBytes.get() != null) {
-                    String newPath = campaignService.saveImage(uploadedImageBytes.get());
-                    currentCampaign.setImagePath(newPath);
-                }
-
-                var loginUser = commonService.getLoginUser(currentUser.require().getUserId().toString());
-                campaignService.save(currentCampaign, loginUser.getId());
-
-                AppNotification.success("Data campaign berhasil disimpan sebagai " + status.getValue());
-                UI.getCurrent().navigate(CampaignListView.class);
-            } catch (Exception ex) {
-                AppNotification.error("Gagal simpan: " + ex.getMessage());
-            }
+        // 1. Validasi Binder (UI)
+        var result = binder.validate();
+        if (result.hasErrors()) {
+            AppNotification.error("Mohon lengkapi data yang wajib diisi.");
+            return;
         }
-    }
 
-    private void deleteOldFile(String oldPath) {
+        // 2. Validasi Khusus Gambar (karena imagePath bukan field input langsung)
+        if (currentCampaign.getImagePath() == null && uploadedImageBytes.get() == null) {
+            AppNotification.error("Banner Campaign wajib diunggah.");
+            return;
+        }
+
         try {
-            String cleanPath = oldPath.startsWith("/") ? oldPath.substring(1) : oldPath;
-            java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(cleanPath));
-        } catch (Exception e) {
-            log.error("Gagal menghapus file lama: {}", e.getMessage());
+            boolean isPublishRequest = "PUBLISH (AKTIF)".equals(status.getValue());
+
+            // Validasi Kuota 5 Campaign Aktif
+            if (isPublishRequest) {
+                long otherActiveCount = campaignService.getActiveCampaigns().stream()
+                        .filter(c -> !c.getId().equals(currentCampaign.getId()))
+                        .count();
+
+                if (otherActiveCount >= 5) {
+                    AppNotification.error("Gagal! Sudah ada 5 campaign aktif.");
+                    return;
+                }
+            }
+
+            currentCampaign.setActive(isPublishRequest);
+
+            // Proses simpan gambar jika ada upload baru
+            if (uploadedImageBytes.get() != null) {
+                String newPath = campaignService.saveImage(uploadedImageBytes.get());
+                currentCampaign.setImagePath(newPath);
+            }
+
+            var loginUser = commonService.getLoginUser(currentUser.require().getUserId().toString());
+            campaignService.save(currentCampaign, loginUser.getId());
+
+            AppNotification.success("Data berhasil disimpan.");
+            UI.getCurrent().navigate("campaign-list");
+
+        } catch (Exception ex) {
+            // Log error asli untuk debug, tapi tampilkan pesan ramah ke user
+            log.error("Error saving campaign: ", ex);
+            AppNotification.error("Terjadi kesalahan sistem saat menyimpan data.");
         }
     }
 }
