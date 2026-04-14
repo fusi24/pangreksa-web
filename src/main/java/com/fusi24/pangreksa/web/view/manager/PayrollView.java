@@ -9,7 +9,6 @@ import com.fusi24.pangreksa.web.model.Authorization;
 import com.fusi24.pangreksa.web.model.entity.HrPayroll;
 import com.fusi24.pangreksa.web.model.entity.HrPayrollCalculation;
 import com.fusi24.pangreksa.web.model.entity.HrPayrollComponent;
-import com.fusi24.pangreksa.web.model.entity.HrSalaryAllowance;
 import com.fusi24.pangreksa.web.service.CommonService;
 import com.fusi24.pangreksa.web.service.PayrollService;
 import com.fusi24.pangreksa.web.service.SystemService;
@@ -17,12 +16,11 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.combobox.MultiSelectComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.FooterRow;
 import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.grid.HeaderRow;
 import com.vaadin.flow.component.html.Main;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
@@ -33,6 +31,8 @@ import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
+import com.vaadin.flow.component.tabs.Tab;
+import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.BigDecimalField;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
@@ -46,6 +46,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
+import lombok.Getter;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +70,8 @@ public class PayrollView extends Main {
     public static final String VIEW_NAME = "Payroll";
     private static final long serialVersionUID = 19092L;
     private static final Logger log = LoggerFactory.getLogger(PayrollView.class);
+    private static final UUID BPJS_JP_CAP_CONFIG_ID = UUID.fromString("8a06244d-ebe9-4a4a-a71c-e947759dcec6");
+    private static final UUID BPJS_JKN_CAP_CONFIG_ID = UUID.fromString("3ae1184a-b6b8-412c-9ee8-13e478796aa4");
 
     private final CurrentUser currentUser;
     private final CommonService commonService;
@@ -79,6 +82,9 @@ public class PayrollView extends Main {
 
     private final Button deleteButton = new Button("Delete");
     private final Grid<HrPayroll> grid = new Grid<>(HrPayroll.class, false);
+    private final Grid<BpjsTkRow> bpjsTkGrid = new Grid<>(BpjsTkRow.class, false);
+    private final Grid<BpjsJknRow> bpjsJknGrid = new Grid<>(BpjsJknRow.class, false);
+    private final Grid<PajakRow> pajakGrid = new Grid<>(PajakRow.class, false);
     private final TextField searchField = new TextField();
     private final ComboBox<Integer> yearFilter = new ComboBox<>();
     private final ComboBox<Integer> monthFilter = new ComboBox<>();
@@ -88,6 +94,59 @@ public class PayrollView extends Main {
 
     private final Map<Long, Integer> rowNoByPayrollId = new ConcurrentHashMap<>();
     private final Map<Long, HrPayrollCalculation> calculationCache = new ConcurrentHashMap<>();
+    private final Map<Long, List<HrPayrollComponent>> componentCache = new ConcurrentHashMap<>();
+    private final Tab payrollTab = new Tab("PAYROLL");
+    private final Tab bpjsTkTab = new Tab("BPJS TK");
+    private final Tab bpjsJknTab = new Tab("BPJS JKN");
+    private final Tab pajakTab = new Tab("PAJAK");
+    private final Tabs dataTabs = new Tabs(payrollTab, bpjsTkTab, bpjsJknTab, pajakTab);
+    private final Map<Tab, com.vaadin.flow.component.Component> tabContents = new LinkedHashMap<>();
+    private final VerticalLayout gridContent = new VerticalLayout();
+    private final VerticalLayout pajakContent = new VerticalLayout();
+    private final Span pajakTitle = new Span("PPh Non Gross-Up");
+
+    private Grid.Column<HrPayroll> payrollNameColumn;
+    private Grid.Column<HrPayroll> payrollGapokColumn;
+    private Grid.Column<HrPayroll> payrollJabatanColumn;
+    private Grid.Column<HrPayroll> payrollKeahlianColumn;
+    private Grid.Column<HrPayroll> payrollFixedAllowanceColumn;
+    private Grid.Column<HrPayroll> payrollAllowanceColumn;
+    private Grid.Column<HrPayroll> payrollBpjsTkColumn;
+    private Grid.Column<HrPayroll> payrollBpjsJknColumn;
+    private Grid.Column<HrPayroll> payrollVariableAllowanceColumn;
+    private Grid.Column<HrPayroll> payrollGrossColumn;
+    private Grid.Column<HrPayroll> payrollInsuranceColumn;
+    private Grid.Column<HrPayroll> payrollPphColumn;
+    private Grid.Column<HrPayroll> payrollThpColumn;
+
+    private Grid.Column<BpjsTkRow> bpjsTkEmployeeNumberColumn;
+    private Grid.Column<BpjsTkRow> bpjsTkWageColumn;
+    private Grid.Column<BpjsTkRow> bpjsTkJpBaseWageColumn;
+    private Grid.Column<BpjsTkRow> bpjsTkEmployeeJpColumn;
+    private Grid.Column<BpjsTkRow> bpjsTkCompanyJpColumn;
+    private Grid.Column<BpjsTkRow> bpjsTkCompanyJkkColumn;
+    private Grid.Column<BpjsTkRow> bpjsTkCompanyJkmColumn;
+    private Grid.Column<BpjsTkRow> bpjsTkEmployeeJhtColumn;
+    private Grid.Column<BpjsTkRow> bpjsTkCompanyJhtColumn;
+    private Grid.Column<BpjsTkRow> bpjsTkTotalContributionColumn;
+
+    private Grid.Column<BpjsJknRow> bpjsJknEmployeeNumberColumn;
+    private Grid.Column<BpjsJknRow> bpjsJknWageColumn;
+    private Grid.Column<BpjsJknRow> bpjsJknBaseWageColumn;
+    private Grid.Column<BpjsJknRow> bpjsJknCompanyColumn;
+    private Grid.Column<BpjsJknRow> bpjsJknEmployeeColumn;
+    private Grid.Column<BpjsJknRow> bpjsJknPremiumColumn;
+    private Grid.Column<PajakRow> pajakNoColumn;
+    private Grid.Column<PajakRow> pajakGapokColumn;
+    private Grid.Column<PajakRow> pajakJabatanColumn;
+    private Grid.Column<PajakRow> pajakKeahlianColumn;
+    private Grid.Column<PajakRow> pajakAllowanceColumn;
+    private Grid.Column<PajakRow> pajakJkkColumn;
+    private Grid.Column<PajakRow> pajakJkmColumn;
+    private Grid.Column<PajakRow> pajakJknColumn;
+    private Grid.Column<PajakRow> pajakPenghasilanTeraturColumn;
+    private Grid.Column<PajakRow> pajakDppTerColumn;
+    private Grid.Column<PajakRow> pajakPaid21Column;
 
     public PayrollView(CurrentUser currentUser,
                        CommonService commonService,
@@ -125,6 +184,7 @@ public class PayrollView extends Main {
     private void initializeView() {
         setHeightFull();
         configureGrid();
+        configureSupplementaryGrids();
         add(buildMainLayout());
         applyFilters();
     }
@@ -149,7 +209,7 @@ public class PayrollView extends Main {
                 .setFlexGrow(0);
 
         // Nama
-        Grid.Column<HrPayroll> nameCol = grid.addColumn(item -> {
+        payrollNameColumn = grid.addColumn(item -> {
                     String fullName = Stream.of(
                                     item.getFirstName(),
                                     item.getMiddleName(),
@@ -165,42 +225,42 @@ public class PayrollView extends Main {
                 .setFlexGrow(1);
 
         // Gapok
-        Grid.Column<HrPayroll> gapokCol = grid.addColumn(payroll ->
+        payrollGapokColumn = grid.addColumn(payroll ->
                         fmt(payroll.getBaseSalary()))
                 .setHeader("Gapok")
                 .setWidth("140px")
                 .setFlexGrow(0);
 
         // Tunjangan Jabatan
-        Grid.Column<HrPayroll> jabatanCol = grid.addColumn(payroll ->
+        payrollJabatanColumn = grid.addColumn(payroll ->
                         fmt(findComponentAmountByName(payroll, "Jabatan")))
                 .setHeader("Tunjangan Jabatan")
                 .setWidth("160px")
                 .setFlexGrow(0);
 
         // Keahlian
-        Grid.Column<HrPayroll> keahlianCol = grid.addColumn(payroll ->
+        payrollKeahlianColumn = grid.addColumn(payroll ->
                         fmt(findComponentAmountByName(payroll, "Keahlian")))
                 .setHeader("Keahlian")
                 .setWidth("140px")
                 .setFlexGrow(0);
 
         // Tunjangan Tetap
-        Grid.Column<HrPayroll> fixedCol = grid.addColumn(payroll ->
+        payrollFixedAllowanceColumn = grid.addColumn(payroll ->
                         fmt(getCalc(payroll).map(HrPayrollCalculation::getFixedAllowanceTotal).orElse(BigDecimal.ZERO)))
                 .setHeader("Tunjangan Tetap")
                 .setWidth("160px")
                 .setFlexGrow(0);
 
         // Allowance (variable only)
-        Grid.Column<HrPayroll> allowanceCol = grid.addColumn(payroll ->
+        payrollAllowanceColumn = grid.addColumn(payroll ->
                         fmt(getCalc(payroll).map(HrPayrollCalculation::getVariableAllowanceTotal).orElse(BigDecimal.ZERO)))
                 .setHeader("Allowance")
                 .setWidth("140px")
                 .setFlexGrow(0);
 
         // BPJS TK perusahaan = JHT+JP perusahaan
-        Grid.Column<HrPayroll> bpjsTkCompanyCol = grid.addColumn(payroll -> {
+        payrollBpjsTkColumn = grid.addColumn(payroll -> {
             BigDecimal val = sumComponentByCodes(payroll, Set.of(
                     "BPJS_JHT_COMPANY",
                     "BPJS_JP_COMPANY",
@@ -215,7 +275,7 @@ public class PayrollView extends Main {
         }).setHeader("BPJS TK").setWidth("140px").setFlexGrow(0);
 
         // BPJS JKN perusahaan
-        Grid.Column<HrPayroll> bpjsJknCompanyCol = grid.addColumn(payroll -> {
+        payrollBpjsJknColumn = grid.addColumn(payroll -> {
             BigDecimal val = sumComponentByCodes(payroll, Set.of(
                     "BPJS_JKN_COMPANY",
                     "BPJS_JKN"
@@ -224,7 +284,7 @@ public class PayrollView extends Main {
         }).setHeader("BPJS JKN").setWidth("140px").setFlexGrow(0);
 
         // Tunjangan Tidak Tetap = allowance + bpjs tk company + bpjs jkn company
-        Grid.Column<HrPayroll> variableTotalCol = grid.addColumn(payroll -> {
+        payrollVariableAllowanceColumn = grid.addColumn(payroll -> {
             HrPayrollCalculation calc = getCalc(payroll).orElse(null);
             if (calc == null) return fmt(BigDecimal.ZERO);
 
@@ -252,14 +312,14 @@ public class PayrollView extends Main {
         }).setHeader("Tunjangan Tidak Tetap").setWidth("180px").setFlexGrow(0);
 
         // Penghasilan Kotor
-        Grid.Column<HrPayroll> grossCol = grid.addColumn(payroll ->
+        payrollGrossColumn = grid.addColumn(payroll ->
                         fmt(getCalc(payroll).map(HrPayrollCalculation::getGrossSalary).orElse(BigDecimal.ZERO)))
                 .setHeader("Penghasilan Kotor")
                 .setWidth("170px")
                 .setFlexGrow(0);
 
         // Asuransi = BPJS TK employee + BPJS JKN employee
-        Grid.Column<HrPayroll> insuranceCol = grid.addColumn(payroll -> {
+        payrollInsuranceColumn = grid.addColumn(payroll -> {
             BigDecimal bpjsTk = sumComponentByCodes(payroll, Set.of(
                     "BPJS_JHT_COMPANY",
                     "BPJS_JP_COMPANY",
@@ -280,14 +340,14 @@ public class PayrollView extends Main {
         }).setHeader("Asuransi").setWidth("140px").setFlexGrow(0);
 
         // PPh21
-        Grid.Column<HrPayroll> pphCol = grid.addColumn(payroll ->
+        payrollPphColumn = grid.addColumn(payroll ->
                         fmt(getCalc(payroll).map(HrPayrollCalculation::getPph21Deduction).orElse(BigDecimal.ZERO)))
                 .setHeader("PPh 21 (TER)")
                 .setWidth("140px")
                 .setFlexGrow(0);
 
         // THP
-        Grid.Column<HrPayroll> thpCol = grid.addColumn(payroll ->
+        payrollThpColumn = grid.addColumn(payroll ->
                         fmt(getCalc(payroll).map(HrPayrollCalculation::getNetTakeHomePay).orElse(BigDecimal.ZERO)))
                 .setHeader("THP")
                 .setWidth("150px")
@@ -314,16 +374,17 @@ public class PayrollView extends Main {
             return actions;
         }).setHeader("Actions").setWidth("110px").setFrozenToEnd(true).setFlexGrow(0);
 
+        FooterRow footerRow = grid.appendFooterRow();
+        footerRow.getCell(payrollNameColumn).setComponent(createFooterLabel("Total"));
+
     }
 
     private VerticalLayout buildMainLayout() {
-        // Search
         searchField.setPlaceholder("Search NIK / nama karyawan");
         searchField.setWidth("360px");
         searchField.setClearButtonVisible(true);
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
 
-        // Filters
         yearFilter.setPlaceholder("Year");
         yearFilter.setItems(getRecentYears(5));
         yearFilter.setValue(LocalDate.now().getYear());
@@ -390,10 +451,12 @@ public class PayrollView extends Main {
         toolbar.expand(filterBar);
         toolbar.setAlignItems(FlexComponent.Alignment.END);
 
-        VerticalLayout layout = new VerticalLayout(toolbar, grid);
+        configureTabsLayout();
+
+        VerticalLayout layout = new VerticalLayout(toolbar, dataTabs, gridContent);
         layout.setSizeFull();
         layout.setPadding(false);
-        layout.setSpacing(false);
+        layout.setSpacing(true);
         return layout;
     }
 
@@ -409,6 +472,7 @@ public class PayrollView extends Main {
 
         rowNoByPayrollId.clear();
         calculationCache.clear();
+        componentCache.clear();
 
         DataProvider<HrPayroll, Void> dataProvider = DataProvider.fromCallbacks(
                 query -> {
@@ -438,12 +502,236 @@ public class PayrollView extends Main {
         );
 
         grid.setDataProvider(dataProvider);
+
+        DataProvider<BpjsTkRow, Void> bpjsTkProvider = createBpjsTkDataProvider();
+        DataProvider<BpjsJknRow, Void> bpjsJknProvider = createBpjsJknDataProvider();
+        DataProvider<PajakRow, Void> pajakProvider = createPajakDataProvider();
+
+        bpjsTkGrid.setDataProvider(bpjsTkProvider);
+        bpjsJknGrid.setDataProvider(bpjsJknProvider);
+        pajakGrid.setDataProvider(pajakProvider);
+
+        List<HrPayroll> filteredPayrolls = payrollService.getPayrollList(selectedYear, mFilterDate.getValue(), searchTerm);
+        updateFooterSummaries(filteredPayrolls);
     }
 
     private void resetFilter() {
         yearFilter.clear();
         monthFilter.clear();
         searchField.clear();
+    }
+
+    private void configureSupplementaryGrids() {
+        configureBpjsTkGrid();
+        configureBpjsJknGrid();
+        configurePajakGrid();
+    }
+
+    private void configureTabsLayout() {
+        dataTabs.setWidthFull();
+
+        gridContent.setSizeFull();
+        gridContent.setPadding(false);
+        gridContent.setSpacing(false);
+
+        tabContents.clear();
+        tabContents.put(payrollTab, grid);
+        tabContents.put(bpjsTkTab, bpjsTkGrid);
+        tabContents.put(bpjsJknTab, bpjsJknGrid);
+        pajakTitle.getStyle().set("font-weight", "700");
+        pajakContent.setSizeFull();
+        pajakContent.setPadding(false);
+        pajakContent.setSpacing(true);
+        pajakContent.removeAll();
+        pajakContent.add(pajakTitle, pajakGrid);
+        pajakContent.expand(pajakGrid);
+        tabContents.put(pajakTab, pajakContent);
+
+        tabContents.values().forEach(component -> {
+            component.setVisible(false);
+            if (component instanceof Grid<?> componentGrid) {
+                componentGrid.setHeightFull();
+            }
+            gridContent.add(component);
+        });
+
+        showTabContent(payrollTab);
+        dataTabs.addSelectedChangeListener(event -> showTabContent(event.getSelectedTab()));
+    }
+
+    private void showTabContent(Tab selectedTab) {
+        tabContents.forEach((tab, component) -> component.setVisible(Objects.equals(tab, selectedTab)));
+    }
+
+    private void configureBpjsTkGrid() {
+        bpjsTkGrid.setSizeFull();
+        bpjsTkGrid.setSelectionMode(Grid.SelectionMode.NONE);
+        bpjsTkGrid.addThemeVariants(GridVariant.LUMO_COLUMN_BORDERS, GridVariant.LUMO_ROW_STRIPES);
+
+        bpjsTkEmployeeNumberColumn = bpjsTkGrid.addColumn(BpjsTkRow::getEmployeeNumber).setHeader("NIP").setWidth("120px").setFlexGrow(0);
+        bpjsTkGrid.addColumn(BpjsTkRow::getFullName).setHeader("Nama Lengkap").setWidth("220px").setFlexGrow(1);
+        bpjsTkGrid.addColumn(BpjsTkRow::getDateOfBirth).setHeader("Tanggal Lahir").setWidth("130px").setFlexGrow(0);
+        bpjsTkWageColumn = bpjsTkGrid.addColumn(row -> fmt(row.getWage())).setHeader("Data Upah").setWidth("150px").setFlexGrow(0);
+        bpjsTkJpBaseWageColumn = bpjsTkGrid.addColumn(row -> fmt(row.getJpBaseWage())).setHeader("Dasar Upah JP").setWidth("150px").setFlexGrow(0);
+        bpjsTkEmployeeJpColumn = bpjsTkGrid.addColumn(row -> fmt(row.getEmployeeJp())).setHeader("Iuran JP TK").setWidth("140px").setFlexGrow(0);
+        bpjsTkCompanyJpColumn = bpjsTkGrid.addColumn(row -> fmt(row.getCompanyJp())).setHeader("Iuran JP Perusahaan").setWidth("170px").setFlexGrow(0);
+        bpjsTkCompanyJkkColumn = bpjsTkGrid.addColumn(row -> fmt(row.getCompanyJkk())).setHeader("Iuran JKK").setWidth("140px").setFlexGrow(0);
+        bpjsTkCompanyJkmColumn = bpjsTkGrid.addColumn(row -> fmt(row.getCompanyJkm())).setHeader("Iuran JKM").setWidth("140px").setFlexGrow(0);
+        bpjsTkEmployeeJhtColumn = bpjsTkGrid.addColumn(row -> fmt(row.getEmployeeJht())).setHeader("Iuran JHT TK").setWidth("150px").setFlexGrow(0);
+        bpjsTkCompanyJhtColumn = bpjsTkGrid.addColumn(row -> fmt(row.getCompanyJht())).setHeader("Iuran JHT Perusahaan").setWidth("180px").setFlexGrow(0);
+        bpjsTkTotalContributionColumn = bpjsTkGrid.addColumn(row -> fmt(row.getTotalContribution())).setHeader("Total Iuran").setWidth("150px").setFlexGrow(0);
+        bpjsTkGrid.setEmptyStateText("Belum ada data BPJS TK");
+        bpjsTkGrid.appendFooterRow().getCell(bpjsTkEmployeeNumberColumn).setComponent(createFooterLabel("Total"));
+    }
+
+    private void configureBpjsJknGrid() {
+        bpjsJknGrid.setSizeFull();
+        bpjsJknGrid.setSelectionMode(Grid.SelectionMode.NONE);
+        bpjsJknGrid.addThemeVariants(GridVariant.LUMO_COLUMN_BORDERS, GridVariant.LUMO_ROW_STRIPES);
+
+        bpjsJknGrid.addColumn(BpjsJknRow::getFullName).setHeader("Nama Lengkap").setWidth("220px").setFlexGrow(1);
+        bpjsJknEmployeeNumberColumn = bpjsJknGrid.addColumn(BpjsJknRow::getEmployeeNumber).setHeader("NIP").setWidth("120px").setFlexGrow(0);
+        bpjsJknWageColumn = bpjsJknGrid.addColumn(row -> fmt(row.getWage())).setHeader("Data Upah").setWidth("150px").setFlexGrow(0);
+        bpjsJknBaseWageColumn = bpjsJknGrid.addColumn(row -> fmt(row.getJknBaseWage())).setHeader("Dasar Upah JKN").setWidth("160px").setFlexGrow(0);
+        bpjsJknCompanyColumn = bpjsJknGrid.addColumn(row -> fmt(row.getCompanyJkn())).setHeader("JKN Perusahaan").setWidth("150px").setFlexGrow(0);
+        bpjsJknEmployeeColumn = bpjsJknGrid.addColumn(row -> fmt(row.getEmployeeJkn())).setHeader("JKN TK").setWidth("120px").setFlexGrow(0);
+        bpjsJknPremiumColumn = bpjsJknGrid.addColumn(row -> fmt(row.getPremium())).setHeader("Premi").setWidth("130px").setFlexGrow(0);
+        bpjsJknGrid.setEmptyStateText("Belum ada data BPJS JKN");
+        bpjsJknGrid.appendFooterRow().getCell(bpjsJknEmployeeNumberColumn).setComponent(createFooterLabel("Total"));
+    }
+
+    private void configurePajakGrid() {
+        pajakGrid.setSizeFull();
+        pajakGrid.setSelectionMode(Grid.SelectionMode.NONE);
+        pajakGrid.addThemeVariants(GridVariant.LUMO_COLUMN_BORDERS, GridVariant.LUMO_ROW_STRIPES);
+
+        pajakNoColumn = pajakGrid.addColumn(PajakRow::getRowNumber).setHeader("No").setWidth("70px").setFlexGrow(0);
+        pajakGrid.addColumn(PajakRow::getEmployeeNumber).setHeader("NIP").setWidth("120px").setFlexGrow(0);
+        pajakGrid.addColumn(PajakRow::getFullName).setHeader("Nama Lengkap").setWidth("220px").setFlexGrow(1);
+        pajakGrid.addColumn(PajakRow::getPtkpCode).setHeader("Status").setWidth("110px").setFlexGrow(0);
+        pajakGapokColumn = pajakGrid.addColumn(row -> fmt(row.getBaseSalary())).setHeader("Gapok").setWidth("130px").setFlexGrow(0);
+        pajakJabatanColumn = pajakGrid.addColumn(row -> fmt(row.getPositionAllowance())).setHeader("Tunjangan Jabatan").setWidth("160px").setFlexGrow(0);
+        pajakKeahlianColumn = pajakGrid.addColumn(row -> fmt(row.getSkillAllowance())).setHeader("Tunjangan Keahlian").setWidth("160px").setFlexGrow(0);
+        pajakAllowanceColumn = pajakGrid.addColumn(row -> fmt(row.getVariableAllowance())).setHeader("Allowance").setWidth("140px").setFlexGrow(0);
+        pajakJkkColumn = pajakGrid.addColumn(row -> fmt(row.getCompanyJkk())).setHeader("JKK").setWidth("130px").setFlexGrow(0);
+        pajakJkmColumn = pajakGrid.addColumn(row -> fmt(row.getCompanyJkm())).setHeader("JKM").setWidth("130px").setFlexGrow(0);
+        pajakJknColumn = pajakGrid.addColumn(row -> fmt(row.getCompanyJkn())).setHeader("JKN").setWidth("130px").setFlexGrow(0);
+        pajakPenghasilanTeraturColumn = pajakGrid.addColumn(row -> fmt(row.getPenghasilanTeratur())).setHeader("Penghasilan Teratur").setWidth("170px").setFlexGrow(0);
+        pajakDppTerColumn = pajakGrid.addColumn(row -> fmt(row.getTerDpp())).setHeader("DPP TER").setWidth("140px").setFlexGrow(0);
+        pajakGrid.addColumn(PajakRow::getTerCategory).setHeader("Kategori TER").setWidth("130px").setFlexGrow(0);
+        pajakGrid.addColumn(PajakRow::getTerRateDisplay).setHeader("Tarif TER").setWidth("110px").setFlexGrow(0);
+        pajakPaid21Column = pajakGrid.addColumn(row -> fmt(row.getPph21Paid())).setHeader("21 PAID").setWidth("130px").setFlexGrow(0);
+        pajakGrid.setEmptyStateText("Belum ada data PAJAK");
+        pajakGrid.appendFooterRow().getCell(pajakNoColumn).setComponent(createFooterLabel("Total"));
+    }
+
+    private void configureDummyGrid(Grid<DummyPayrollRow> targetGrid, String sectionName) {
+        targetGrid.setSizeFull();
+        targetGrid.setSelectionMode(Grid.SelectionMode.NONE);
+        targetGrid.addThemeVariants(GridVariant.LUMO_COLUMN_BORDERS, GridVariant.LUMO_ROW_STRIPES);
+
+        targetGrid.addColumn(DummyPayrollRow::getColumnA).setHeader("A").setAutoWidth(true).setFlexGrow(1);
+        targetGrid.addColumn(DummyPayrollRow::getColumnB).setHeader("B").setAutoWidth(true).setFlexGrow(1);
+        targetGrid.addColumn(DummyPayrollRow::getColumnC).setHeader("C").setAutoWidth(true).setFlexGrow(1);
+        targetGrid.addColumn(DummyPayrollRow::getColumnD).setHeader("D").setAutoWidth(true).setFlexGrow(1);
+        targetGrid.addColumn(DummyPayrollRow::getColumnE).setHeader("E").setAutoWidth(true).setFlexGrow(1);
+        targetGrid.addColumn(DummyPayrollRow::getColumnF).setHeader("F").setAutoWidth(true).setFlexGrow(1);
+        targetGrid.setEmptyStateText("Belum ada data " + sectionName);
+    }
+
+    private DataProvider<BpjsTkRow, Void> createBpjsTkDataProvider() {
+        Integer selectedYear = yearFilter.getValue();
+        Integer selectedMonth = monthFilter.getValue();
+        String searchTerm = searchField.getValue();
+
+        MutableObject<LocalDate> mFilterDate = new MutableObject<>();
+        if (selectedYear != null && selectedMonth != null) {
+            mFilterDate.setValue(LocalDate.of(selectedYear, selectedMonth, 1));
+        }
+
+        return DataProvider.fromCallbacks(
+                query -> payrollService.getPayrollPage(
+                                PageRequest.of(query.getOffset() / query.getLimit(), query.getLimit()),
+                                selectedYear,
+                                mFilterDate.getValue(),
+                                searchTerm
+                        ).getContent().stream()
+                        .map(this::mapToBpjsTkRow),
+                query -> (int) payrollService.countPayroll(selectedYear, mFilterDate.getValue(), searchTerm)
+        );
+    }
+
+    private DataProvider<BpjsJknRow, Void> createBpjsJknDataProvider() {
+        Integer selectedYear = yearFilter.getValue();
+        Integer selectedMonth = monthFilter.getValue();
+        String searchTerm = searchField.getValue();
+
+        MutableObject<LocalDate> mFilterDate = new MutableObject<>();
+        if (selectedYear != null && selectedMonth != null) {
+            mFilterDate.setValue(LocalDate.of(selectedYear, selectedMonth, 1));
+        }
+
+        return DataProvider.fromCallbacks(
+                query -> payrollService.getPayrollPage(
+                                PageRequest.of(query.getOffset() / query.getLimit(), query.getLimit()),
+                                selectedYear,
+                                mFilterDate.getValue(),
+                                searchTerm
+                        ).getContent().stream()
+                        .map(this::mapToBpjsJknRow),
+                query -> (int) payrollService.countPayroll(selectedYear, mFilterDate.getValue(), searchTerm)
+        );
+    }
+
+    private DataProvider<PajakRow, Void> createPajakDataProvider() {
+        Integer selectedYear = yearFilter.getValue();
+        Integer selectedMonth = monthFilter.getValue();
+        String searchTerm = searchField.getValue();
+
+        MutableObject<LocalDate> mFilterDate = new MutableObject<>();
+        if (selectedYear != null && selectedMonth != null) {
+            mFilterDate.setValue(LocalDate.of(selectedYear, selectedMonth, 1));
+        }
+
+        return DataProvider.fromCallbacks(
+                query -> {
+                    List<HrPayroll> items = payrollService.getPayrollPage(
+                            PageRequest.of(query.getOffset() / query.getLimit(), query.getLimit()),
+                            selectedYear,
+                            mFilterDate.getValue(),
+                            searchTerm
+                    ).getContent();
+
+                    List<PajakRow> rows = new ArrayList<>();
+                    for (int i = 0; i < items.size(); i++) {
+                        rows.add(mapToPajakRow(items.get(i), query.getOffset() + i));
+                    }
+                    return rows.stream();
+                },
+                query -> (int) payrollService.countPayroll(selectedYear, mFilterDate.getValue(), searchTerm)
+        );
+    }
+
+    private DataProvider<DummyPayrollRow, Void> createDummyDataProvider(String sectionName) {
+        Integer selectedYear = yearFilter.getValue();
+        Integer selectedMonth = monthFilter.getValue();
+        String searchTerm = searchField.getValue();
+
+        MutableObject<LocalDate> mFilterDate = new MutableObject<>();
+        if (selectedYear != null && selectedMonth != null) {
+            mFilterDate.setValue(LocalDate.of(selectedYear, selectedMonth, 1));
+        }
+
+        return DataProvider.fromCallbacks(
+                query -> payrollService.getPayrollPage(
+                                PageRequest.of(query.getOffset() / query.getLimit(), query.getLimit()),
+                                selectedYear,
+                                mFilterDate.getValue(),
+                                searchTerm
+                        ).getContent().stream()
+                        .map(payroll -> DummyPayrollRow.from(sectionName, payroll)),
+                query -> (int) payrollService.countPayroll(selectedYear, mFilterDate.getValue(), searchTerm)
+        );
     }
 
     private void openAddPayrollDialog() {
@@ -573,17 +861,175 @@ public class PayrollView extends Main {
         );
     }
 
-    private BigDecimal findComponentAmountByName(HrPayroll payroll, String componentName) {
+    private List<HrPayrollComponent> getComponents(HrPayroll payroll) {
         HrPayrollCalculation calc = getCalc(payroll).orElse(null);
-        if (calc == null) return BigDecimal.ZERO;
+        if (calc == null || calc.getId() == null) {
+            return Collections.emptyList();
+        }
 
-        List<HrPayrollComponent> components = payrollService.getPayrollComponentsByCalculationId(calc.getId());
-        return components.stream()
+        return componentCache.computeIfAbsent(
+                calc.getId(),
+                payrollService::getPayrollComponentsByCalculationId
+        );
+    }
+
+    private BigDecimal findComponentAmountByName(HrPayroll payroll, String componentName) {
+        return getComponents(payroll).stream()
                 .filter(c -> c.getComponentName() != null)
                 .filter(c -> c.getComponentName().equalsIgnoreCase(componentName))
                 .map(HrPayrollComponent::getAmount)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BpjsTkRow mapToBpjsTkRow(HrPayroll payroll) {
+        HrPayrollCalculation calc = getCalc(payroll).orElse(null);
+        BigDecimal baseSalary = calc == null ? BigDecimal.ZERO : nvl(calc.getBaseSalary());
+        BigDecimal fixedAllowance = calc == null ? BigDecimal.ZERO : nvl(calc.getFixedAllowanceTotal());
+        BigDecimal wage = baseSalary.add(fixedAllowance);
+        BigDecimal jpBaseWage = applyCap(wage, getBpjsJpCap());
+
+        BigDecimal employeeJp = sumComponentAmounts(payroll, Set.of("BPJS_JP"));
+        BigDecimal companyJp = sumComponentAmounts(payroll, Set.of("BPJS_JP_COMPANY"));
+        BigDecimal companyJkk = sumComponentAmounts(payroll, Set.of("BPJS_JKK_COMPANY"));
+        BigDecimal companyJkm = sumComponentAmounts(payroll, Set.of("BPJS_JK_COMPANY"));
+        BigDecimal employeeJht = sumComponentAmounts(payroll, Set.of("BPJS_JHT"));
+        BigDecimal companyJht = sumComponentAmounts(payroll, Set.of("BPJS_JHT_COMPANY"));
+
+        return new BpjsTkRow(
+                blankToDash(payroll.getEmployeeNumber()),
+                getEmployeeName(payroll),
+                payroll.getDob() == null ? "-" : payroll.getDob().toString(),
+                wage,
+                jpBaseWage,
+                employeeJp,
+                companyJp,
+                companyJkk,
+                companyJkm,
+                employeeJht,
+                companyJht,
+                employeeJp.add(companyJp).add(companyJkk).add(companyJkm).add(employeeJht).add(companyJht)
+        );
+    }
+
+    private BpjsJknRow mapToBpjsJknRow(HrPayroll payroll) {
+        HrPayrollCalculation calc = getCalc(payroll).orElse(null);
+        BigDecimal baseSalary = calc == null ? BigDecimal.ZERO : nvl(calc.getBaseSalary());
+        BigDecimal fixedAllowance = calc == null ? BigDecimal.ZERO : nvl(calc.getFixedAllowanceTotal());
+        BigDecimal wage = baseSalary.add(fixedAllowance);
+        BigDecimal jknBaseWage = applyCap(wage, getBpjsJknCap());
+
+        BigDecimal companyJkn = sumComponentAmounts(payroll, Set.of("BPJS_JKN_COMPANY"));
+        BigDecimal employeeJkn = sumComponentAmounts(payroll, Set.of("BPJS_JKN"));
+
+        return new BpjsJknRow(
+                getEmployeeName(payroll),
+                blankToDash(payroll.getEmployeeNumber()),
+                wage,
+                jknBaseWage,
+                companyJkn,
+                employeeJkn,
+                companyJkn.add(employeeJkn)
+        );
+    }
+
+    private PajakRow mapToPajakRow(HrPayroll payroll, int offset) {
+        HrPayrollCalculation calc = getCalc(payroll).orElse(null);
+        BigDecimal baseSalary = calc == null ? BigDecimal.ZERO : nvl(calc.getBaseSalary());
+        BigDecimal penghasilanTeratur = calc == null ? BigDecimal.ZERO : nvl(calc.getPenghasilanTeraturAmount());
+        BigDecimal terDpp = calc == null ? BigDecimal.ZERO : nvl(calc.getTerDppAmount());
+        String terCategory = calc == null ? "-" : blankToDash(calc.getTerCategory());
+        BigDecimal terRate = calc == null ? BigDecimal.ZERO : nvl(calc.getTerRatePercent());
+
+        return new PajakRow(
+                payroll.getId() == null ? offset + 1 : rowNoByPayrollId.getOrDefault(payroll.getId(), offset + 1),
+                blankToDash(payroll.getEmployeeNumber()),
+                getEmployeeName(payroll),
+                blankToDash(payroll.getPtkpCode()),
+                baseSalary,
+                sumComponentAmounts(payroll, Set.of("JABATAN")),
+                sumComponentAmounts(payroll, Set.of("KEAHLIAN")),
+                sumComponentAmountsByGroup(payroll, "VARIABLE_ALLOWANCE"),
+                sumComponentAmounts(payroll, Set.of("BPJS_JKK_COMPANY")),
+                sumComponentAmounts(payroll, Set.of("BPJS_JK_COMPANY")),
+                sumComponentAmounts(payroll, Set.of("BPJS_JKN_COMPANY")),
+                penghasilanTeratur,
+                terDpp,
+                terCategory,
+                formatPercent(terRate),
+                sumComponentAmounts(payroll, Set.of("PPH21"))
+        );
+    }
+
+    private BigDecimal sumComponentAmounts(HrPayroll payroll, Set<String> codes) {
+        return getComponents(payroll).stream()
+                .filter(component -> component.getComponentCode() != null)
+                .filter(component -> codes.contains(component.getComponentCode().toUpperCase()))
+                .map(HrPayrollComponent::getAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal sumComponentAmountsByGroup(HrPayroll payroll, String componentGroup) {
+        if (componentGroup == null || componentGroup.isBlank()) {
+            return BigDecimal.ZERO;
+        }
+        return getComponents(payroll).stream()
+                .filter(component -> component.getComponentGroup() != null)
+                .filter(component -> componentGroup.equalsIgnoreCase(component.getComponentGroup()))
+                .map(HrPayrollComponent::getAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal getBpjsJpCap() {
+        try {
+            return parseSystemNumber(systemService.findSystemById(BPJS_JP_CAP_CONFIG_ID));
+        } catch (Exception ex) {
+            log.warn("Gagal membaca config batas upah JP", ex);
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private BigDecimal getBpjsJknCap() {
+        try {
+            return parseSystemNumber(systemService.findSystemById(BPJS_JKN_CAP_CONFIG_ID));
+        } catch (Exception ex) {
+            log.warn("Gagal membaca config batas upah JKN", ex);
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private BigDecimal parseSystemNumber(com.fusi24.pangreksa.web.model.entity.FwSystem config) {
+        if (config == null) {
+            return BigDecimal.ZERO;
+        }
+        if (config.getDecimalVal() != null) {
+            return config.getDecimalVal();
+        }
+        if (config.getIntVal() != null) {
+            return BigDecimal.valueOf(config.getIntVal());
+        }
+        if (config.getStringVal() != null && !config.getStringVal().isBlank()) {
+            return new BigDecimal(config.getStringVal().replace(",", "").trim());
+        }
+        if (config.getKey() != null && !config.getKey().isBlank()) {
+            return new BigDecimal(config.getKey().replace(",", "").trim());
+        }
+        return BigDecimal.ZERO;
+    }
+
+    private BigDecimal applyCap(BigDecimal amount, BigDecimal cap) {
+        BigDecimal normalizedAmount = nvl(amount);
+        BigDecimal normalizedCap = nvl(cap);
+        if (normalizedCap.signum() <= 0) {
+            return normalizedAmount;
+        }
+        return normalizedAmount.min(normalizedCap);
+    }
+
+    private String formatPercent(BigDecimal value) {
+        return nvl(value).stripTrailingZeros().toPlainString() + "%";
     }
 
     private String getEmployeeName(HrPayroll payroll) {
@@ -619,7 +1065,6 @@ public class PayrollView extends Main {
         private final IntegerField overtimePercent = new IntegerField();
 
         private final RadioButtonGroup<String> allowanceMode = new RadioButtonGroup<>();
-        private final MultiSelectComboBox<HrSalaryAllowance> allowanceMultiSelect = new MultiSelectComboBox<>();
 
         private final BigDecimalField totalBonusField = new BigDecimalField();
         private final BigDecimalField totalOtherDedField = new BigDecimalField();
@@ -691,25 +1136,9 @@ public class PayrollView extends Main {
                 overtimePercent.setVisible(!isStatic);
             });
 
-            allowanceMode.setItems("NO ALLOWANCE", "SELECT ALLOWANCE", "BENEFITS PACKAGE");
+            allowanceMode.setItems("NO ALLOWANCE", "BENEFITS PACKAGE");
             allowanceMode.setValue("BENEFITS PACKAGE");
             allowanceMode.setWidthFull();
-
-            allowanceMultiSelect.setPlaceholder("Select one or more allowances");
-            allowanceMultiSelect.setItems(payrollService.getSelectableAllowancesForPayrollDate(payrollDate));
-            allowanceMultiSelect.setItemLabelGenerator(a ->
-                    a.getName() + " (Rp " + FormattingUtils.formatPayrollAmount(a.getAmount()) + ")"
-            );
-            allowanceMultiSelect.setVisible(false);
-            allowanceMultiSelect.setWidthFull();
-
-            allowanceMode.addValueChangeListener(e -> {
-                boolean show = "SELECT ALLOWANCE".equalsIgnoreCase(e.getValue());
-                allowanceMultiSelect.setVisible(show);
-                if (!show) {
-                    allowanceMultiSelect.deselectAll();
-                }
-            });
 
             HrPayrollCalculation calc = payrollService.getCalculationByPayrollId(payroll.getId());
 
@@ -775,8 +1204,17 @@ public class PayrollView extends Main {
             addFormItem(overtimeMinutesField, "Overtime dihitung (menit)");
 
             addFormItem(overtimePaymentType, "Bayaran Overtime");
-            addFormItem(overtimeStaticNominal, "Nominal Upah (Rp)");
-            addFormItem(overtimePercent, "Persentase (%)");
+            FormItem overtimeStaticFormItem = addFormItem(overtimeStaticNominal, "Nominal Upah (Rp)");
+            FormItem overtimePercentFormItem = addFormItem(overtimePercent, "Persentase (%)");
+            overtimePercentFormItem.setVisible(false);
+
+            overtimePaymentType.addValueChangeListener(e -> {
+                boolean isStatic = "STATIC".equalsIgnoreCase(e.getValue());
+                overtimeStaticNominal.setVisible(isStatic);
+                overtimeStaticFormItem.setVisible(isStatic);
+                overtimePercent.setVisible(!isStatic);
+                overtimePercentFormItem.setVisible(!isStatic);
+            });
 
             Span s3 = new Span("Allowance");
             s3.getStyle().set("font-weight", "600");
@@ -784,8 +1222,6 @@ public class PayrollView extends Main {
             setColspan(s3, 2);
 
             addFormItem(allowanceMode, "Allowance Option");
-            FormItem fiAllow = addFormItem(allowanceMultiSelect, "Select Allowance");
-            setColspan(fiAllow, 2);
 
             Span s4 = new Span("Komponen Tambahan");
             s4.getStyle().set("font-weight", "600");
@@ -811,12 +1247,7 @@ public class PayrollView extends Main {
                     return;
                 }
 
-                String mode = bean.getAllowanceMode() == null ? "" : bean.getAllowanceMode().trim();
-                if ("SELECT ALLOWANCE".equalsIgnoreCase(mode)) {
-                    bean.setSelectedAllowances(new ArrayList<>(allowanceMultiSelect.getSelectedItems()));
-                } else {
-                    bean.setSelectedAllowances(new ArrayList<>());
-                }
+                bean.setSelectedAllowances(new ArrayList<>());
 
                 AppUserInfo userInfo = currentUser.require();
 
@@ -858,7 +1289,6 @@ public class PayrollView extends Main {
         private final IntegerField overtimePercent = new IntegerField();
 
         private final RadioButtonGroup<String> allowanceMode = new RadioButtonGroup<>();
-        private final MultiSelectComboBox<HrSalaryAllowance> allowanceMultiSelect = new MultiSelectComboBox<>();
 
         private final Button saveButton = new Button("Save");
         private final Button cancelButton = new Button("Cancel");
@@ -923,41 +1353,12 @@ public class PayrollView extends Main {
                 overtimePercent.setVisible(!isStatic);
             });
 
-            allowanceMode.setItems("NO ALLOWANCE", "SELECT ALLOWANCE", "BENEFITS PACKAGE");
+            allowanceMode.setItems("NO ALLOWANCE", "BENEFITS PACKAGE");
             allowanceMode.setValue("NO ALLOWANCE");
             allowanceMode.setWidthFull();
 
-            allowanceMultiSelect.setPlaceholder("Select one or more allowances");
-            allowanceMultiSelect.setWidthFull();
-            allowanceMultiSelect.setVisible(false);
-            allowanceMultiSelect.setItemLabelGenerator(a ->
-                    a.getName() + " (Rp " + FormattingUtils.formatPayrollAmount(a.getAmount()) + ")"
-            );
-
-            refreshAllowanceOptions();
-
-            yearField.addValueChangeListener(e -> refreshAllowanceOptions());
-            monthField.addValueChangeListener(e -> refreshAllowanceOptions());
-
-            allowanceMode.addValueChangeListener(e -> {
-                boolean show = "SELECT ALLOWANCE".equalsIgnoreCase(e.getValue());
-                allowanceMultiSelect.setVisible(show);
-                if (!show) {
-                    allowanceMultiSelect.deselectAll();
-                }
-            });
-
             saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
             cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        }
-
-        private void refreshAllowanceOptions() {
-            Integer year = yearField.getValue();
-            Integer month = monthField.getValue();
-            if (year == null || month == null) return;
-
-            LocalDate payrollDate = LocalDate.of(year, month, 1);
-            allowanceMultiSelect.setItems(payrollService.getSelectableAllowancesForPayrollDate(payrollDate));
         }
 
         private void configureBinder() {
@@ -1021,8 +1422,17 @@ public class PayrollView extends Main {
             addFormItem(overtimeMinutesField, "Overtime dihitung (menit)");
 
             addFormItem(overtimePaymentType, "Bayaran Overtime");
-            addFormItem(overtimeStaticNominal, "Nominal Upah (Rp)");
-            addFormItem(overtimePercent, "Persentase (%)");
+            FormItem overtimeStaticFormItem = addFormItem(overtimeStaticNominal, "Nominal Upah (Rp)");
+            FormItem overtimePercentFormItem = addFormItem(overtimePercent, "Persentase (%)");
+            overtimePercentFormItem.setVisible(false);
+
+            overtimePaymentType.addValueChangeListener(e -> {
+                boolean isStatic = "STATIC".equalsIgnoreCase(e.getValue());
+                overtimeStaticNominal.setVisible(isStatic);
+                overtimeStaticFormItem.setVisible(isStatic);
+                overtimePercent.setVisible(!isStatic);
+                overtimePercentFormItem.setVisible(!isStatic);
+            });
 
             Span s3 = new Span("Allowance");
             s3.getStyle().set("font-weight", "600");
@@ -1030,8 +1440,6 @@ public class PayrollView extends Main {
             setColspan(s3, 2);
 
             addFormItem(allowanceMode, "Allowance Option");
-            FormItem fiAllow = addFormItem(allowanceMultiSelect, "Select Allowance");
-            setColspan(fiAllow, 2);
 
             HorizontalLayout buttons = new HorizontalLayout(saveButton, cancelButton);
             buttons.setWidthFull();
@@ -1049,16 +1457,7 @@ public class PayrollView extends Main {
                     return;
                 }
 
-                String mode = bean.getAllowanceMode() == null ? "" : bean.getAllowanceMode().trim();
-                if ("SELECT ALLOWANCE".equalsIgnoreCase(mode)) {
-                    bean.setSelectedAllowances(new ArrayList<>(allowanceMultiSelect.getSelectedItems()));
-                    if (bean.getSelectedAllowances().isEmpty()) {
-                        AppNotification.error("Silakan pilih allowance minimal 1 item");
-                        return;
-                    }
-                } else {
-                    bean.setSelectedAllowances(new ArrayList<>());
-                }
+                bean.setSelectedAllowances(new ArrayList<>());
 
                 AppUserInfo userInfo = currentUser.require();
 
@@ -1136,6 +1535,110 @@ public class PayrollView extends Main {
         void run(String message, Runnable task, Runnable onDoneUi);
     }
 
+    private void updateFooterSummaries(List<HrPayroll> filteredPayrolls) {
+        updatePayrollFooter(filteredPayrolls);
+
+        List<BpjsTkRow> bpjsTkRows = filteredPayrolls.stream()
+                .map(this::mapToBpjsTkRow)
+                .toList();
+        updateBpjsTkFooter(bpjsTkRows);
+
+        List<BpjsJknRow> bpjsJknRows = filteredPayrolls.stream()
+                .map(this::mapToBpjsJknRow)
+                .toList();
+        updateBpjsJknFooter(bpjsJknRows);
+
+        List<PajakRow> pajakRows = new ArrayList<>();
+        for (int i = 0; i < filteredPayrolls.size(); i++) {
+            pajakRows.add(mapToPajakRow(filteredPayrolls.get(i), i));
+        }
+        updatePajakFooter(pajakRows);
+    }
+
+    private void updatePayrollFooter(List<HrPayroll> filteredPayrolls) {
+        FooterRow footerRow = grid.getFooterRows().get(0);
+        footerRow.getCell(payrollGapokColumn).setComponent(createFooterLabel(fmt(filteredPayrolls.stream().map(HrPayroll::getBaseSalary).reduce(BigDecimal.ZERO, this::safeAdd))));
+        footerRow.getCell(payrollJabatanColumn).setComponent(createFooterLabel(fmt(sumPayrolls(filteredPayrolls, payroll -> findComponentAmountByName(payroll, "Jabatan")))));
+        footerRow.getCell(payrollKeahlianColumn).setComponent(createFooterLabel(fmt(sumPayrolls(filteredPayrolls, payroll -> findComponentAmountByName(payroll, "Keahlian")))));
+        footerRow.getCell(payrollFixedAllowanceColumn).setComponent(createFooterLabel(fmt(sumPayrolls(filteredPayrolls, payroll -> getCalc(payroll).map(HrPayrollCalculation::getFixedAllowanceTotal).orElse(BigDecimal.ZERO)))));
+        footerRow.getCell(payrollAllowanceColumn).setComponent(createFooterLabel(fmt(sumPayrolls(filteredPayrolls, payroll -> getCalc(payroll).map(HrPayrollCalculation::getVariableAllowanceTotal).orElse(BigDecimal.ZERO)))));
+        footerRow.getCell(payrollBpjsTkColumn).setComponent(createFooterLabel(fmt(sumPayrolls(filteredPayrolls, payroll -> sumComponentByCodes(payroll, Set.of("BPJS_JHT_COMPANY", "BPJS_JP_COMPANY", "BPJS_JKK_COMPANY", "BPJS_JK_COMPANY", "BPJS_JHT", "BPJS_JP", "BPJS_JKK", "BPJS_JK"))))));
+        footerRow.getCell(payrollBpjsJknColumn).setComponent(createFooterLabel(fmt(sumPayrolls(filteredPayrolls, payroll -> sumComponentByCodes(payroll, Set.of("BPJS_JKN_COMPANY", "BPJS_JKN"))))));
+        footerRow.getCell(payrollVariableAllowanceColumn).setComponent(createFooterLabel(fmt(sumPayrolls(filteredPayrolls, payroll -> {
+            HrPayrollCalculation calc = getCalc(payroll).orElse(null);
+            if (calc == null) return BigDecimal.ZERO;
+            BigDecimal bpjsTk = sumComponentByCodes(payroll, Set.of("BPJS_JHT_COMPANY", "BPJS_JP_COMPANY", "BPJS_JKK_COMPANY", "BPJS_JK_COMPANY", "BPJS_JHT", "BPJS_JP", "BPJS_JKK", "BPJS_JK"));
+            BigDecimal bpjsJkn = sumComponentByCodes(payroll, Set.of("BPJS_JKN_COMPANY", "BPJS_JKN"));
+            return nvl(calc.getVariableAllowanceTotal()).add(bpjsTk).add(bpjsJkn);
+        }))));
+        footerRow.getCell(payrollGrossColumn).setComponent(createFooterLabel(fmt(sumPayrolls(filteredPayrolls, payroll -> getCalc(payroll).map(HrPayrollCalculation::getGrossSalary).orElse(BigDecimal.ZERO)))));
+        footerRow.getCell(payrollInsuranceColumn).setComponent(createFooterLabel(fmt(sumPayrolls(filteredPayrolls, payroll -> {
+            BigDecimal bpjsTk = sumComponentByCodes(payroll, Set.of("BPJS_JHT_COMPANY", "BPJS_JP_COMPANY", "BPJS_JKK_COMPANY", "BPJS_JK_COMPANY", "BPJS_JHT", "BPJS_JP", "BPJS_JKK", "BPJS_JK"));
+            BigDecimal bpjsJkn = sumComponentByCodes(payroll, Set.of("BPJS_JKN_COMPANY", "BPJS_JKN"));
+            return bpjsTk.add(bpjsJkn);
+        }))));
+        footerRow.getCell(payrollPphColumn).setComponent(createFooterLabel(fmt(sumPayrolls(filteredPayrolls, payroll -> getCalc(payroll).map(HrPayrollCalculation::getPph21Deduction).orElse(BigDecimal.ZERO)))));
+        footerRow.getCell(payrollThpColumn).setComponent(createFooterLabel(fmt(sumPayrolls(filteredPayrolls, payroll -> getCalc(payroll).map(HrPayrollCalculation::getNetTakeHomePay).orElse(BigDecimal.ZERO)))));
+    }
+
+    private void updateBpjsTkFooter(List<BpjsTkRow> rows) {
+        FooterRow footerRow = bpjsTkGrid.getFooterRows().get(0);
+        footerRow.getCell(bpjsTkWageColumn).setComponent(createFooterLabel(fmt(sumRows(rows, BpjsTkRow::getWage))));
+        footerRow.getCell(bpjsTkJpBaseWageColumn).setComponent(createFooterLabel(fmt(sumRows(rows, BpjsTkRow::getJpBaseWage))));
+        footerRow.getCell(bpjsTkEmployeeJpColumn).setComponent(createFooterLabel(fmt(sumRows(rows, BpjsTkRow::getEmployeeJp))));
+        footerRow.getCell(bpjsTkCompanyJpColumn).setComponent(createFooterLabel(fmt(sumRows(rows, BpjsTkRow::getCompanyJp))));
+        footerRow.getCell(bpjsTkCompanyJkkColumn).setComponent(createFooterLabel(fmt(sumRows(rows, BpjsTkRow::getCompanyJkk))));
+        footerRow.getCell(bpjsTkCompanyJkmColumn).setComponent(createFooterLabel(fmt(sumRows(rows, BpjsTkRow::getCompanyJkm))));
+        footerRow.getCell(bpjsTkEmployeeJhtColumn).setComponent(createFooterLabel(fmt(sumRows(rows, BpjsTkRow::getEmployeeJht))));
+        footerRow.getCell(bpjsTkCompanyJhtColumn).setComponent(createFooterLabel(fmt(sumRows(rows, BpjsTkRow::getCompanyJht))));
+        footerRow.getCell(bpjsTkTotalContributionColumn).setComponent(createFooterLabel(fmt(sumRows(rows, BpjsTkRow::getTotalContribution))));
+    }
+
+    private void updateBpjsJknFooter(List<BpjsJknRow> rows) {
+        FooterRow footerRow = bpjsJknGrid.getFooterRows().get(0);
+        footerRow.getCell(bpjsJknWageColumn).setComponent(createFooterLabel(fmt(sumRows(rows, BpjsJknRow::getWage))));
+        footerRow.getCell(bpjsJknBaseWageColumn).setComponent(createFooterLabel(fmt(sumRows(rows, BpjsJknRow::getJknBaseWage))));
+        footerRow.getCell(bpjsJknCompanyColumn).setComponent(createFooterLabel(fmt(sumRows(rows, BpjsJknRow::getCompanyJkn))));
+        footerRow.getCell(bpjsJknEmployeeColumn).setComponent(createFooterLabel(fmt(sumRows(rows, BpjsJknRow::getEmployeeJkn))));
+        footerRow.getCell(bpjsJknPremiumColumn).setComponent(createFooterLabel(fmt(sumRows(rows, BpjsJknRow::getPremium))));
+    }
+
+    private void updatePajakFooter(List<PajakRow> rows) {
+        FooterRow footerRow = pajakGrid.getFooterRows().get(0);
+        footerRow.getCell(pajakGapokColumn).setComponent(createFooterLabel(fmt(sumRows(rows, PajakRow::getBaseSalary))));
+        footerRow.getCell(pajakJabatanColumn).setComponent(createFooterLabel(fmt(sumRows(rows, PajakRow::getPositionAllowance))));
+        footerRow.getCell(pajakKeahlianColumn).setComponent(createFooterLabel(fmt(sumRows(rows, PajakRow::getSkillAllowance))));
+        footerRow.getCell(pajakAllowanceColumn).setComponent(createFooterLabel(fmt(sumRows(rows, PajakRow::getVariableAllowance))));
+        footerRow.getCell(pajakJkkColumn).setComponent(createFooterLabel(fmt(sumRows(rows, PajakRow::getCompanyJkk))));
+        footerRow.getCell(pajakJkmColumn).setComponent(createFooterLabel(fmt(sumRows(rows, PajakRow::getCompanyJkm))));
+        footerRow.getCell(pajakJknColumn).setComponent(createFooterLabel(fmt(sumRows(rows, PajakRow::getCompanyJkn))));
+        footerRow.getCell(pajakPenghasilanTeraturColumn).setComponent(createFooterLabel(fmt(sumRows(rows, PajakRow::getPenghasilanTeratur))));
+        footerRow.getCell(pajakDppTerColumn).setComponent(createFooterLabel(fmt(sumRows(rows, PajakRow::getTerDpp))));
+        footerRow.getCell(pajakPaid21Column).setComponent(createFooterLabel(fmt(sumRows(rows, PajakRow::getPph21Paid))));
+    }
+
+    private Span createFooterLabel(String text) {
+        Span span = new Span(text);
+        span.getStyle().set("font-weight", "700");
+        return span;
+    }
+
+    private BigDecimal safeAdd(BigDecimal left, BigDecimal right) {
+        return nvl(left).add(nvl(right));
+    }
+
+    private BigDecimal sumPayrolls(List<HrPayroll> payrolls, java.util.function.Function<HrPayroll, BigDecimal> extractor) {
+        return payrolls.stream()
+                .map(extractor)
+                .reduce(BigDecimal.ZERO, this::safeAdd);
+    }
+
+    private <T> BigDecimal sumRows(List<T> rows, java.util.function.Function<T, BigDecimal> extractor) {
+        return rows.stream()
+                .map(extractor)
+                .reduce(BigDecimal.ZERO, this::safeAdd);
+    }
+
     private List<Integer> getRecentYears(int pastYears) {
         int currentYear = LocalDate.now().getYear();
         List<Integer> years = new ArrayList<>();
@@ -1169,20 +1672,168 @@ public class PayrollView extends Main {
     }
 
     private BigDecimal sumComponentByCodes(HrPayroll payroll, Set<String> codes) {
-        HrPayrollCalculation calc = getCalc(payroll).orElse(null);
-        if (calc == null) return BigDecimal.ZERO;
+        return sumComponentAmounts(payroll, codes);
+    }
 
-        List<HrPayrollComponent> components = payrollService.getPayrollComponentsByCalculationId(calc.getId());
-        if (components == null || components.isEmpty()) {
-            return BigDecimal.ZERO;
+    @Getter
+    private static class DummyPayrollRow {
+        private final String columnA;
+        private final String columnB;
+        private final String columnC;
+        private final String columnD;
+        private final String columnE;
+        private final String columnF;
+
+        private DummyPayrollRow(String columnA, String columnB, String columnC, String columnD, String columnE, String columnF) {
+            this.columnA = columnA;
+            this.columnB = columnB;
+            this.columnC = columnC;
+            this.columnD = columnD;
+            this.columnE = columnE;
+            this.columnF = columnF;
         }
 
-        return components.stream()
-                .filter(c -> c.getComponentCode() != null)
-                .filter(c -> codes.contains(c.getComponentCode().toUpperCase()))
-                .map(HrPayrollComponent::getAmount)
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        private static DummyPayrollRow from(String sectionName, HrPayroll payroll) {
+            String payrollMonth = payroll.getPayrollDate() == null
+                    ? "-"
+                    : payroll.getPayrollDate().getMonth().getDisplayName(TextStyle.SHORT, new Locale("id", "ID"))
+                      + " " + payroll.getPayrollDate().getYear();
+
+            return new DummyPayrollRow(
+                    sectionName,
+                    payroll.getEmployeeNumber() == null ? "-" : payroll.getEmployeeNumber(),
+                    Stream.of(payroll.getFirstName(), payroll.getMiddleName(), payroll.getLastName())
+                            .filter(Objects::nonNull)
+                            .filter(name -> !name.isBlank())
+                            .collect(Collectors.joining(" ")),
+                    payroll.getDepartment() == null ? "-" : payroll.getDepartment(),
+                    payrollMonth,
+                    FormattingUtils.formatPayrollAmount(payroll.getBaseSalary())
+            );
+        }
+    }
+
+    @Getter
+    private static class BpjsTkRow {
+        private final String employeeNumber;
+        private final String fullName;
+        private final String dateOfBirth;
+        private final BigDecimal wage;
+        private final BigDecimal jpBaseWage;
+        private final BigDecimal employeeJp;
+        private final BigDecimal companyJp;
+        private final BigDecimal companyJkk;
+        private final BigDecimal companyJkm;
+        private final BigDecimal employeeJht;
+        private final BigDecimal companyJht;
+        private final BigDecimal totalContribution;
+
+        private BpjsTkRow(String employeeNumber,
+                          String fullName,
+                          String dateOfBirth,
+                          BigDecimal wage,
+                          BigDecimal jpBaseWage,
+                          BigDecimal employeeJp,
+                          BigDecimal companyJp,
+                          BigDecimal companyJkk,
+                          BigDecimal companyJkm,
+                          BigDecimal employeeJht,
+                          BigDecimal companyJht,
+                          BigDecimal totalContribution) {
+            this.employeeNumber = employeeNumber;
+            this.fullName = fullName;
+            this.dateOfBirth = dateOfBirth;
+            this.wage = wage;
+            this.jpBaseWage = jpBaseWage;
+            this.employeeJp = employeeJp;
+            this.companyJp = companyJp;
+            this.companyJkk = companyJkk;
+            this.companyJkm = companyJkm;
+            this.employeeJht = employeeJht;
+            this.companyJht = companyJht;
+            this.totalContribution = totalContribution;
+        }
+    }
+
+    @Getter
+    private static class BpjsJknRow {
+        private final String fullName;
+        private final String employeeNumber;
+        private final BigDecimal wage;
+        private final BigDecimal jknBaseWage;
+        private final BigDecimal companyJkn;
+        private final BigDecimal employeeJkn;
+        private final BigDecimal premium;
+
+        private BpjsJknRow(String fullName,
+                           String employeeNumber,
+                           BigDecimal wage,
+                           BigDecimal jknBaseWage,
+                           BigDecimal companyJkn,
+                           BigDecimal employeeJkn,
+                           BigDecimal premium) {
+            this.fullName = fullName;
+            this.employeeNumber = employeeNumber;
+            this.wage = wage;
+            this.jknBaseWage = jknBaseWage;
+            this.companyJkn = companyJkn;
+            this.employeeJkn = employeeJkn;
+            this.premium = premium;
+        }
+    }
+
+    @Getter
+    private static class PajakRow {
+        private final Integer rowNumber;
+        private final String employeeNumber;
+        private final String fullName;
+        private final String ptkpCode;
+        private final BigDecimal baseSalary;
+        private final BigDecimal positionAllowance;
+        private final BigDecimal skillAllowance;
+        private final BigDecimal variableAllowance;
+        private final BigDecimal companyJkk;
+        private final BigDecimal companyJkm;
+        private final BigDecimal companyJkn;
+        private final BigDecimal penghasilanTeratur;
+        private final BigDecimal terDpp;
+        private final String terCategory;
+        private final String terRateDisplay;
+        private final BigDecimal pph21Paid;
+
+        private PajakRow(Integer rowNumber,
+                         String employeeNumber,
+                         String fullName,
+                         String ptkpCode,
+                         BigDecimal baseSalary,
+                         BigDecimal positionAllowance,
+                         BigDecimal skillAllowance,
+                         BigDecimal variableAllowance,
+                         BigDecimal companyJkk,
+                         BigDecimal companyJkm,
+                         BigDecimal companyJkn,
+                         BigDecimal penghasilanTeratur,
+                         BigDecimal terDpp,
+                         String terCategory,
+                         String terRateDisplay,
+                         BigDecimal pph21Paid) {
+            this.rowNumber = rowNumber;
+            this.employeeNumber = employeeNumber;
+            this.fullName = fullName;
+            this.ptkpCode = ptkpCode;
+            this.baseSalary = baseSalary;
+            this.positionAllowance = positionAllowance;
+            this.skillAllowance = skillAllowance;
+            this.variableAllowance = variableAllowance;
+            this.companyJkk = companyJkk;
+            this.companyJkm = companyJkm;
+            this.companyJkn = companyJkn;
+            this.penghasilanTeratur = penghasilanTeratur;
+            this.terDpp = terDpp;
+            this.terCategory = terCategory;
+            this.terRateDisplay = terRateDisplay;
+            this.pph21Paid = pph21Paid;
+        }
     }
 
 }

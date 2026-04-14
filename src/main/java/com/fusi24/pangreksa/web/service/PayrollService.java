@@ -209,6 +209,12 @@ public class PayrollService {
         return hrPayrollRepository.count(spec);
     }
 
+    public List<HrPayroll> getPayrollList(Integer year, LocalDate month, String searchTerm) {
+        ensureUserSet();
+        Specification<HrPayroll> spec = buildFilterSpec(year, month, searchTerm);
+        return hrPayrollRepository.findAll(spec);
+    }
+
     private Specification<HrPayroll> buildFilterSpec(Integer year, LocalDate month, String searchTerm) {
         Specification<HrPayroll> spec = buildBaseSearchSpec(searchTerm);
 
