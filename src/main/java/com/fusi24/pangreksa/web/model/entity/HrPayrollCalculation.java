@@ -81,6 +81,18 @@ public class HrPayrollCalculation {
     @Column(name = "net_take_home_pay", precision = 19, scale = 2)
     private BigDecimal netTakeHomePay;
 
+    @Column(name = "ter_category", length = 10)
+    private String terCategory;
+
+    @Column(name = "ter_rate_percent", precision = 5, scale = 2)
+    private BigDecimal terRatePercent;
+
+    @Column(name = "penghasilan_teratur_amount", precision = 19, scale = 2)
+    private BigDecimal penghasilanTeraturAmount;
+
+    @Column(name = "ter_dpp_amount", precision = 19, scale = 2)
+    private BigDecimal terDppAmount;
+
     // META
     @Column(name = "calculated_at")
     private LocalDateTime calculatedAt;

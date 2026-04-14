@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface HrPersonPtkpRepository extends JpaRepository<HrPersonPtkp, Long> {
@@ -21,6 +22,17 @@ public interface HrPersonPtkpRepository extends JpaRepository<HrPersonPtkp, Long
           and (p.validTo is null or p.validTo >= :referenceDate)
         order by p.validFrom desc
     """)
-        Optional<HrPersonPtkp> findActiveByPersonId(@Param("personId") Long personId,
-                                                    @Param("referenceDate") LocalDate referenceDate);
+    Optional<HrPersonPtkp> findActiveByPersonId(@Param("personId") Long personId,
+                                                @Param("referenceDate") LocalDate referenceDate);
+
+    @Query("""
+    select p
+    from HrPersonPtkp p
+    where p.person.id = :personId
+      and p.validFrom <= :referenceDate
+      and (p.validTo is null or p.validTo >= :referenceDate)
+    order by p.validFrom desc
+""")
+    List<HrPersonPtkp> findActiveListByPersonId(@Param("personId") Long personId,
+                                                @Param("referenceDate") LocalDate referenceDate);
 }

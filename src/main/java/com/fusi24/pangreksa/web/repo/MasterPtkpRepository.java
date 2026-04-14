@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface MasterPtkpRepository extends JpaRepository<MasterPtkp, Long> {
 
     Optional<MasterPtkp> findByKodePtkpAndAktifTrue(String kodePtkp);
+
+    Optional<MasterPtkp> findFirstByKodePtkpAndAktifTrue(String kodePtkp);
 }

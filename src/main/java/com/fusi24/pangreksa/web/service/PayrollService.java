@@ -52,6 +52,10 @@ public class PayrollService {
     private final HrPersonPtkpRepository hrPersonPtkpRepository;
     private final HrLeaveApplicationRepository hrLeaveApplicationRepository;
 
+    private final MasterPtkpRepository masterPtkpRepository;
+    private final MasterTerRepository masterTerRepository;
+    private final MasterTerTarifRepository masterTerTarifRepository;
+
     private final SystemService systemService;
 
     private FwAppUser appUser;
@@ -71,7 +75,7 @@ public class PayrollService {
                           HrPersonPositionRepository hrPersonPositionRepository,
                           HrPersonRespository hrPersonRepository,
                           HrPersonPtkpRepository hrPersonPtkpRepository,
-                          HrLeaveApplicationRepository hrLeaveApplicationRepository,
+                          HrLeaveApplicationRepository hrLeaveApplicationRepository, MasterPtkpRepository masterPtkpRepository, MasterTerRepository masterTerRepository, MasterTerTarifRepository masterTerTarifRepository,
                           SystemService systemService) {
 
         this.hrSalaryBaseLevelRepository = hrSalaryBaseLevelRepository;
@@ -89,6 +93,9 @@ public class PayrollService {
         this.hrPersonRepository = hrPersonRepository;
         this.hrPersonPtkpRepository = hrPersonPtkpRepository;
         this.hrLeaveApplicationRepository = hrLeaveApplicationRepository;
+        this.masterPtkpRepository = masterPtkpRepository;
+        this.masterTerRepository = masterTerRepository;
+        this.masterTerTarifRepository = masterTerTarifRepository;
         this.systemService = systemService;
     }
 
@@ -288,21 +295,72 @@ public class PayrollService {
             return;
         }
 
+        int success = 0;
+        int skipped = 0;
+        int failed = 0;
+
         for (HrPerson person : employees) {
-            if (hrPayrollRepository.existsByPersonIdAndPayrollDate(person.getId(), payrollDate)) {
-                continue;
+            try {
+                List<HrPersonPtkp> activePtkps = hrPersonPtkpRepository
+                        .findActiveListByPersonId(person.getId(), payrollDate);
+
+                HrPersonPtkp activePtkp = activePtkps.isEmpty() ? null : activePtkps.get(0);
+
+                if (activePtkp == null
+                        || activePtkp.getPtkpCode() == null
+                        || activePtkp.getPtkpCode().isBlank()) {
+                    skipped++;
+                    log.warn("SKIP PAYROLL → personId={} | PTKP not valid for payrollDate={}",
+                            person.getId(), payrollDate);
+                    continue;
+                }
+
+                if (hrPayrollRepository.existsByPersonIdAndPayrollDate(person.getId(), payrollDate)) {
+                    skipped++;
+                    continue;
+                }
+
+                HrPersonPosition personPosition = hrPersonPositionRepository.findFirstByPersonId(person.getId());
+                if (personPosition == null) {
+                    skipped++;
+                    log.warn("SKIP PAYROLL → personId={} | No active position", person.getId());
+                    continue;
+                }
+
+                HrPayroll payroll = buildPayrollHeader(
+                        person,
+                        personPosition,
+                        payrollDate,
+                        req,
+                        currentUser,
+                        monthStart,
+                        monthEndExclusive
+                );
+
+                HrPayroll savedPayroll = hrPayrollRepository.save(payroll);
+
+                generatePayroll(
+                        savedPayroll,
+                        personPosition,
+                        req,
+                        monthStart,
+                        monthEndExclusive,
+                        BigDecimal.ZERO,
+                        nvl(savedPayroll.getOtherDeductions())
+                );
+
+                success++;
+
+            } catch (Exception e) {
+                failed++;
+                log.error("FAILED PAYROLL → personId={} | error={}", person.getId(), e.getMessage(), e);
             }
-
-            HrPersonPosition personPosition = hrPersonPositionRepository.findFirstByPersonId(person.getId());
-            if (personPosition == null) {
-                continue;
-            }
-
-            HrPayroll payroll = buildPayrollHeader(person, personPosition, payrollDate, req, currentUser, monthStart, monthEndExclusive);
-            HrPayroll savedPayroll = hrPayrollRepository.save(payroll);
-
-            generatePayroll(savedPayroll, personPosition, req, monthStart, monthEndExclusive, BigDecimal.ZERO, nvl(savedPayroll.getOtherDeductions()));
         }
+
+        log.info("PAYROLL RESULT → success={} | skipped={} | failed={}", success, skipped, failed);
+
+        log.info("PAYROLL RESULT → success={} | skipped={} | failed={}", success, skipped, failed);
+
     }
 
     @Transactional
@@ -474,6 +532,43 @@ public class PayrollService {
 
         BpjsResult bpjs = resolveBpjsResult(bpjsBase);
 
+        List<HrPayrollComponent> previewComponents = buildPayrollComponents(
+                null,
+                baseSalary,
+                allowanceResult,
+                new AttendanceDeductionResult(ZERO, ZERO, 0, 0),
+                bpjs,
+                overtimeAmount,
+                nvl(bonusAmount),
+                ZERO
+        );
+
+        BigDecimal bpjsJkkCompany = sumComponentAmountByCodes(previewComponents, Set.of("BPJS_JKK_COMPANY"));
+        BigDecimal bpjsJkCompany = sumComponentAmountByCodes(previewComponents, Set.of("BPJS_JK_COMPANY"));
+        BigDecimal bpjsJknCompany = sumComponentAmountByCodes(previewComponents, Set.of("BPJS_JKN_COMPANY"));
+        BigDecimal thrAmount = sumComponentAmountByCodes(previewComponents, Set.of("THR"));
+
+        BigDecimal penghasilanTeraturAmount = baseSalary
+                .add(fixedAllowanceTotal)
+                .add(variableAllowanceTotal)
+                .add(bpjsJkkCompany)
+                .add(bpjsJkCompany)
+                .add(bpjsJknCompany);
+
+        BigDecimal terDppAmount = penghasilanTeraturAmount
+                .add(overtimeAmount)
+                .add(nvl(bonusAmount))
+                .add(thrAmount);
+
+        String terCategory = resolveJenisTer(payrollInput.getPtkpCode());
+        BigDecimal terRatePercent = resolveTarifTer(terCategory, terDppAmount);
+        BigDecimal pph21Deduction = calculatePph21Ter(terDppAmount, terRatePercent);
+
+        BigDecimal insuranceAmount = bpjs.companyTkTotal
+                .add(bpjs.companyJkn)
+                .add(bpjs.employeeTkTotal)
+                .add(bpjs.employeeJkn);
+
         BigDecimal grossSalary = baseSalary
                 .add(fixedAllowanceTotal)
                 .add(variableAllowanceTotal)
@@ -487,12 +582,6 @@ public class PayrollService {
                 .add(bpjs.employeeJk)
                 .add(bpjs.employeeJkn);
 
-        BigDecimal pph21Deduction = calculateMonthlyPph21FromGross(
-                grossSalary,
-                nvl(payrollInput.getPtkpAmount()),
-                payrollInput.getStatusEmployee()
-        );
-
         BigDecimal totalDeduction = attendanceDeduction.absenceDeduction
                 .add(attendanceDeduction.lateDeduction)
                 .add(bpjs.employeeJht)
@@ -503,7 +592,10 @@ public class PayrollService {
                 .add(pph21Deduction)
                 .add(nvl(otherDeductions));
 
-        BigDecimal netTakeHomePay = grossSalary.subtract(totalDeduction);
+        BigDecimal netTakeHomePay = grossSalary
+                .subtract(insuranceAmount)
+                .subtract(pph21Deduction);
+
         if (netTakeHomePay.signum() < 0) {
             netTakeHomePay = ZERO;
         }
@@ -532,13 +624,27 @@ public class PayrollService {
                 .netTakeHomePay(scale(netTakeHomePay))
                 .calculatedAt(LocalDateTime.now())
                 .notes("Calculated")
+                .penghasilanTeraturAmount(scale(penghasilanTeraturAmount))
+                .terDppAmount(scale(terDppAmount))
+                .terCategory(terCategory)
+                .terRatePercent(scale(terRatePercent))
                 .build();
 
         HrPayrollCalculation savedCalc = hrPayrollCalculationRepository.save(calc);
 
         hrPayrollComponentRepository.deleteByPayrollCalculationId(savedCalc.getId());
-        hrPayrollComponentRepository.saveAll(buildPayrollComponents(savedCalc, allowanceResult, attendanceDeduction, bpjs, overtimeAmount, nvl(bonusAmount), pph21Deduction));
-
+        hrPayrollComponentRepository.saveAll(
+                buildPayrollComponents(
+                        savedCalc,
+                        baseSalary,
+                        allowanceResult,
+                        attendanceDeduction,
+                        bpjs,
+                        overtimeAmount,
+                        nvl(bonusAmount),
+                        pph21Deduction
+                )
+        );
         hrPayrollRepository.save(payrollInput);
 
         return savedCalc;
@@ -807,6 +913,7 @@ public class PayrollService {
     }
 
     private List<HrPayrollComponent> buildPayrollComponents(HrPayrollCalculation calc,
+                                                            BigDecimal baseSalary,
                                                             AllowanceResult allowanceResult,
                                                             AttendanceDeductionResult attendanceDeduction,
                                                             BpjsResult bpjs,
@@ -818,7 +925,7 @@ public class PayrollService {
 
         int sort = 1;
 
-        components.add(component(calc, "EARNING", "BASE", "GAPOK", "Gaji Pokok", calc.getBaseSalary(), sort++));
+        components.add(component(calc, "EARNING", "BASE", "GAPOK", "Gaji Pokok", baseSalary, sort++));
 
         for (HrSalaryAllowance a : allowanceResult.fixedItems) {
             components.add(component(
@@ -852,12 +959,12 @@ public class PayrollService {
             components.add(component(calc, "EARNING", "BONUS", "BONUS", "Bonus", scale(bonusAmount), sort++));
         }
 
-        if (calc.getBpjsJhtCompany().compareTo(BigDecimal.ZERO) > 0) {
-            components.add(component(calc, "EARNING", "BPJS_COMPANY", "BPJS_JHT_COMPANY", "BPJS TK JHT (Perusahaan)", calc.getBpjsJhtCompany(), sort++));
+        if (bpjs.companyJht.compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "EARNING", "BPJS_COMPANY", "BPJS_JHT_COMPANY", "BPJS TK JHT (Perusahaan)", bpjs.companyJht, sort++));
         }
 
-        if (calc.getBpjsJpCompany().compareTo(BigDecimal.ZERO) > 0) {
-            components.add(component(calc, "EARNING", "BPJS_COMPANY", "BPJS_JP_COMPANY", "BPJS TK JP (Perusahaan)", calc.getBpjsJpCompany(), sort++));
+        if (bpjs.companyJp.compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "EARNING", "BPJS_COMPANY", "BPJS_JP_COMPANY", "BPJS TK JP (Perusahaan)", bpjs.companyJp, sort++));
         }
 
         if (bpjs.companyJkk.compareTo(BigDecimal.ZERO) > 0) {
@@ -868,8 +975,8 @@ public class PayrollService {
             components.add(component(calc, "EARNING", "BPJS_COMPANY", "BPJS_JK_COMPANY", "BPJS TK JK (Perusahaan)", bpjs.companyJk, sort++));
         }
 
-        if (calc.getBpjsJknCompany().compareTo(BigDecimal.ZERO) > 0) {
-            components.add(component(calc, "EARNING", "BPJS_COMPANY", "BPJS_JKN_COMPANY", "BPJS JKN (Perusahaan)", calc.getBpjsJknCompany(), sort++));
+        if (bpjs.companyJkn.compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "EARNING", "BPJS_COMPANY", "BPJS_JKN_COMPANY", "BPJS JKN (Perusahaan)", bpjs.companyJkn, sort++));
         }
 
         if (attendanceDeduction.absenceDeduction.compareTo(BigDecimal.ZERO) > 0) {
@@ -880,12 +987,12 @@ public class PayrollService {
             components.add(component(calc, "DEDUCTION", "ATTENDANCE", "LATE", "Terlambat", attendanceDeduction.lateDeduction, sort++));
         }
 
-        if (calc.getBpjsJhtDeduction().compareTo(BigDecimal.ZERO) > 0) {
-            components.add(component(calc, "DEDUCTION", "BPJS", "BPJS_JHT", "BPJS TK JHT", calc.getBpjsJhtDeduction(), sort++));
+        if (bpjs.employeeJht.compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "DEDUCTION", "BPJS", "BPJS_JHT", "BPJS TK JHT", bpjs.employeeJht, sort++));
         }
 
-        if (calc.getBpjsJpDeduction().compareTo(BigDecimal.ZERO) > 0) {
-            components.add(component(calc, "DEDUCTION", "BPJS", "BPJS_JP", "BPJS TK JP", calc.getBpjsJpDeduction(), sort++));
+        if (bpjs.employeeJp.compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "DEDUCTION", "BPJS", "BPJS_JP", "BPJS TK JP", bpjs.employeeJp, sort++));
         }
 
         if (bpjs.employeeJkk.compareTo(BigDecimal.ZERO) > 0) {
@@ -896,8 +1003,8 @@ public class PayrollService {
             components.add(component(calc, "DEDUCTION", "BPJS", "BPJS_JK", "BPJS TK JK", bpjs.employeeJk, sort++));
         }
 
-        if (calc.getBpjsJknDeduction().compareTo(BigDecimal.ZERO) > 0) {
-            components.add(component(calc, "DEDUCTION", "BPJS", "BPJS_JKN", "BPJS JKN", calc.getBpjsJknDeduction(), sort++));
+        if (bpjs.employeeJkn.compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "DEDUCTION", "BPJS", "BPJS_JKN", "BPJS JKN", bpjs.employeeJkn, sort++));
         }
 
         if (nvl(pph21Deduction).compareTo(BigDecimal.ZERO) > 0) {
@@ -963,86 +1070,6 @@ public class PayrollService {
             log.warn("resolveCountByStatuses failed personId {} statuses {}: {}", personId, statuses, ex.getMessage());
             return 0;
         }
-    }
-
-    private BigDecimal calculateMonthlyPph21FromGross(BigDecimal monthlyGrossSalary,
-                                                      BigDecimal monthlyPtkpAmount,
-                                                      String statusEmployee) {
-        BigDecimal grossMonth = nvl(monthlyGrossSalary);
-        BigDecimal ptkpMonth = nvl(monthlyPtkpAmount);
-
-        if (grossMonth.signum() <= 0) return ZERO;
-
-        BigDecimal grossYear = grossMonth.multiply(BD_12);
-
-        BigDecimal penghasilanNetoYear = grossYear;
-        if (isEligibleForBiayaJabatan(statusEmployee)) {
-            BigDecimal biayaJabatanMonthly = grossMonth
-                    .multiply(BigDecimal.valueOf(5))
-                    .divide(BD_100, 2, RoundingMode.HALF_UP);
-
-            BigDecimal capMonthly = BigDecimal.valueOf(500_000);
-            if (biayaJabatanMonthly.compareTo(capMonthly) > 0) {
-                biayaJabatanMonthly = capMonthly;
-            }
-
-            BigDecimal biayaJabatanYear = biayaJabatanMonthly.multiply(BD_12);
-            penghasilanNetoYear = grossYear.subtract(biayaJabatanYear);
-            if (penghasilanNetoYear.signum() < 0) {
-                penghasilanNetoYear = ZERO;
-            }
-        }
-
-        BigDecimal pkp = penghasilanNetoYear.subtract(ptkpMonth.multiply(BD_12));
-        if (pkp.signum() < 0) pkp = ZERO;
-
-        BigDecimal pphYear = calculatePph21YearlyProgressive(pkp);
-        return scale(pphYear.divide(BD_12, 2, RoundingMode.HALF_UP));
-    }
-
-    private BigDecimal calculatePph21YearlyProgressive(BigDecimal pkp) {
-        BigDecimal remaining = nvl(pkp);
-        if (remaining.signum() <= 0) return ZERO;
-
-        BigDecimal tax = ZERO;
-
-        tax = tax.add(taxLayer(remaining, 60_000_000L, 5));
-        remaining = remaining.subtract(BigDecimal.valueOf(60_000_000L));
-        if (remaining.signum() <= 0) return tax;
-
-        tax = tax.add(taxLayer(remaining, 190_000_000L, 15));
-        remaining = remaining.subtract(BigDecimal.valueOf(190_000_000L));
-        if (remaining.signum() <= 0) return tax;
-
-        tax = tax.add(taxLayer(remaining, 250_000_000L, 25));
-        remaining = remaining.subtract(BigDecimal.valueOf(250_000_000L));
-        if (remaining.signum() <= 0) return tax;
-
-        tax = tax.add(taxLayer(remaining, 4_500_000_000L, 30));
-        remaining = remaining.subtract(BigDecimal.valueOf(4_500_000_000L));
-        if (remaining.signum() <= 0) return tax;
-
-        tax = tax.add(taxLayer(remaining, null, 35));
-        return tax;
-    }
-
-    private BigDecimal taxLayer(BigDecimal amount, Long layerCap, int ratePercent) {
-        if (amount == null || amount.signum() <= 0) return ZERO;
-
-        BigDecimal taxable = amount;
-        if (layerCap != null) {
-            BigDecimal cap = BigDecimal.valueOf(layerCap);
-            if (taxable.compareTo(cap) > 0) taxable = cap;
-        }
-
-        return taxable
-                .multiply(BigDecimal.valueOf(ratePercent))
-                .divide(BD_100, 2, RoundingMode.HALF_UP);
-    }
-
-    private boolean isEligibleForBiayaJabatan(String statusEmployee) {
-        if (statusEmployee == null) return false;
-        return "PKWT".equalsIgnoreCase(statusEmployee) || "PKWTT".equalsIgnoreCase(statusEmployee);
     }
 
     private BigDecimal getDecimalVal(FwSystem s) {
@@ -1207,4 +1234,60 @@ public class PayrollService {
     public List<HrPayrollComponent> getPayrollComponentsByCalculationId(Long calculationId) {
         return hrPayrollComponentRepository.findByPayrollCalculationId(calculationId);
     }
+
+    private BigDecimal sumComponentAmountByCodes(List<HrPayrollComponent> components, Set<String> codes) {
+        if (components == null || components.isEmpty()) {
+            return ZERO;
+        }
+
+        return components.stream()
+                .filter(c -> c.getComponentCode() != null)
+                .filter(c -> codes.contains(c.getComponentCode().toUpperCase()))
+                .map(HrPayrollComponent::getAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private String resolveJenisTer(String ptkpCode) {
+        if (ptkpCode == null
+                || ptkpCode.isBlank()
+                || "NOT_SET".equalsIgnoreCase(ptkpCode.trim())) {
+
+            throw new IllegalStateException("PTKP code is invalid for TER calculation: " + ptkpCode);
+        }
+
+        MasterPtkp masterPtkp = masterPtkpRepository
+                .findFirstByKodePtkpAndAktifTrue(ptkpCode.trim())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Master PTKP not found for kode_ptkp=" + ptkpCode));
+
+        MasterTer masterTer = masterTerRepository
+                .findFirstByMasterPtkpIdAndAktifTrue(masterPtkp.getId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Master TER not found for master_ptkp_id=" + masterPtkp.getId()));
+
+        return masterTer.getJenisTer();
+    }
+
+    private BigDecimal resolveTarifTer(String jenisTer, BigDecimal dppTerAmount) {
+        MasterTerTarif tarif = masterTerTarifRepository.findEffectiveTarif(jenisTer, nvl(dppTerAmount))
+                .orElseThrow(() -> new IllegalStateException(
+                        "Master TER tarif not found for jenisTer=" + jenisTer + ", bruto=" + nvl(dppTerAmount)
+                ));
+
+        return scale(nvl(tarif.getTarifPersen()));
+    }
+
+    private BigDecimal calculatePph21Ter(BigDecimal dppTerAmount, BigDecimal tarifPersen) {
+        if (nvl(dppTerAmount).signum() <= 0 || nvl(tarifPersen).signum() <= 0) {
+            return ZERO;
+        }
+
+        return scale(
+                nvl(dppTerAmount)
+                        .multiply(nvl(tarifPersen))
+                        .divide(BD_100, 2, RoundingMode.HALF_UP)
+        );
+    }
+
 }
