@@ -4,7 +4,9 @@ import com.fusi24.pangreksa.base.ui.view.MainLayout;
 import com.fusi24.pangreksa.web.repo.HrAttendanceRepository;
 import com.fusi24.pangreksa.web.repo.HrLeaveApplicationRepository;
 import com.fusi24.pangreksa.web.repo.HrPayrollRepository;
+import com.fusi24.pangreksa.web.service.CampaignService;
 import com.fusi24.pangreksa.web.service.PersonService;
+import com.fusi24.pangreksa.web.view.common.CampaignCarousel;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -24,18 +26,21 @@ public class AdminDashboardView extends VerticalLayout {
     private final HrAttendanceRepository attendanceRepository;
     private final HrLeaveApplicationRepository leaveRepository;
     private final HrPayrollRepository payrollRepository;
+    private final CampaignService campaignService;
 
     public AdminDashboardView(
             PersonService personService,
             HrAttendanceRepository attendanceRepository,
             HrLeaveApplicationRepository leaveRepository,
-            HrPayrollRepository payrollRepository
+            HrPayrollRepository payrollRepository,
+            CampaignService campaignService
     ) {
 
         this.personService = personService;
         this.attendanceRepository = attendanceRepository;
         this.leaveRepository = leaveRepository;
         this.payrollRepository = payrollRepository;
+        this.campaignService = campaignService;
 
         setWidthFull();
         setPadding(true);
@@ -45,6 +50,8 @@ public class AdminDashboardView extends VerticalLayout {
 
         Div grid = new Div();
         grid.addClassName("dashboard-grid");
+
+        CampaignCarousel campaignCarousel = new CampaignCarousel(campaignService);
 
         // Baris Atas (3 Kolom)
         grid.add(
@@ -59,7 +66,7 @@ public class AdminDashboardView extends VerticalLayout {
                 createActivityCard()
         );
 
-        add(title, grid);
+        add(title,campaignCarousel, grid);
     }
 
     /* =========================================================
