@@ -887,7 +887,7 @@ public class PayrollView extends Main {
         BigDecimal baseSalary = calc == null ? BigDecimal.ZERO : nvl(calc.getBaseSalary());
         BigDecimal fixedAllowance = calc == null ? BigDecimal.ZERO : nvl(calc.getFixedAllowanceTotal());
         BigDecimal wage = baseSalary.add(fixedAllowance);
-        BigDecimal jpBaseWage = applyCap(wage, getBpjsJpCap());
+        BigDecimal jpBaseWage = resolveBpjsBaseFromComponentOrConfig(payroll, "BPJS_JP_BASE", wage, getBpjsJpCap());
 
         BigDecimal employeeJp = sumComponentAmounts(payroll, Set.of("BPJS_JP"));
         BigDecimal companyJp = sumComponentAmounts(payroll, Set.of("BPJS_JP_COMPANY"));
@@ -917,7 +917,7 @@ public class PayrollView extends Main {
         BigDecimal baseSalary = calc == null ? BigDecimal.ZERO : nvl(calc.getBaseSalary());
         BigDecimal fixedAllowance = calc == null ? BigDecimal.ZERO : nvl(calc.getFixedAllowanceTotal());
         BigDecimal wage = baseSalary.add(fixedAllowance);
-        BigDecimal jknBaseWage = applyCap(wage, getBpjsJknCap());
+        BigDecimal jknBaseWage = resolveBpjsBaseFromComponentOrConfig(payroll, "BPJS_JKN_BASE", wage, getBpjsJknCap());
 
         BigDecimal companyJkn = sumComponentAmounts(payroll, Set.of("BPJS_JKN_COMPANY"));
         BigDecimal employeeJkn = sumComponentAmounts(payroll, Set.of("BPJS_JKN"));
@@ -1004,19 +1004,30 @@ public class PayrollView extends Main {
         if (config == null) {
             return BigDecimal.ZERO;
         }
+        if (config.getStringVal() != null && !config.getStringVal().isBlank()) {
+            return new BigDecimal(config.getStringVal().replace(",", "").trim());
+        }
         if (config.getDecimalVal() != null) {
             return config.getDecimalVal();
         }
         if (config.getIntVal() != null) {
             return BigDecimal.valueOf(config.getIntVal());
         }
-        if (config.getStringVal() != null && !config.getStringVal().isBlank()) {
-            return new BigDecimal(config.getStringVal().replace(",", "").trim());
-        }
         if (config.getKey() != null && !config.getKey().isBlank()) {
             return new BigDecimal(config.getKey().replace(",", "").trim());
         }
         return BigDecimal.ZERO;
+    }
+
+    private BigDecimal resolveBpjsBaseFromComponentOrConfig(HrPayroll payroll,
+                                                            String componentCode,
+                                                            BigDecimal wage,
+                                                            BigDecimal fallbackCap) {
+        BigDecimal storedBase = sumComponentAmounts(payroll, Set.of(componentCode));
+        if (storedBase.signum() > 0) {
+            return storedBase;
+        }
+        return applyCap(wage, fallbackCap);
     }
 
     private BigDecimal applyCap(BigDecimal amount, BigDecimal cap) {

@@ -881,8 +881,8 @@ public class PayrollService {
         BigDecimal companyJknRate = getDecimalVal(cfg.get(109));
         BigDecimal employeeJknRate = getDecimalVal(cfg.get(110));
 
-        BigDecimal capJkn = parseDecimal(cfg.get(113) == null ? null : cfg.get(113).getStringVal());
-        BigDecimal capJp = parseDecimal(cfg.get(114) == null ? null : cfg.get(114).getStringVal());
+        BigDecimal capJkn = getSystemStringNumber(cfg.get(113));
+        BigDecimal capJp = getSystemStringNumber(cfg.get(114));
 
         BigDecimal baseJht = gross;
         BigDecimal baseJp = (capJp == null || capJp.signum() <= 0) ? gross : gross.min(capJp);
@@ -905,6 +905,8 @@ public class PayrollService {
         BigDecimal companyJkn = percentOf(baseJkn, companyJknRate);
 
         return new BpjsResult(
+                scale(baseJp),
+                scale(baseJkn),
                 scale(employeeJht),
                 scale(employeeJp),
                 scale(employeeJkk),
@@ -963,6 +965,14 @@ public class PayrollService {
 
         if (nvl(bonusAmount).compareTo(BigDecimal.ZERO) > 0) {
             components.add(component(calc, "EARNING", "BONUS", "BONUS", "Bonus", scale(bonusAmount), sort++));
+        }
+
+        if (bpjs.baseJp.compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "INFO", "BPJS_BASE", "BPJS_JP_BASE", "Dasar Upah JP", bpjs.baseJp, sort++));
+        }
+
+        if (bpjs.baseJkn.compareTo(BigDecimal.ZERO) > 0) {
+            components.add(component(calc, "INFO", "BPJS_BASE", "BPJS_JKN_BASE", "Dasar Upah JKN", bpjs.baseJkn, sort++));
         }
 
         if (bpjs.companyJht.compareTo(BigDecimal.ZERO) > 0) {
@@ -1083,6 +1093,13 @@ public class PayrollService {
         return scale(s.getDecimalVal());
     }
 
+    private BigDecimal getSystemStringNumber(FwSystem system) {
+        if (system == null || system.getStringVal() == null || system.getStringVal().isBlank()) {
+            return null;
+        }
+        return parseDecimal(system.getStringVal());
+    }
+
     private BigDecimal percentOf(BigDecimal amount, BigDecimal ratePercent) {
         if (amount == null || ratePercent == null) return ZERO;
         if (amount.signum() <= 0 || ratePercent.signum() <= 0) return ZERO;
@@ -1188,6 +1205,8 @@ public class PayrollService {
     }
 
     private static class BpjsResult {
+        private final BigDecimal baseJp;
+        private final BigDecimal baseJkn;
         private final BigDecimal employeeJht;
         private final BigDecimal employeeJp;
         private final BigDecimal employeeJkk;
@@ -1203,7 +1222,9 @@ public class PayrollService {
         private final BigDecimal companyTkTotal;
         private final BigDecimal employeeTkTotal;
 
-        private BpjsResult(BigDecimal employeeJht,
+        private BpjsResult(BigDecimal baseJp,
+                           BigDecimal baseJkn,
+                           BigDecimal employeeJht,
                            BigDecimal employeeJp,
                            BigDecimal employeeJkk,
                            BigDecimal employeeJk,
@@ -1213,6 +1234,8 @@ public class PayrollService {
                            BigDecimal companyJkk,
                            BigDecimal companyJk,
                            BigDecimal companyJkn) {
+            this.baseJp = baseJp;
+            this.baseJkn = baseJkn;
             this.employeeJht = employeeJht;
             this.employeeJp = employeeJp;
             this.employeeJkk = employeeJkk;
@@ -1231,6 +1254,7 @@ public class PayrollService {
 
         private static BpjsResult zero() {
             return new BpjsResult(
+                    ZERO, ZERO,
                     ZERO, ZERO, ZERO, ZERO, ZERO,
                     ZERO, ZERO, ZERO, ZERO, ZERO
             );
