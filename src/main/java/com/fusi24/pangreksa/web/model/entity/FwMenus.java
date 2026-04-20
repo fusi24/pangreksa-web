@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "fw_menus", schema = "public",
+@Table(name = "fw_menus",
         uniqueConstraints = @UniqueConstraint(name = "fw_menus_unique", columnNames = "id"))
 @Getter
 @Setter

@@ -6,7 +6,7 @@ import lombok.*;
 @Entity
 @Table(
         name = "fw_responsibilities",
-        schema = "public",
+        
         uniqueConstraints = @UniqueConstraint(name = "fw_responsibilities_responsibility_labela_key", columnNames = "label")
 )
 @Getter

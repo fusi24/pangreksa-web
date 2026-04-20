@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "fw_appuser",
-        schema = "public",
+        
         uniqueConstraints = {
                 @UniqueConstraint(name = "fw_appuser_username_key", columnNames = "username"),
                 @UniqueConstraint(name = "fw_appuser_email_key", columnNames = "email")
