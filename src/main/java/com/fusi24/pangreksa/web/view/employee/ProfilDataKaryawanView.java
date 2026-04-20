@@ -67,7 +67,7 @@ public class ProfilDataKaryawanView extends Main {
     private Authorization auth;
     private FwAppUser currentAppUser;
 
-    public static final String VIEW_NAME = "Profil Data Karyawan";
+    public static final String VIEW_NAME = "Data Karyawan";
     public static final String ROUTE_EDIT = "karyawan-baru-form-page-access/";
 
     private int MAX_RESULT = 5;
