@@ -196,25 +196,26 @@ public class CompanyCalendarView extends Main {
     }
 
     private void loadEmployeeLeave() {
-
         List<HrLeaveApplication> leaves;
-
-        String responsibility =
-                (String) UI.getCurrent().getSession().getAttribute("responsibility");
+        String responsibility = (String) UI.getCurrent().getSession().getAttribute("responsibility");
 
         if ("Karyawan".equals(responsibility)) {
-
             String userId = currentUser.require().getUserId().toString();
 
+            // Memanggil service yang sudah diperbaiki
             Long personId = calendarService.getPersonIdByUserId(userId);
 
+            // --- PERBAIKAN: Hentikan proses jika personId tidak ditemukan ---
+            if (personId == null) {
+                // Opsional: tampilkan pesan ke user bahwa profil tidak ditemukan
+                return;
+            }
+
             leaves = calendarService.getApprovedLeavesByPerson(personId);
-
         } else {
-
             leaves = calendarService.getApprovedLeaves();
-
         }
+
 
         if (leaves == null) return;
 
