@@ -50,7 +50,7 @@ public class CheckInOutDialog extends Dialog {
 
         // Pengaturan Lebar Dialog agar lebih proporsional
         setWidth("450px");
-        setHeaderTitle(attendance.getCheckIn() == null ? "Konfirmasi Check-In" : "Konfirmasi Check-Out");
+        setHeaderTitle(attendance.getCheckIn() == null ? "Konfirmasi Clock-In" : "Konfirmasi Clock-Out");
 
         configureContent();
     }
@@ -80,7 +80,7 @@ public class CheckInOutDialog extends Dialog {
 
         infoBox.add(nameSpan, dateSpan);
 
-        // Menampilkan Info Branch jika sudah Check-In
+        // Menampilkan Info Branch jika sudah Clock-In
         if (StringUtils.isNotBlank(attendance.getBranchName())) {
             Span branchInfo = new Span("Lokasi: " + attendance.getBranchCode() + " - " + attendance.getBranchName());
             branchInfo.getStyle().set("margin-top", "8px");
@@ -111,7 +111,7 @@ public class CheckInOutDialog extends Dialog {
         actionButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         if (!hasCheckIn) {
-            actionButton.setText("Check-In Sekarang");
+            actionButton.setText("Clock-In");
             actionButton.setIcon(VaadinIcon.SIGN_IN.create());
             actionButton.addClickListener(e -> handleCheckIn());
 
@@ -121,13 +121,13 @@ public class CheckInOutDialog extends Dialog {
                 AppNotification.error("Gagal load branch: " + ex.getMessage());
             }
         } else if (!hasCheckOut) {
-            actionButton.setText("Check-Out Sekarang");
+            actionButton.setText("Clock-Out");
             actionButton.setIcon(VaadinIcon.SIGN_OUT.create());
             actionButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
             actionButton.addClickListener(e -> handleCheckOut());
             branchField.setVisible(false);
         } else {
-            actionButton.setText("Sudah Check-Out");
+            actionButton.setText("Sudah Clock-Out");
             actionButton.setEnabled(false);
             branchField.setVisible(false);
         }
@@ -144,7 +144,7 @@ public class CheckInOutDialog extends Dialog {
         try {
             HrCompanyBranch selected = branchField.getValue();
             if (selected == null) {
-                AppNotification.error("Branch wajib dipilih sebelum Check-in");
+                AppNotification.error("Branch wajib dipilih sebelum Clock-In");
                 return;
             }
 
@@ -157,10 +157,10 @@ public class CheckInOutDialog extends Dialog {
             attendance.setBranchAddress(selected.getBranchAddress());
 
             attendanceService.saveAttendance(attendance, currentUser.require());
-            AppNotification.success("Check-in berhasil");
+            AppNotification.success("Clock-In berhasil");
             closeAndNotify();
         } catch (Exception ex) {
-            AppNotification.error("Gagal Check-in: " + ex.getMessage());
+            AppNotification.error("Gagal Clock-In: " + ex.getMessage());
         }
     }
 
@@ -169,10 +169,10 @@ public class CheckInOutDialog extends Dialog {
             attendance.setCheckOut(ZonedDateTime.now(ZoneId.of("Asia/Jakarta")).toLocalDateTime());
             attendance.setNotes(notesField.getValue());
             attendanceService.saveAttendance(attendance, currentUser.require());
-            AppNotification.success("Check-out berhasil");
+            AppNotification.success("Clock-Out berhasil");
             closeAndNotify();
         } catch (Exception ex) {
-            AppNotification.error("Gagal Check-out: " + ex.getMessage());
+            AppNotification.error("Gagal Clock-Out: " + ex.getMessage());
         }
     }
 

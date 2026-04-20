@@ -130,7 +130,7 @@ public class AttendanceView extends Main {
                 .map(r -> r.getLabel())
                 .anyMatch("KARYAWAN"::equals);
 
-        // Auto-show check-in popup for KARYAWAN on working days
+        // Auto-show Clock-In popup for KARYAWAN on working days
         if (isEmployee) {
                 openSelfServiceCheckInOut();
         }
@@ -160,14 +160,14 @@ public class AttendanceView extends Main {
                                         ? att.getCheckIn().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"))
                                         : "-"
                         )
-                        .setHeader("Check-in")
+                        .setHeader("Clock-In")
                         .setKey("checkIn")              // 🔑 PENTING
                         .setSortable(true)
                         .setComparator(HrAttendance::getCheckIn)
                         .setWidth("140px");
 
         grid.addColumn(att -> att.getCheckOut() != null ? att.getCheckOut().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) : "-")
-                .setHeader("Check-out").setWidth("100px");
+                .setHeader("Clock-Out").setWidth("100px");
 
         grid.addColumn(att -> formatWorkDuration(att.getTotalWorkMinutes()))
                 .setHeader("Total Jam Kerja")
@@ -248,7 +248,7 @@ public class AttendanceView extends Main {
         searchField.setVisible(isHr);
 
         Button refreshButton = new Button(new Icon(VaadinIcon.REFRESH), e -> applyFilters());
-        checkInButton = new Button("Check-In / Check-Out");
+        checkInButton = new Button("Clock-In / Clock-Out");
         checkInButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         checkInButton.setIcon(new Icon(VaadinIcon.CLOCK));
         checkInButton.addClickListener(e -> openSelfServiceCheckInOut());
@@ -303,10 +303,10 @@ public class AttendanceView extends Main {
             checkInButton.setText("Sudah Absen Hari Ini");
         } else if (today.getCheckIn() != null) {
             checkInButton.setEnabled(true);
-            checkInButton.setText("Check-out Sekarang");
+            checkInButton.setText("Clock-Out Sekarang");
         } else {
             checkInButton.setEnabled(true);
-            checkInButton.setText("Check-in Sekarang");
+            checkInButton.setText("Clock-In Sekarang");
         }
     }
 
@@ -403,15 +403,15 @@ public class AttendanceView extends Main {
             return new Span("-");
         }
 
-        Button clockOutBtn = new Button("Check-out");
+        Button clockOutBtn = new Button("Clock-Out");
         clockOutBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
 
         clockOutBtn.addClickListener(e -> {
 
             ConfirmationDialogUtil.showConfirmation(
-                    "Konfirmasi Check-out",
-                    "Apakah Anda yakin ingin melakukan Check-out sekarang?",
-                    "Ya, Check-out",
+                    "Konfirmasi Clock-Out",
+                    "Apakah Anda yakin ingin melakukan Clock-Out sekarang?",
+                    "Ya, Clock-Out",
                     ev -> {
 
                         ZoneId jakartaZone = ZoneId.of("Asia/Jakarta");
@@ -422,14 +422,14 @@ public class AttendanceView extends Main {
                        try {
     attendanceService.saveAttendance(attendance, currentUser.require());
 
-    AppNotification.success("Check-out berhasil");
+    AppNotification.success("Clock-Out berhasil");
 
     applyFilters();
 
 } catch (Exception ex) {
     attendance.setCheckOut(null);
 
-    AppNotification.error("Gagal Check-out: " + ex.getMessage());
+    AppNotification.error("Gagal Clock-Out: " + ex.getMessage());
 }
                     }
             );
@@ -500,7 +500,7 @@ public class AttendanceView extends Main {
 
 
 
-    // === KARYAWAN: Self-service check-in/out ===
+    // === KARYAWAN: Self-service Clock-In/out ===
     private void openSelfServiceCheckInOut() {
         HrAttendance currentRecord =
                 attendanceService.getOrCreateTodayAttendance(attendanceService.getCurrentUser());
@@ -542,8 +542,8 @@ public class AttendanceView extends Main {
 
         private ComboBox<HrPerson> personField = new ComboBox<>("Karyawan");
         private DatePicker dateField = new DatePicker("Tanggal");
-        private DateTimePicker checkInField = new DateTimePicker("Check-In");
-        private DateTimePicker checkOutField = new DateTimePicker("Check-Out");
+        private DateTimePicker checkInField = new DateTimePicker("Clock-In");
+        private DateTimePicker checkOutField = new DateTimePicker("Clock-Out");
         private TextArea notesField = new TextArea("Catatan");
 
         public AddAttendanceDialog(

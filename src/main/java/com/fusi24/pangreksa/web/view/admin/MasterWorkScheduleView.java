@@ -61,8 +61,8 @@ public class MasterWorkScheduleView extends Main {
 
     private final ComboBox<WorkScheduleType> typeField = new ComboBox<>("Tipe");
     private final TextField nameField = new TextField("Nama");
-    private final TimePicker checkInField = new TimePicker("Check-In");
-    private final TimePicker checkOutField = new TimePicker("Check-Out");
+    private final TimePicker checkInField = new TimePicker("Clock-In");
+    private final TimePicker checkOutField = new TimePicker("Clock-Out");
     private final TimePicker breakStartField = new TimePicker("Istirahat Mulai");
     private final TimePicker breakEndField = new TimePicker("Istirahat Selesai");
     private final ComboBox<WorkScheduleLabel> labelField = new ComboBox<>("Label");
@@ -102,11 +102,11 @@ public class MasterWorkScheduleView extends Main {
                 .setAutoWidth(true).setFlexGrow(1);
 
         grid.addColumn(ws -> formatTime(ws.getCheckIn()))
-                .setHeader("Check-In")
+                .setHeader("Clock-In")
                 .setAutoWidth(true).setFlexGrow(0);
 
         grid.addColumn(ws -> formatTime(ws.getCheckOut()))
-                .setHeader("Check-Out")
+                .setHeader("Clock-Out")
                 .setAutoWidth(true).setFlexGrow(0);
 
         grid.addColumn(ws -> ws.getLabel() != null ? ws.getLabel().name() : "")
@@ -142,8 +142,8 @@ public class MasterWorkScheduleView extends Main {
         layout.add(
                 createReadOnlyField("Nama", ws.getName()),
                 createReadOnlyField("Tipe", ws.getType() != null ? ws.getType().name() : "-"),
-                createReadOnlyField("Check-In", formatTime(ws.getCheckIn())),
-                createReadOnlyField("Check-Out", formatTime(ws.getCheckOut())),
+                createReadOnlyField("Clock-In", formatTime(ws.getCheckIn())),
+                createReadOnlyField("Clock-Out", formatTime(ws.getCheckOut())),
                 createReadOnlyField("Istirahat Mulai", formatTime(ws.getBreakStart())),
                 createReadOnlyField("Istirahat Selesai", formatTime(ws.getBreakEnd())),
                 createReadOnlyField("Label", ws.getLabel() != null ? ws.getLabel().name() : "-"),
@@ -233,8 +233,8 @@ public class MasterWorkScheduleView extends Main {
         // Binder
         binder.forField(nameField).asRequired("Name wajib diisi").bind(HrWorkSchedule::getName, HrWorkSchedule::setName);
         binder.forField(typeField).asRequired("Tipe wajib diisi").bind(HrWorkSchedule::getType, HrWorkSchedule::setType);
-        binder.forField(checkInField).asRequired("Check-In wajib diisi").bind(HrWorkSchedule::getCheckIn, HrWorkSchedule::setCheckIn);
-        binder.forField(checkOutField).asRequired("Check-Out wajib diisi").bind(HrWorkSchedule::getCheckOut, HrWorkSchedule::setCheckOut);
+        binder.forField(checkInField).asRequired("Clock-In wajib diisi").bind(HrWorkSchedule::getCheckIn, HrWorkSchedule::setCheckIn);
+        binder.forField(checkOutField).asRequired("Clock-Out wajib diisi").bind(HrWorkSchedule::getCheckOut, HrWorkSchedule::setCheckOut);
         binder.forField(breakStartField).bind(HrWorkSchedule::getBreakStart, HrWorkSchedule::setBreakStart);
         binder.forField(breakEndField).bind(HrWorkSchedule::getBreakEnd, HrWorkSchedule::setBreakEnd);
         binder.forField(labelField).asRequired("Label wajib diisi").bind(HrWorkSchedule::getLabel, HrWorkSchedule::setLabel);
