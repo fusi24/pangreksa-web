@@ -97,10 +97,16 @@ public class CalendarService {
     }
 
     public Long getPersonIdByUserId(String userId) {
-
+        // Mencari user berdasarkan username
         FwAppUser user = appUserRepository
                 .findByUsername(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // --- PERBAIKAN: Cek null sebelum memanggil .getId() ---
+        if (user.getPerson() == null) {
+            log.warn("User {} tidak memiliki data HrPerson yang terhubung.", userId);
+            return null; // Kembalikan null jika person tidak ditemukan
+        }
 
         return user.getPerson().getId();
     }
