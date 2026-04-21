@@ -541,6 +541,7 @@ switch (tabNo) {
 
         // ===== UI Validations =====
         // Required indicators
+        nip.setRequiredIndicatorVisible(true);
         firstName.setRequiredIndicatorVisible(true);
         lastName.setRequiredIndicatorVisible(true);
         ktpNumber.setRequiredIndicatorVisible(true);
@@ -550,6 +551,17 @@ switch (tabNo) {
         religion.setRequiredIndicatorVisible(true);
         marriage.setRequiredIndicatorVisible(true);
         pob.setRequiredIndicatorVisible(true);
+
+        nip.setErrorMessage("NIP wajib diisi");
+        firstName.setErrorMessage("Nama awal wajib diisi");
+        lastName.setErrorMessage("Nama akhir wajib diisi");
+        ktpNumber.setErrorMessage("Nomor KTP harus 16 digit");
+        dob.setErrorMessage("Tanggal lahir wajib diisi");
+        gender.setErrorMessage("Pilih jenis kelamin");
+        nationality.setErrorMessage("Pilih kebangsaan");
+        religion.setErrorMessage("Pilih agama");
+        marriage.setErrorMessage("Pilih status pernikahan");
+        pob.setErrorMessage("Tempat lahir wajib diisi");
 
         // KTP/NIK: only numbers, exactly 16 digits (no spaces)
         ktpNumber.setClearButtonVisible(true);
@@ -649,6 +661,24 @@ switch (tabNo) {
             }
         });
 
+    }
+
+    private boolean isPersonFormValid() {
+        boolean isValid = true;
+
+        // Cek satu per satu field yang diwajibkan
+        if (ktpNumber.isEmpty() || ktpNumber.isInvalid()) { ktpNumber.setInvalid(true); isValid = false; }
+        if (nip.isEmpty()) { nip.setInvalid(true); isValid = false; }
+        if (firstName.isEmpty()) { firstName.setInvalid(true); isValid = false; }
+        if (lastName.isEmpty()) { lastName.setInvalid(true); isValid = false; }
+        if (gender.isEmpty()) { gender.setInvalid(true); isValid = false; }
+        if (pob.isEmpty()) { pob.setInvalid(true); isValid = false; }
+        if (dob.isEmpty()) { dob.setInvalid(true); isValid = false; }
+        if (nationality.isEmpty()) { nationality.setInvalid(true); isValid = false; }
+        if (religion.isEmpty()) { religion.setInvalid(true); isValid = false; }
+        if (marriage.isEmpty()) { marriage.setInvalid(true); isValid = false; }
+
+        return isValid;
     }
 
     private static final String CIRCLE_PX = "200px";
@@ -1439,6 +1469,13 @@ switch (tabNo) {
 
     private void save() {
 
+        if (!isPersonFormValid()) {
+            AppNotification.error("Mohon lengkapi semua data wajib bertanda bintang (*)");
+            return; // Berhenti di sini jika tidak valid
+        }if (this.auth != null && !this.auth.canCreate) {
+            AppNotification.error("Anda tidak memiliki izin menyimpan data");
+            return;
+        }
         // ⬅️ BUAT DI SINI, AMAN
         FwAppUser appUser = commonService.getLoginUser(
                 currentUser.require().getUserId().toString()
