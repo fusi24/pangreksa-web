@@ -44,7 +44,7 @@ public class LeaveBalanceDataView extends Main {
     private final LeaveService leaveService;
     private Authorization auth;
 
-    public static final String VIEW_NAME = "Data Saldo Cuti.";
+    public static final String VIEW_NAME = "Data Saldo Cuti";
 
     private VerticalLayout body;
 
@@ -88,11 +88,13 @@ public class LeaveBalanceDataView extends Main {
     private void createBody() {
         this.body = new VerticalLayout();
         body.setPadding(false);
-        body.setSpacing(false);
+        body.setSpacing(true);
         body.setSizeFull();
         companyDropdown = new ComboBox<>("Perusahaan");
         companyDropdown.setItems(companyService.getallCompanies());
         companyDropdown.setItemLabelGenerator(HrCompany::getName);
+        companyDropdown.setPlaceholder("Pilih Perusahaan...");
+        companyDropdown.setClearButtonVisible(true);
         companyDropdown.getStyle().setWidth("350px");
 
         yearDropdown = new ComboBox<>("Tahun");
@@ -104,11 +106,19 @@ public class LeaveBalanceDataView extends Main {
         yearDropdown.setValue(currentYear);
 
         checkButton = new Button("Cek Saldo Cuti");
+        checkButton.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
 
         HorizontalLayout headerFunction = new HorizontalLayout(companyDropdown, yearDropdown, checkButton);
         headerFunction.setWidthFull();
-        headerFunction.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
         headerFunction.setAlignItems(FlexComponent.Alignment.BASELINE);
+        headerFunction.addClassNames(
+                LumoUtility.Padding.Left.MEDIUM,
+                LumoUtility.Padding.Right.MEDIUM,
+                LumoUtility.Padding.Bottom.SMALL,
+                LumoUtility.Background.CONTRAST_5, // Beri background abu-abu tipis
+                LumoUtility.BorderRadius.MEDIUM
+        );
+        headerFunction.setFlexGrow(1, companyDropdown);
 
         Grid<HrLeaveGenerationLog> grid = createLeaveGenerationLogGrid();
         grid.setSizeFull();
@@ -123,6 +133,10 @@ public class LeaveBalanceDataView extends Main {
 
     private Grid<HrLeaveGenerationLog> createLeaveGenerationLogGrid() {
         leaveGenerationLogGrid = new Grid<>(HrLeaveGenerationLog.class, false);
+        leaveGenerationLogGrid.addColumn(log -> log.getCompany().getName())
+                .setHeader("Perusahaan")
+                .setResizable(true)
+                .setFlexGrow(1);
 
         DateTimeFormatter dtf =
                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
@@ -175,84 +189,58 @@ public class LeaveBalanceDataView extends Main {
         checkButton.addClickListener( e -> {
             if (this.auth.canView) {
                 HrCompany company = this.companyDropdown.getValue();
+                if (company == null) {
+                    com.fusi24.pangreksa.base.ui.notification.AppNotification.error("Pilih perusahaan terlebih dahulu");
+                    return;
+                }
+
                 int year = this.yearDropdown.getValue();
                 Long leaveServerCount = leaveService.countLeaveBalanceRowPerCompany(company, year);
                 Long personCount = leaveService.countPersonPerCompany(company, year);
                 int leaveTypeCount = leaveService.getLeaveAbsenceTypesList().size();
-
-                log.debug("Data Saldo Cuti. for Company: {}, Year: {}, Leave Count: {}, Person Count: {}",
-                        company.getName(), year, leaveServerCount, personCount);
-
-                Dialog dialog = new Dialog();
-                dialog.setWidth("500px");
-
-                VerticalLayout dialogContent = new VerticalLayout();
-                HorizontalLayout yearCountNF = new HorizontalLayout();
-                yearCountNF.setWidthFull();
-                yearCountNF.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-                yearCountNF.add(new Span("Year"), new Span(String.valueOf(year)));
-                // Create a row using HorizontalLayout. Add two Text with adjacent on left and other right.
-                HorizontalLayout leaveServerCountNF = new HorizontalLayout();
-                leaveServerCountNF.setWidthFull();
-                leaveServerCountNF.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-                leaveServerCountNF.add(new Span("Current row on database"), new Span(String.valueOf(leaveServerCount)));
-                HorizontalLayout personCountNF = new HorizontalLayout();
-                personCountNF.setWidthFull();
-                personCountNF.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-                personCountNF.add(new Span("Total Employees on current year"), new Span(String.valueOf(personCount)));
-                HorizontalLayout leaveTypeCountNF = new HorizontalLayout();
-                leaveTypeCountNF.setWidthFull();
-                leaveTypeCountNF.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-                Span leaveTypeLabel = new Span("Tipe Cuti");
-                leaveTypeCountNF.add(leaveTypeLabel, new Span(String.valueOf(leaveTypeCount)));
-
                 int totalRowGenerated = Math.toIntExact((int) (personCount * leaveTypeCount) - leaveServerCount);
 
-                Span totalRowSpan = new Span(String.valueOf(totalRowGenerated));
-                totalRowSpan.getStyle().set("font-weight", "bold");
+                Dialog dialog = new Dialog();
+                dialog.setHeaderTitle("Ringkasan Saldo Cuti - " + year);
 
-                String message = totalRowGenerated > 0
-                        ? "Need to generate "
-                        : "Have enough rows in the database.";
+                VerticalLayout dialogContent = new VerticalLayout();
+                dialogContent.setPadding(false);
+                dialogContent.setSpacing(false);
 
-                HorizontalLayout buttonLayout = new HorizontalLayout();
-                Button cancelButton = new Button("Batal", event -> dialog.close());
-                Button saveButton = new Button("Simpan");
+                // Fungsi pembantu untuk membuat baris informasi yang cantik
+                autoCreateRow(dialogContent, "Data Terdaftar (DB)", String.valueOf(leaveServerCount));
+                autoCreateRow(dialogContent, "Total Karyawan Aktif", String.valueOf(personCount));
+                autoCreateRow(dialogContent, "Jumlah Tipe Cuti", String.valueOf(leaveTypeCount));
 
-                if(!this.auth.canEdit){
-                    saveButton.setEnabled(false);
-                }
+                Span statusLabel = new Span();
+                statusLabel.addClassNames(LumoUtility.Margin.Top.MEDIUM, LumoUtility.FontSize.MEDIUM);
 
-                Span messageSpan;
+                Button saveButton = new Button("Generate Data");
+                saveButton.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY, com.vaadin.flow.component.button.ButtonVariant.LUMO_SUCCESS);
+
                 if (totalRowGenerated > 0) {
-                    messageSpan = new Span();
-                    messageSpan.add(new Span("System will generate "), totalRowSpan, new Span(" rows."));
+                    statusLabel.setText("Sistem akan membuat " + totalRowGenerated + " baris data saldo baru.");
+                    statusLabel.getStyle().set("color", "var(--lumo-primary-text-color)");
                 } else {
-                    messageSpan = new Span("Have enough rows in the database.");
+                    statusLabel.setText("Saldo sudah lengkap di database.");
+                    statusLabel.addClassName(LumoUtility.TextColor.SUCCESS);
                     saveButton.setEnabled(false);
                 }
+
+                if(!this.auth.canEdit) saveButton.setEnabled(false);
+
+                dialogContent.add(new com.vaadin.flow.component.html.Hr(), statusLabel);
+
+                Button cancelButton = new Button("Tutup", event -> dialog.close());
+                dialog.getFooter().add(cancelButton, saveButton);
 
                 saveButton.addClickListener(event -> {
-                    // Do Whatever you want to do
-
-                    log.debug("Save button clicked for Company: {}, Year: {}", company.getName(), year);
                     leaveService.generateLeaveBalanceData(company, year, currentUser.require());
-
+                    com.fusi24.pangreksa.base.ui.notification.AppNotification.success("Proses Generate Berhasil");
+                    leaveGenerationLogGrid.setItems(leaveService.getLeaveGenerationLogs(company));
                     dialog.close();
                 });
 
-                buttonLayout.add(cancelButton, saveButton);
-                // button layout full width and justify content to end
-                buttonLayout.setWidthFull();
-                buttonLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
-
-                dialogContent.add(new Span(company.getName()),
-                        yearCountNF,
-                        leaveServerCountNF,
-                        personCountNF,
-                        leaveTypeCountNF,
-                        messageSpan,
-                        buttonLayout);
                 dialog.add(dialogContent);
                 dialog.open();
             }
@@ -264,5 +252,21 @@ public class LeaveBalanceDataView extends Main {
                 leaveGenerationLogGrid.setItems(leaveService.getLeaveGenerationLogs(e.getValue()));
             }
         });
+    }
+
+    private void autoCreateRow(VerticalLayout container, String labelText, String valueText) {
+        HorizontalLayout row = new HorizontalLayout();
+        row.setWidthFull();
+        row.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        row.addClassNames(LumoUtility.Padding.Vertical.XSMALL, LumoUtility.Border.BOTTOM, LumoUtility.BorderColor.CONTRAST_10);
+
+        Span label = new Span(labelText);
+        label.addClassName(LumoUtility.TextColor.SECONDARY);
+
+        Span value = new Span(valueText);
+        value.addClassNames(LumoUtility.FontWeight.BOLD, LumoUtility.TextColor.BODY);
+
+        row.add(label, value);
+        container.add(row);
     }
 }
