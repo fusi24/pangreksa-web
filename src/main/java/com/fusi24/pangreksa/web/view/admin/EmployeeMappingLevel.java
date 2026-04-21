@@ -124,7 +124,7 @@ public class EmployeeMappingLevel extends Main {
         grid.addColumn(new ComponentRenderer<>(rowItem -> {
                     ComboBox<HrSalaryBaseLevel> cb = new ComboBox<>();
                     cb.setPlaceholder("Pilih level");
-                    cb.setClearButtonVisible(true);
+                    cb.setClearButtonVisible(false);
                     cb.setItemLabelGenerator(HrSalaryBaseLevel::getLevelCode);
 
                     Long companyId = rowItem.getCompanyId();
