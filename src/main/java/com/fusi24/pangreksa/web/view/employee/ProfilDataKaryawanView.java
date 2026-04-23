@@ -519,10 +519,10 @@ public class ProfilDataKaryawanView extends Main {
             HrPosition position = pos.getPosition();
             return position != null ? position.getOrgStructure().getName() : "";
         }).setHeader("Org Struktur").setSortable(true);
-        gridEmployees.addColumn(pos -> {
-            HrDepartment dept = pos.getDepartment();
-            return Optional.ofNullable(dept).map(HrDepartment::getName).orElse("");
-        }).setHeader("Departemen").setSortable(true);
+//        gridEmployees.addColumn(pos -> {
+//            HrDepartment dept = pos.getDepartment();
+//            return Optional.ofNullable(dept).map(HrDepartment::getName).orElse("");
+//        }).setHeader("Departemen").setSortable(true);
         // Tanggal Mulai
         gridEmployees.addColumn(HrPersonPosition::getStartDate).setHeader("Tanggal Mulai").setSortable(true);
         // Action column with delete button (icon only, no title)
