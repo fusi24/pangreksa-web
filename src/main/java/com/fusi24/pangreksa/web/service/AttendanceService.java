@@ -246,7 +246,7 @@ public class AttendanceService {
         if (company != null) {
             spec = spec.and((root, query, cb) -> {
                 Join<HrAttendance, HrPerson> personJoin = root.join("person");
-                Join<HrPerson, HrPersonPosition> personPositionJoin = personJoin.join("personPositionJoin");
+                Join<HrPerson, HrPersonPosition> personPositionJoin = personJoin.join("personPosition");
                 return cb.equal(personPositionJoin.get("company"), company);
             });
         }
@@ -255,7 +255,7 @@ public class AttendanceService {
         if (orgStructure != null) {
             spec = spec.and((root, query, cb) -> {
                 Join<HrAttendance, HrPerson> personJoin = root.join("person");
-                Join<HrPerson, HrPersonPosition> personPositionJoin = personJoin.join("personPositionJoin");
+                Join<HrPerson, HrPersonPosition> personPositionJoin = personJoin.join("personPosition");
                 Join<HrPersonPosition, HrPosition> positionJoin = personPositionJoin.join("position");
                 return cb.equal(positionJoin.get("orgStructure"), orgStructure);
             });
