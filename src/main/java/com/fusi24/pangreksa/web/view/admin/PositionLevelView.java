@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Route("master-position") // [Opsional] Route mungkin perlu disesuaikan
-@PageTitle("Master Posisi")
+@PageTitle("Master Jabatan")
 @Menu(order = 33, icon = "vaadin:briefcase", title = "Positions")
 @RolesAllowed("POSITION_MGT")
 public class PositionLevelView extends Main {
@@ -114,7 +114,7 @@ public class PositionLevelView extends Main {
                 LumoUtility.Gap.SMALL
         );
 
-        add(new ViewToolbar("Master Posisi"));
+        add(new ViewToolbar("Master Jabatan"));
         createBody();
         setListener();
         setAuthorization();

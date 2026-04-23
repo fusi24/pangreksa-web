@@ -40,17 +40,17 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Route("master-office-location-page-access")
-@PageTitle("Master Office Location")
-@Menu(order = 4, icon = "vaadin:clipboard-check", title = "Master Office Location")
+@PageTitle("Master Lokasi Kantor")
+@Menu(order = 4, icon = "vaadin:clipboard-check", title = "Master Lokasi Kantor")
 @RolesAllowed("USERS_MGT")
 public class MasterOfficeLocation extends Main {
 
-    public static final String VIEW_NAME = "Master Office Location";
+    public static final String VIEW_NAME = "Master Lokasi Kantor";
 
     private final HrOfficeLocationRepo repo;
     private final Grid<HrOfficeLocation> grid = new Grid<>(HrOfficeLocation.class);
 
-    private final Button addButton = new Button("Tambah Office Location");
+    private final Button addButton = new Button("Tambah Lokasi Kantor");
     private final TextField searchField = new TextField("Cari");
 
     // Main editor dialog
@@ -159,7 +159,7 @@ public class MasterOfficeLocation extends Main {
         HorizontalLayout buttonBar = new HorizontalLayout(saveButton, cancelButton, deleteButton);
         buttonBar.setWidthFull();
 
-        editorDialog.setHeaderTitle("Office Location");
+        editorDialog.setHeaderTitle("Lokasi Kantor");
         editorDialog.add(dialogLayout, buttonBar);
         editorDialog.setWidth("90%");
         editorDialog.setHeight("85%");

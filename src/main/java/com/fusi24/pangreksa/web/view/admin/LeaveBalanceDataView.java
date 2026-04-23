@@ -31,7 +31,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 
 @Route("leave-balance-page-access")
-@PageTitle("Data Saldo Cuti.")
+@PageTitle("Data Saldo Cuti")
 @Menu(order = 36, icon = "vaadin:calendar-user", title = "Data Saldo Cuti.")
 @RolesAllowed("LEAVE_BAL")
 //@PermitAll // When security is enabled, allow all authenticated users
@@ -180,10 +180,6 @@ public class LeaveBalanceDataView extends Main {
 
         return leaveGenerationLogGrid;
     }
-
-
-
-
 
     private void setListener() {
         checkButton.addClickListener( e -> {
