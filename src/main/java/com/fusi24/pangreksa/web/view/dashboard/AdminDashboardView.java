@@ -1,11 +1,11 @@
 package com.fusi24.pangreksa.web.view.dashboard;
 
 import com.fusi24.pangreksa.base.ui.view.MainLayout;
-import com.fusi24.pangreksa.web.repo.HrAttendanceRepository;
-import com.fusi24.pangreksa.web.repo.HrLeaveApplicationRepository;
-import com.fusi24.pangreksa.web.repo.HrPayrollRepository;
-import com.fusi24.pangreksa.web.service.CampaignService;
-import com.fusi24.pangreksa.web.service.PersonService;
+import com.pangreksa.service.model.repo.HrAttendanceRepository;
+import com.pangreksa.service.model.repo.HrLeaveApplicationRepository;
+import com.pangreksa.service.model.repo.HrPayrollRepository;
+import com.pangreksa.service.service.CampaignService;
+import com.pangreksa.service.service.PersonService;
 import com.fusi24.pangreksa.web.view.common.CampaignCarousel;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.html.*;

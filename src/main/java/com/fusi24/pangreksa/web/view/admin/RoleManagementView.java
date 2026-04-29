@@ -2,11 +2,11 @@ package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
-import com.fusi24.pangreksa.security.AppUserInfo;
+import com.pangreksa.service.shared.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.repo.FwAppuserRespRepository.GridRow;
-import com.fusi24.pangreksa.web.repo.FwAppuserRespRepository.OptionRow;
-import com.fusi24.pangreksa.web.service.RoleManagementService;
+import com.pangreksa.service.model.repo.FwAppuserRespRepository.GridRow;
+import com.pangreksa.service.model.repo.FwAppuserRespRepository.OptionRow;
+import com.pangreksa.service.service.RoleManagementService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -22,7 +22,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,11 +67,11 @@ public class RoleManagementView extends Main {
         this.roleService = roleService;
 
         addClassNames(
-                LumoUtility.BoxSizing.BORDER,
-                LumoUtility.Display.FLEX,
-                LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM,
-                LumoUtility.Gap.SMALL
+                ThemeUtility.BoxSizing.BORDER,
+                ThemeUtility.Display.FLEX,
+                ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM,
+                ThemeUtility.Gap.SMALL
         );
         setHeightFull();
         add(new ViewToolbar(VIEW_NAME));

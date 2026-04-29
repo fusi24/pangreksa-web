@@ -1,12 +1,12 @@
 package com.fusi24.pangreksa.base.ui.view;
 
-import com.fusi24.pangreksa.security.AppUserInfo;
+import com.pangreksa.service.shared.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Responsibility;
-import com.fusi24.pangreksa.web.model.entity.HrAttendance;
+import com.pangreksa.service.model.entity.HrAttendance;
 import com.fusi24.pangreksa.web.service.AppUserAuthService;
-import com.fusi24.pangreksa.web.service.AttendanceService;
-import com.fusi24.pangreksa.web.service.SystemService;
+import com.pangreksa.service.service.AttendanceService;
+import com.pangreksa.service.service.SystemService;
 import com.fusi24.pangreksa.web.view.common.CheckInOutDialog;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
@@ -37,7 +37,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
-import static com.vaadin.flow.theme.lumo.LumoUtility.*;
+import static com.fusi24.pangreksa.base.ui.ThemeUtility.*;
 
 @Layout
 @PermitAll // When security is enabled, allow all authenticated users

@@ -2,16 +2,16 @@ package com.fusi24.pangreksa.web.view.manager;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
-import com.fusi24.pangreksa.base.util.FormattingUtils;
-import com.fusi24.pangreksa.security.AppUserInfo;
+import com.pangreksa.service.shared.FormattingUtils;
+import com.pangreksa.service.shared.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.HrPayroll;
-import com.fusi24.pangreksa.web.model.entity.HrPayrollCalculation;
-import com.fusi24.pangreksa.web.model.entity.HrPayrollComponent;
-import com.fusi24.pangreksa.web.service.CommonService;
-import com.fusi24.pangreksa.web.service.PayrollService;
-import com.fusi24.pangreksa.web.service.SystemService;
+import com.pangreksa.service.shared.Authorization;
+import com.pangreksa.service.model.entity.HrPayroll;
+import com.pangreksa.service.model.entity.HrPayrollCalculation;
+import com.pangreksa.service.model.entity.HrPayrollComponent;
+import com.pangreksa.service.service.CommonService;
+import com.pangreksa.service.service.PayrollService;
+import com.pangreksa.service.service.SystemService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -44,7 +44,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.Getter;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -166,11 +166,11 @@ public class PayrollView extends Main {
         );
 
         addClassNames(
-                LumoUtility.BoxSizing.BORDER,
-                LumoUtility.Display.FLEX,
-                LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM,
-                LumoUtility.Gap.SMALL
+                ThemeUtility.BoxSizing.BORDER,
+                ThemeUtility.Display.FLEX,
+                ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM,
+                ThemeUtility.Gap.SMALL
         );
 
         add(new ViewToolbar(VIEW_NAME));
@@ -1000,7 +1000,7 @@ public class PayrollView extends Main {
         }
     }
 
-    private BigDecimal parseSystemNumber(com.fusi24.pangreksa.web.model.entity.FwSystem config) {
+    private BigDecimal parseSystemNumber(com.pangreksa.service.model.entity.FwSystem config) {
         if (config == null) {
             return BigDecimal.ZERO;
         }

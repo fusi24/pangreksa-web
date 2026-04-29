@@ -3,11 +3,11 @@ package com.fusi24.pangreksa.web.view.admin;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.HrLeaveAbsenceTypes;
-import com.fusi24.pangreksa.web.model.enumerate.LeaveAbsenceTypeEnum;
-import com.fusi24.pangreksa.web.service.CommonService;
-import com.fusi24.pangreksa.web.service.LeaveService;
+import com.pangreksa.service.shared.Authorization;
+import com.pangreksa.service.model.entity.HrLeaveAbsenceTypes;
+import com.pangreksa.service.model.enumerate.LeaveAbsenceTypeEnum;
+import com.pangreksa.service.service.CommonService;
+import com.pangreksa.service.service.LeaveService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -25,7 +25,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -75,8 +75,8 @@ public class GlobalLeaveAbsenceManagementView extends Main {
 
         log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
 
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
 
         add(new ViewToolbar(VIEW_NAME));
         createBody();

@@ -3,11 +3,11 @@ package com.fusi24.pangreksa.web.view.admin;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.*;
-import com.fusi24.pangreksa.web.service.AdminService;
-import com.fusi24.pangreksa.web.service.CommonService;
-import com.fusi24.pangreksa.web.service.PersonService;
+import com.pangreksa.service.shared.Authorization;
+import com.pangreksa.service.model.entity.*;
+import com.pangreksa.service.service.AdminService;
+import com.pangreksa.service.service.CommonService;
+import com.pangreksa.service.service.PersonService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -26,7 +26,7 @@ import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.*;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,8 +107,8 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
 
         log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
 
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
 
         add(new ViewToolbar(VIEW_NAME));
         createBody();
@@ -193,7 +193,7 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
         createResponsibilityForm();
 
         body.add(splitLayout);
-        body.addClassNames(LumoUtility.Gap.MEDIUM);
+        body.addClassNames(ThemeUtility.Gap.MEDIUM);
         body.setHeightFull();
         body.getStyle().setFlexGrow("1");
 
@@ -307,7 +307,7 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
         gridAppUserResp.getStyle().setMaxWidth(MAX_WIDTH_GRID);
         gridAppUserResp.setHeight(HEIGHT_GRID);
 
-        responsibilityLayout.addClassNames(LumoUtility.Display.FLEX, LumoUtility.FlexDirection.ROW, LumoUtility.Gap.MEDIUM);
+        responsibilityLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
         responsibilityLayout.add(gridAppUserResp, responsibilityFromLayout);
     }
 

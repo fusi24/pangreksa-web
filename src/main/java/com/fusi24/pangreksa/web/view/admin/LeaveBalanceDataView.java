@@ -2,12 +2,12 @@ package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.HrCompany;
-import com.fusi24.pangreksa.web.model.entity.HrLeaveGenerationLog;
-import com.fusi24.pangreksa.web.service.CommonService;
-import com.fusi24.pangreksa.web.service.CompanyService;
-import com.fusi24.pangreksa.web.service.LeaveService;
+import com.pangreksa.service.shared.Authorization;
+import com.pangreksa.service.model.entity.HrCompany;
+import com.pangreksa.service.model.entity.HrLeaveGenerationLog;
+import com.pangreksa.service.service.CommonService;
+import com.pangreksa.service.service.CompanyService;
+import com.pangreksa.service.service.LeaveService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -21,7 +21,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,8 +69,8 @@ public class LeaveBalanceDataView extends Main {
 
         log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
 
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
         setSizeFull();
         add(new ViewToolbar(VIEW_NAME));
         createBody();
@@ -112,11 +112,11 @@ public class LeaveBalanceDataView extends Main {
         headerFunction.setWidthFull();
         headerFunction.setAlignItems(FlexComponent.Alignment.BASELINE);
         headerFunction.addClassNames(
-                LumoUtility.Padding.Left.MEDIUM,
-                LumoUtility.Padding.Right.MEDIUM,
-                LumoUtility.Padding.Bottom.SMALL,
-                LumoUtility.Background.CONTRAST_5, // Beri background abu-abu tipis
-                LumoUtility.BorderRadius.MEDIUM
+                ThemeUtility.Padding.Left.MEDIUM,
+                ThemeUtility.Padding.Right.MEDIUM,
+                ThemeUtility.Padding.Bottom.SMALL,
+                ThemeUtility.Background.CONTRAST_5, // Beri background abu-abu tipis
+                ThemeUtility.BorderRadius.MEDIUM
         );
         headerFunction.setFlexGrow(1, companyDropdown);
 
@@ -209,7 +209,7 @@ public class LeaveBalanceDataView extends Main {
                 autoCreateRow(dialogContent, "Jumlah Tipe Cuti", String.valueOf(leaveTypeCount));
 
                 Span statusLabel = new Span();
-                statusLabel.addClassNames(LumoUtility.Margin.Top.MEDIUM, LumoUtility.FontSize.MEDIUM);
+                statusLabel.addClassNames(ThemeUtility.Margin.Top.MEDIUM, ThemeUtility.FontSize.MEDIUM);
 
                 Button saveButton = new Button("Generate Data");
                 saveButton.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY, com.vaadin.flow.component.button.ButtonVariant.LUMO_SUCCESS);
@@ -219,7 +219,7 @@ public class LeaveBalanceDataView extends Main {
                     statusLabel.getStyle().set("color", "var(--lumo-primary-text-color)");
                 } else {
                     statusLabel.setText("Saldo sudah lengkap di database.");
-                    statusLabel.addClassName(LumoUtility.TextColor.SUCCESS);
+                    statusLabel.addClassName(ThemeUtility.TextColor.SUCCESS);
                     saveButton.setEnabled(false);
                 }
 
@@ -254,13 +254,13 @@ public class LeaveBalanceDataView extends Main {
         HorizontalLayout row = new HorizontalLayout();
         row.setWidthFull();
         row.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        row.addClassNames(LumoUtility.Padding.Vertical.XSMALL, LumoUtility.Border.BOTTOM, LumoUtility.BorderColor.CONTRAST_10);
+        row.addClassNames(ThemeUtility.Padding.Vertical.XSMALL, ThemeUtility.Border.BOTTOM, ThemeUtility.BorderColor.CONTRAST_10);
 
         Span label = new Span(labelText);
-        label.addClassName(LumoUtility.TextColor.SECONDARY);
+        label.addClassName(ThemeUtility.TextColor.SECONDARY);
 
         Span value = new Span(valueText);
-        value.addClassNames(LumoUtility.FontWeight.BOLD, LumoUtility.TextColor.BODY);
+        value.addClassNames(ThemeUtility.FontWeight.BOLD, ThemeUtility.TextColor.BODY);
 
         row.add(label, value);
         container.add(row);

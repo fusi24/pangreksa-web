@@ -1,7 +1,7 @@
 package com.fusi24.pangreksa.web.view.common;
 
-import com.fusi24.pangreksa.web.model.entity.Campaign;
-import com.fusi24.pangreksa.web.service.CampaignService;
+import com.pangreksa.service.model.entity.Campaign;
+import com.pangreksa.service.service.CampaignService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
@@ -9,7 +9,7 @@ import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.server.StreamResource;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
@@ -23,7 +23,7 @@ public class CampaignCarousel extends Div {
 
     public CampaignCarousel(CampaignService campaignService) {
         // Setup Container Utama
-        addClassNames(LumoUtility.Width.FULL, LumoUtility.Margin.Bottom.MEDIUM, LumoUtility.Position.RELATIVE);
+        addClassNames(ThemeUtility.Width.FULL, ThemeUtility.Margin.Bottom.MEDIUM, ThemeUtility.Position.RELATIVE);
         getStyle().set("overflow", "hidden");
 
         List<Campaign> activeCampaigns = campaignService.getActiveCampaigns();
@@ -48,7 +48,7 @@ public class CampaignCarousel extends Div {
 
         // 2. Kontainer Indikator Dots
         HorizontalLayout dotsContainer = new HorizontalLayout();
-        dotsContainer.addClassNames(LumoUtility.Position.ABSOLUTE, LumoUtility.Display.FLEX, LumoUtility.JustifyContent.CENTER);
+        dotsContainer.addClassNames(ThemeUtility.Position.ABSOLUTE, ThemeUtility.Display.FLEX, ThemeUtility.JustifyContent.CENTER);
         dotsContainer.getStyle()
                 .set("bottom", "10px")
                 .set("left", "0")
@@ -70,7 +70,7 @@ public class CampaignCarousel extends Div {
             if (imageBytes != null) {
                 StreamResource res = new StreamResource("img-" + campaign.getId(), () -> new ByteArrayInputStream(imageBytes));
                 Image img = new Image(res, campaign.getTitle());
-                img.addClassNames(LumoUtility.Width.FULL, LumoUtility.Height.FULL, LumoUtility.BorderRadius.MEDIUM);
+                img.addClassNames(ThemeUtility.Width.FULL, ThemeUtility.Height.FULL, ThemeUtility.BorderRadius.MEDIUM);
                 img.getStyle().set("object-fit", "cover").set("cursor", "pointer");
 
                 img.addClickListener(e -> {
@@ -166,7 +166,7 @@ public class CampaignCarousel extends Div {
      * Mengatur styling tombol navigasi agar melayang di atas gambar.
      */
     private void styleNavButton(Button button, boolean isLeft) {
-        button.addClassNames(LumoUtility.Position.ABSOLUTE, LumoUtility.BorderRadius.MEDIUM);
+        button.addClassNames(ThemeUtility.Position.ABSOLUTE, ThemeUtility.BorderRadius.MEDIUM);
         button.getStyle()
                 .set("top", "50%")
                 .set("transform", "translateY(-50%)")

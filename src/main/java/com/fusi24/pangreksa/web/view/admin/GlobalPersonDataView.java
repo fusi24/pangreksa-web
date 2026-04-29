@@ -3,11 +3,11 @@ package com.fusi24.pangreksa.web.view.admin;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.*;
-import com.fusi24.pangreksa.web.service.CommonService;
-import com.fusi24.pangreksa.web.service.CompanyService;
-import com.fusi24.pangreksa.web.service.PersonService;
+import com.pangreksa.service.shared.Authorization;
+import com.pangreksa.service.model.entity.*;
+import com.pangreksa.service.service.CommonService;
+import com.pangreksa.service.service.CompanyService;
+import com.pangreksa.service.service.PersonService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -26,7 +26,7 @@ import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.ocpsoft.prettytime.PrettyTime;
 import org.slf4j.Logger;
@@ -74,8 +74,8 @@ public class GlobalPersonDataView extends Main {
 
         log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
 
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
         setSizeFull();
         add(new ViewToolbar(VIEW_NAME));
         createBody();
@@ -117,7 +117,7 @@ public class GlobalPersonDataView extends Main {
         toolbarLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         toolbarLayout.setAlignItems(FlexComponent.Alignment.BASELINE);
         toolbarLayout.add(leftLayout, rightLayout);
-        toolbarLayout.addClassNames(LumoUtility.Padding.Top.NONE, LumoUtility.Padding.Right.NONE, LumoUtility.Padding.Bottom.MEDIUM, LumoUtility.Padding.Left.NONE);
+        toolbarLayout.addClassNames(ThemeUtility.Padding.Top.NONE, ThemeUtility.Padding.Right.NONE, ThemeUtility.Padding.Bottom.MEDIUM, ThemeUtility.Padding.Left.NONE);
 
         body.add(toolbarLayout);
 

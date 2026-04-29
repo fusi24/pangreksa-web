@@ -3,8 +3,8 @@ package com.fusi24.pangreksa.web.view.admin;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.ConfirmationDialogUtil;
-import com.fusi24.pangreksa.web.model.entity.HrDepartment;
-import com.fusi24.pangreksa.web.repo.HrDepartmentRepo;
+import com.pangreksa.service.model.entity.HrDepartment;
+import com.pangreksa.service.model.repo.HrDepartmentRepository;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -22,7 +22,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +38,7 @@ import java.util.stream.StreamSupport;
 @RolesAllowed("USERS_MGT")
 public class MasterDepartmentView extends Main {
     public static final String VIEW_NAME = "Master Department";
-    private final HrDepartmentRepo departmentRepo;
+    private final HrDepartmentRepository departmentRepo;
 
     private final Grid<HrDepartment> grid = new Grid<>(HrDepartment.class);
     private final TextField searchField = new TextField("Cari");
@@ -57,11 +57,11 @@ public class MasterDepartmentView extends Main {
     private HrDepartment currentDepartment;
 
     @Autowired
-    public MasterDepartmentView(HrDepartmentRepo departmentRepo) {
+    public MasterDepartmentView(HrDepartmentRepository departmentRepo) {
         this.departmentRepo = departmentRepo;
 
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
 
         configureGrid();
         configureForm();

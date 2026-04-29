@@ -3,10 +3,10 @@ package com.fusi24.pangreksa.web.view.admin;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.Campaign;
-import com.fusi24.pangreksa.web.service.CampaignService;
-import com.fusi24.pangreksa.web.service.CommonService;
+import com.pangreksa.service.shared.Authorization;
+import com.pangreksa.service.model.entity.Campaign;
+import com.pangreksa.service.service.CampaignService;
+import com.pangreksa.service.service.CommonService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -28,7 +28,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.server.streams.UploadHandler;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,8 +78,8 @@ public class CampaignManagementView extends VerticalLayout implements com.vaadin
                 (String) UI.getCurrent().getSession().getAttribute("responsibility"),
                 20L);
 
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL, LumoUtility.Background.CONTRAST_5);
+        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL, ThemeUtility.Background.CONTRAST_5);
 
         add(new ViewToolbar("Manajemen Campaign"));
         createBody();
@@ -138,8 +138,8 @@ public class CampaignManagementView extends VerticalLayout implements com.vaadin
 
     private void createBody() {
         VerticalLayout card = new VerticalLayout();
-        card.addClassNames(LumoUtility.Background.BASE, LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.BoxShadow.SMALL, LumoUtility.Padding.LARGE, LumoUtility.Margin.AUTO);
+        card.addClassNames(ThemeUtility.Background.BASE, ThemeUtility.BorderRadius.MEDIUM,
+                ThemeUtility.BoxShadow.SMALL, ThemeUtility.Padding.LARGE, ThemeUtility.Margin.AUTO);
         card.setMaxWidth("1100px");
 
         HorizontalLayout header = new HorizontalLayout();
@@ -147,7 +147,7 @@ public class CampaignManagementView extends VerticalLayout implements com.vaadin
         header.setAlignItems(FlexComponent.Alignment.CENTER);
         header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
 
-        titleText.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.Margin.NONE);
+        titleText.addClassNames(ThemeUtility.FontSize.XLARGE, ThemeUtility.Margin.NONE);
 
         HorizontalLayout actions = new HorizontalLayout();
         Button btnKembali = new Button("Kembali", VaadinIcon.ARROW_LEFT.create(),
@@ -172,14 +172,14 @@ public class CampaignManagementView extends VerticalLayout implements com.vaadin
         formLayout.setColspan(description, 2);
 
         photoPlaceholder = new Div();
-        photoPlaceholder.addClassNames(LumoUtility.Background.CONTRAST_10, LumoUtility.Display.FLEX,
-                LumoUtility.AlignItems.CENTER, LumoUtility.JustifyContent.CENTER, LumoUtility.BorderRadius.MEDIUM);
+        photoPlaceholder.addClassNames(ThemeUtility.Background.CONTRAST_10, ThemeUtility.Display.FLEX,
+                ThemeUtility.AlignItems.CENTER, ThemeUtility.JustifyContent.CENTER, ThemeUtility.BorderRadius.MEDIUM);
         photoPlaceholder.setWidth("100%");
         photoPlaceholder.setMaxWidth("600px");
         photoPlaceholder.setHeight("200px");
 
         Icon placeholderIcon = VaadinIcon.PICTURE.create();
-        placeholderIcon.addClassNames(LumoUtility.TextColor.TERTIARY, LumoUtility.FontSize.XXLARGE);
+        placeholderIcon.addClassNames(ThemeUtility.TextColor.TERTIARY, ThemeUtility.FontSize.XXLARGE);
         photoPlaceholder.add(placeholderIcon);
 
         photoPreview.setWidthFull();
@@ -207,7 +207,7 @@ public class CampaignManagementView extends VerticalLayout implements com.vaadin
 
 // Mengganti setHelperText dengan Span manual
         Span uploadHelper = new Span("Rekomendasi ukuran: 1200 x 400 px (Rasio 3:1) untuk menghindari pemotongan otomatis.");
-        uploadHelper.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        uploadHelper.addClassNames(ThemeUtility.FontSize.SMALL, ThemeUtility.TextColor.SECONDARY);
 
 // --- PENYUSUNAN AKHIR ---
         card.add(

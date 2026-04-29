@@ -1,7 +1,7 @@
 package com.fusi24.pangreksa.security;
 
-import com.fusi24.pangreksa.web.model.entity.FwAppUser;
-import com.fusi24.pangreksa.web.repo.FwAppUserRepository;
+import com.pangreksa.service.model.entity.FwAppUser;
+import com.pangreksa.service.model.repo.FwAppUserRepository;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.stereotype.Component;

@@ -3,13 +3,13 @@ package com.fusi24.pangreksa.web.view.admin;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.ConfirmationDialogUtil;
-import com.fusi24.pangreksa.web.model.entity.HrOrgStructure;
-import com.fusi24.pangreksa.web.model.entity.HrWorkSchedule;
-import com.fusi24.pangreksa.web.model.entity.HrWorkScheduleAssignment;
-import com.fusi24.pangreksa.web.model.enumerate.WorkScheduleLabel;
-import com.fusi24.pangreksa.web.model.enumerate.WorkScheduleType;
-import com.fusi24.pangreksa.web.repo.HrOrgStructureRepository;
-import com.fusi24.pangreksa.web.repo.HrWorkScheduleRepository;
+import com.pangreksa.service.model.entity.HrOrgStructure;
+import com.pangreksa.service.model.entity.HrWorkSchedule;
+import com.pangreksa.service.model.entity.HrWorkScheduleAssignment;
+import com.pangreksa.service.model.enumerate.WorkScheduleLabel;
+import com.pangreksa.service.model.enumerate.WorkScheduleType;
+import com.pangreksa.service.model.repo.HrOrgStructureRepository;
+import com.pangreksa.service.model.repo.HrWorkScheduleRepository;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -29,7 +29,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import com.vaadin.flow.component.select.Select;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.lang3.BooleanUtils;
@@ -80,8 +80,8 @@ public class MasterWorkScheduleView extends Main {
         this.orgStructureRepo = orgStructureRepo;
         setHeightFull();
 
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
 
         this.allOrgStructures = (List<HrOrgStructure>) orgStructureRepo.findAll();
 

@@ -5,7 +5,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Main;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.PermitAll;
 
 /**
@@ -18,7 +18,7 @@ public final class MainView extends Main {
     // TODO Replace with your own main view.
 
     MainView() {
-        addClassName(LumoUtility.Padding.MEDIUM);
+        addClassName(ThemeUtility.Padding.MEDIUM);
         add(new ViewToolbar("Main"));
         add(new Div("Please select a view from the menu on the left."));
     }

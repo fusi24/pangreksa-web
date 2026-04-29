@@ -1,6 +1,6 @@
 package com.fusi24.pangreksa.web.model.view;
 
-import com.fusi24.pangreksa.web.model.entity.HrLeaveBalance;
+import com.pangreksa.service.model.entity.HrLeaveBalance;
 
 public class LeaveBalanceView {
 

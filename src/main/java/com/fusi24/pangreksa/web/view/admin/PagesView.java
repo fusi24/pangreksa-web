@@ -3,11 +3,11 @@ package com.fusi24.pangreksa.web.view.admin;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.FwPages;
-import com.fusi24.pangreksa.web.repo.FwPagesRepository;
-import com.fusi24.pangreksa.web.service.AdminService;
-import com.fusi24.pangreksa.web.service.CommonService;
+import com.pangreksa.service.shared.Authorization;
+import com.pangreksa.service.model.entity.FwPages;
+import com.pangreksa.service.model.repo.FwPagesRepository;
+import com.pangreksa.service.service.AdminService;
+import com.pangreksa.service.service.CommonService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -27,7 +27,7 @@ import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteConfiguration;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -73,8 +73,8 @@ public class PagesView extends Main {
 
         this.pageFilter = new PageFilter(this::onFilterChanged);
         
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
 
         add(new ViewToolbar(VIEW_NAME));
         

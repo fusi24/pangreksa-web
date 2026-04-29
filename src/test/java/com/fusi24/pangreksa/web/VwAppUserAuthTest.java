@@ -1,10 +1,10 @@
 package com.fusi24.pangreksa.web;
 
 import com.fusi24.pangreksa.web.model.Responsibility;
-import com.fusi24.pangreksa.web.model.entity.FwAppUser;
-import com.fusi24.pangreksa.web.model.entity.VwAppUserAuth;
-import com.fusi24.pangreksa.web.repo.FwAppUserRepository;
-import com.fusi24.pangreksa.web.repo.VwAppUserAuthRepository;
+import com.pangreksa.service.model.entity.FwAppUser;
+import com.pangreksa.service.model.entity.VwAppUserAuth;
+import com.pangreksa.service.model.repo.FwAppUserRepository;
+import com.pangreksa.service.model.repo.VwAppUserAuthRepository;
 import com.fusi24.pangreksa.web.service.AppUserAuthService;
 import com.vaadin.flow.server.menu.MenuEntry;
 import jakarta.persistence.EntityManager;

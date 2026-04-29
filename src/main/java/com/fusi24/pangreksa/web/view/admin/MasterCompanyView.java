@@ -3,10 +3,10 @@ package com.fusi24.pangreksa.web.view.admin;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.ConfirmationDialogUtil;
-import com.fusi24.pangreksa.web.model.entity.HrCompany;
-import com.fusi24.pangreksa.web.model.entity.HrCompanyBranch;
-import com.fusi24.pangreksa.web.repo.HrCompanyRepository;
-import com.fusi24.pangreksa.web.service.CompanyBranchService;
+import com.pangreksa.service.model.entity.HrCompany;
+import com.pangreksa.service.model.entity.HrCompanyBranch;
+import com.pangreksa.service.model.repo.HrCompanyRepository;
+import com.pangreksa.service.service.CompanyBranchService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -30,7 +30,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -109,11 +109,11 @@ public class MasterCompanyView extends Main {
         this.branchService = branchService;
 
         addClassNames(
-                LumoUtility.BoxSizing.BORDER,
-                LumoUtility.Display.FLEX,
-                LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM,
-                LumoUtility.Gap.SMALL
+                ThemeUtility.BoxSizing.BORDER,
+                ThemeUtility.Display.FLEX,
+                ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM,
+                ThemeUtility.Gap.SMALL
         );
         setSizeFull();
         add(new ViewToolbar(VIEW_NAME));

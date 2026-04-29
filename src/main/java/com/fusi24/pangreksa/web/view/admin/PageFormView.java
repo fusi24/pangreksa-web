@@ -2,8 +2,8 @@ package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
-import com.fusi24.pangreksa.web.model.entity.FwPages;
-import com.fusi24.pangreksa.web.repo.FwPagesRepository;
+import com.pangreksa.service.model.entity.FwPages;
+import com.pangreksa.service.model.repo.FwPagesRepository;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -27,7 +27,7 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.lang3.StringUtils;
 
@@ -55,8 +55,8 @@ public class PageFormView extends Main implements HasUrlParameter<String> {
     public PageFormView(FwPagesRepository pagesRepository) {
         this.pagesRepository = pagesRepository;
         
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.MEDIUM);
+        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.MEDIUM);
 
         add(new ViewToolbar(VIEW_NAME));
 
@@ -203,10 +203,10 @@ public class PageFormView extends Main implements HasUrlParameter<String> {
         error.setPadding(true);
         error.setMargin(true);
         error.addClassNames(
-                LumoUtility.Background.ERROR_10,
-                LumoUtility.BorderColor.ERROR,
-                LumoUtility.Border.ALL,
-                LumoUtility.BorderRadius.MEDIUM
+                ThemeUtility.Background.ERROR_10,
+                ThemeUtility.BorderColor.ERROR,
+                ThemeUtility.Border.ALL,
+                ThemeUtility.BorderRadius.MEDIUM
         );
 
         // Add back button

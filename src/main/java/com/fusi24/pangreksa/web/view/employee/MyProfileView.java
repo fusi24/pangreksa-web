@@ -1,17 +1,17 @@
 package com.fusi24.pangreksa.web.view.employee;
 
-import com.fusi24.pangreksa.web.service.PersonPtkpService;
-import com.fusi24.pangreksa.web.service.PersonTanggunganService;
+import com.pangreksa.service.service.PersonPtkpService;
+import com.pangreksa.service.service.PersonTanggunganService;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.DatePickerUtil;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.*;
-import com.fusi24.pangreksa.web.model.enumerate.*;
-import com.fusi24.pangreksa.web.service.CommonService;
-import com.fusi24.pangreksa.web.service.PersonService;
+import com.pangreksa.service.shared.Authorization;
+import com.pangreksa.service.model.entity.*;
+import com.pangreksa.service.model.enumerate.*;
+import com.pangreksa.service.service.CommonService;
+import com.pangreksa.service.service.PersonService;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.Menu;
@@ -39,7 +39,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.server.streams.InMemoryUploadHandler;
 import com.vaadin.flow.server.streams.UploadHandler;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -183,8 +183,8 @@ public class MyProfileView extends Main {
 
         log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
 
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
 
         add(new ViewToolbar(VIEW_NAME));
         createBody();
@@ -337,7 +337,7 @@ public class MyProfileView extends Main {
         splitLayout.setSizeFull();
 
         body.add(splitLayout);
-        body.addClassNames(LumoUtility.Gap.MEDIUM);
+        body.addClassNames(ThemeUtility.Gap.MEDIUM);
         body.setHeightFull();
         body.getStyle().setFlexGrow("1");
 
@@ -624,7 +624,7 @@ public class MyProfileView extends Main {
         gridAddress.getStyle().setMaxWidth(MAX_WIDTH_GRID);
         gridAddress.setHeight(HEIGHT_GRID);
 
-        addressesLayout.addClassNames(LumoUtility.Display.FLEX, LumoUtility.FlexDirection.ROW, LumoUtility.Gap.MEDIUM);
+        addressesLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
         addressesLayout.add(gridAddress, addressFormLayout);
     }
 
@@ -731,7 +731,7 @@ public class MyProfileView extends Main {
         gridContacts.setHeight(HEIGHT_GRID);
 
         contactsLayout.setWidthFull();
-        contactsLayout.addClassNames(LumoUtility.Display.FLEX, LumoUtility.FlexDirection.ROW, LumoUtility.Gap.MEDIUM);
+        contactsLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
         contactsLayout.add(gridContacts, contactFormLayout);
     }
 
@@ -845,7 +845,7 @@ public class MyProfileView extends Main {
         gridEducation.setHeight(HEIGHT_GRID);
 
         educationLayout.setWidthFull();
-        educationLayout.addClassNames(LumoUtility.Display.FLEX, LumoUtility.FlexDirection.ROW, LumoUtility.Gap.MEDIUM);
+        educationLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
         educationLayout.add(gridEducation, educationFormLayout);
     }
 
@@ -937,7 +937,7 @@ public class MyProfileView extends Main {
         gridDocument.setHeight(HEIGHT_GRID);
 
         documentsLayout.setWidthFull();
-        documentsLayout.addClassNames(LumoUtility.Display.FLEX, LumoUtility.FlexDirection.ROW, LumoUtility.Gap.MEDIUM);
+        documentsLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
         documentsLayout.add(gridDocument, documentFormLayout);
     }
 

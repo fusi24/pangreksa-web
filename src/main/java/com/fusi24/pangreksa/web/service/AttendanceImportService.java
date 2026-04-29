@@ -1,13 +1,16 @@
 package com.fusi24.pangreksa.web.service;
 
-import com.fusi24.pangreksa.security.AppUserInfo;
-import com.fusi24.pangreksa.web.model.entity.FwAppUser;
-import com.fusi24.pangreksa.web.model.entity.HrAttendance;
-import com.fusi24.pangreksa.web.model.entity.HrCompanyBranch;
-import com.fusi24.pangreksa.web.model.entity.HrWorkSchedule;
-import com.fusi24.pangreksa.web.repo.FwAppUserRepository;
-import com.fusi24.pangreksa.web.repo.HrAttendanceRepository;
-import com.fusi24.pangreksa.web.repo.HrCompanyBranchRepository;
+import com.pangreksa.service.service.AttendanceService;
+import com.pangreksa.service.service.HrWorkScheduleService;
+
+import com.pangreksa.service.shared.security.AppUserInfo;
+import com.pangreksa.service.model.entity.FwAppUser;
+import com.pangreksa.service.model.entity.HrAttendance;
+import com.pangreksa.service.model.entity.HrCompanyBranch;
+import com.pangreksa.service.model.entity.HrWorkSchedule;
+import com.pangreksa.service.model.repo.FwAppUserRepository;
+import com.pangreksa.service.model.repo.HrAttendanceRepository;
+import com.pangreksa.service.model.repo.HrCompanyBranchRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.Getter;

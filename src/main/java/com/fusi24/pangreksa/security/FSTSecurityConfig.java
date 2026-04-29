@@ -1,13 +1,14 @@
 package com.fusi24.pangreksa.security;
 
-import com.fusi24.pangreksa.security.controlcenter.ControlCenterSecurityConfig;
+// TODO Vaadin 25: Control Center starter is not yet available; the prod OIDC
+// config (formerly ControlCenterSecurityConfig) is temporarily removed.
+// This config is now active unconditionally.
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.server.VaadinServiceInitListener;
 import com.vaadin.flow.spring.security.VaadinAwareSecurityContextHolderStrategyConfiguration;
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -19,7 +20,6 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 @Configuration
 @Import({ VaadinAwareSecurityContextHolderStrategyConfiguration.class })
-@ConditionalOnMissingBean(ControlCenterSecurityConfig.class)
 class FSTSecurityConfig {
 
     private static final Logger log = LoggerFactory.getLogger(FSTSecurityConfig.class);
@@ -30,7 +30,7 @@ class FSTSecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.headers(headers -> headers.frameOptions().disable())
+        http.headers(headers -> headers.frameOptions(frame -> frame.disable()))
             .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
             .authorizeHttpRequests(authz -> authz
                             .requestMatchers("/h2-console/**").permitAll()

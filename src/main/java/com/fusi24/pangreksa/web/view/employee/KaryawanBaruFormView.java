@@ -6,11 +6,11 @@ import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.DatePickerUtil;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.*;
-import com.fusi24.pangreksa.web.model.enumerate.*;
-import com.fusi24.pangreksa.web.service.CommonService;
-import com.fusi24.pangreksa.web.service.PersonService;
+import com.pangreksa.service.shared.Authorization;
+import com.pangreksa.service.model.entity.*;
+import com.pangreksa.service.model.enumerate.*;
+import com.pangreksa.service.service.CommonService;
+import com.pangreksa.service.service.PersonService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -40,8 +40,8 @@ import com.vaadin.flow.router.*;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.server.streams.InMemoryUploadHandler;
 import com.vaadin.flow.server.streams.UploadHandler;
-import com.vaadin.flow.theme.lumo.LumoUtility;
-import com.fusi24.pangreksa.web.service.PersonPtkpService;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.pangreksa.service.service.PersonPtkpService;
 
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
@@ -58,7 +58,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
-import com.fusi24.pangreksa.web.service.PersonTanggunganService;
+import com.pangreksa.service.service.PersonTanggunganService;
 
 @Route("karyawan-baru-form-page-access")
 @PageTitle("Form Karyawan Baru")
@@ -206,8 +206,8 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
         log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
 
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
 
         add(new ViewToolbar(VIEW_NAME));
         createBody();
@@ -513,7 +513,7 @@ switch (tabNo) {
         splitLayout.setSizeFull();
 
         body.add(splitLayout);
-        body.addClassNames(LumoUtility.Gap.MEDIUM);
+        body.addClassNames(ThemeUtility.Gap.MEDIUM);
         body.setHeightFull();
         body.getStyle().setFlexGrow("1");
 
@@ -832,7 +832,7 @@ switch (tabNo) {
         gridAddress.getStyle().setMaxWidth(MAX_WIDTH_GRID);
         gridAddress.setHeight(HEIGHT_GRID);
 
-        addressesLayout.addClassNames(LumoUtility.Display.FLEX, LumoUtility.FlexDirection.ROW, LumoUtility.Gap.MEDIUM);
+        addressesLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
         addressesLayout.add(gridAddress, addressFormLayout);
     }
 
@@ -990,7 +990,7 @@ switch (tabNo) {
         gridContacts.setHeight(HEIGHT_GRID);
 
         contactsLayout.setWidthFull();
-        contactsLayout.addClassNames(LumoUtility.Display.FLEX, LumoUtility.FlexDirection.ROW, LumoUtility.Gap.MEDIUM);
+        contactsLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
         contactsLayout.add(gridContacts, contactFormLayout);
     }
 
@@ -1098,7 +1098,7 @@ switch (tabNo) {
         gridEducation.setHeight(HEIGHT_GRID);
 
         educationLayout.setWidthFull();
-        educationLayout.addClassNames(LumoUtility.Display.FLEX, LumoUtility.FlexDirection.ROW, LumoUtility.Gap.MEDIUM);
+        educationLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
         educationLayout.add(gridEducation, educationFormLayout);
     }
 
@@ -1193,7 +1193,7 @@ switch (tabNo) {
         gridDocument.setHeight(HEIGHT_GRID);
 
         documentsLayout.setWidthFull();
-        documentsLayout.addClassNames(LumoUtility.Display.FLEX, LumoUtility.FlexDirection.ROW, LumoUtility.Gap.MEDIUM);
+        documentsLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
         documentsLayout.add(gridDocument, documentFormLayout);
     }
 

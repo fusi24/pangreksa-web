@@ -1,7 +1,7 @@
 package com.fusi24.pangreksa.web.view.common;
 
-import com.fusi24.pangreksa.web.model.entity.Campaign;
-import com.fusi24.pangreksa.web.service.CampaignService;
+import com.pangreksa.service.model.entity.Campaign;
+import com.pangreksa.service.service.CampaignService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -14,7 +14,7 @@ import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.PermitAll;
 
 import java.io.ByteArrayInputStream;
@@ -34,14 +34,14 @@ public class CampaignDetailView extends VerticalLayout implements HasUrlParamete
 
         setSizeFull();
         setAlignItems(Alignment.CENTER);
-        addClassNames(LumoUtility.Background.CONTRAST_5, LumoUtility.Padding.MEDIUM);
+        addClassNames(ThemeUtility.Background.CONTRAST_5, ThemeUtility.Padding.MEDIUM);
 
         // Tombol Kembali
         Button btnBack = new Button("Kembali", VaadinIcon.ARROW_LEFT.create(), e -> UI.getCurrent().getPage().getHistory().back());
         btnBack.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        container.addClassNames(LumoUtility.Background.BASE, LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.BoxShadow.SMALL, LumoUtility.Padding.LARGE, LumoUtility.Margin.AUTO);
+        container.addClassNames(ThemeUtility.Background.BASE, ThemeUtility.BorderRadius.MEDIUM,
+                ThemeUtility.BoxShadow.SMALL, ThemeUtility.Padding.LARGE, ThemeUtility.Margin.AUTO);
         container.setMaxWidth("800px");
         container.setWidthFull();
 
@@ -67,25 +67,25 @@ public class CampaignDetailView extends VerticalLayout implements HasUrlParamete
             StreamResource res = new StreamResource("detail-img", () -> new ByteArrayInputStream(bytes));
             Image img = new Image(res, campaign.getTitle());
             img.setWidthFull();
-            img.addClassNames(LumoUtility.BorderRadius.MEDIUM, LumoUtility.Margin.Bottom.MEDIUM);
+            img.addClassNames(ThemeUtility.BorderRadius.MEDIUM, ThemeUtility.Margin.Bottom.MEDIUM);
             container.add(img);
         }
 
         // 2. Judul & Kategori
         H2 title = new H2(campaign.getTitle());
-        title.addClassNames(LumoUtility.Margin.Bottom.XSMALL);
+        title.addClassNames(ThemeUtility.Margin.Bottom.XSMALL);
 
         Span category = new Span(campaign.getCategory());
         category.getElement().getThemeList().add("badge pill contrast");
 
         Span date = new Span("Periode: " + campaign.getStartDate().format(df) + " - " + campaign.getEndDate().format(df));
-        date.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY, LumoUtility.Margin.Left.MEDIUM);
+        date.addClassNames(ThemeUtility.FontSize.SMALL, ThemeUtility.TextColor.SECONDARY, ThemeUtility.Margin.Left.MEDIUM);
 
         container.add(new Div(title), new Div(category, date), new Hr());
 
         // 3. Deskripsi
         Paragraph desc = new Paragraph(campaign.getDescription());
-        desc.addClassNames(LumoUtility.FontSize.MEDIUM, LumoUtility.LineHeight.MEDIUM, LumoUtility.Margin.Vertical.MEDIUM);
+        desc.addClassNames(ThemeUtility.FontSize.MEDIUM, ThemeUtility.LineHeight.MEDIUM, ThemeUtility.Margin.Vertical.MEDIUM);
         container.add(desc);
 
         // 4. Tombol Link Eksternal (Jika ada)

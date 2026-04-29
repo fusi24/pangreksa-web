@@ -2,11 +2,11 @@ package com.fusi24.pangreksa.web.view.manager;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.HrCompanyCalendar;
-import com.fusi24.pangreksa.web.model.entity.HrLeaveApplication;
-import com.fusi24.pangreksa.web.service.CalendarService;
-import com.fusi24.pangreksa.web.service.CommonService;
+import com.pangreksa.service.shared.Authorization;
+import com.pangreksa.service.model.entity.HrCompanyCalendar;
+import com.pangreksa.service.model.entity.HrLeaveApplication;
+import com.pangreksa.service.service.CalendarService;
+import com.pangreksa.service.service.CommonService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -20,7 +20,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,11 +66,11 @@ public class CompanyCalendarView extends Main {
         this.responsibility =
                 (String) UI.getCurrent().getSession().getAttribute("responsibility");
         addClassNames(
-                LumoUtility.BoxSizing.BORDER,
-                LumoUtility.Display.FLEX,
-                LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM,
-                LumoUtility.Gap.MEDIUM // Gap diperbesar sedikit agar tidak terlalu rapat
+                ThemeUtility.BoxSizing.BORDER,
+                ThemeUtility.Display.FLEX,
+                ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM,
+                ThemeUtility.Gap.MEDIUM // Gap diperbesar sedikit agar tidak terlalu rapat
         );
 
         add(new ViewToolbar(VIEW_NAME));
@@ -126,13 +126,13 @@ public class CompanyCalendarView extends Main {
         dotMerah.setWidth("12px"); dotMerah.setHeight("12px");
         dotMerah.getStyle().set("background-color", "#d9534f").set("border-radius", "50%");
         Span lblLibur = new Span("Libur");
-        lblLibur.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        lblLibur.addClassNames(ThemeUtility.FontSize.SMALL, ThemeUtility.TextColor.SECONDARY);
 
         Span dotBiru = new Span();
         dotBiru.setWidth("12px"); dotBiru.setHeight("12px");
         dotBiru.getStyle().set("background-color", "#4a90e2").set("border-radius", "50%");
         Span lblCuti = new Span("Cuti");
-        lblCuti.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        lblCuti.addClassNames(ThemeUtility.FontSize.SMALL, ThemeUtility.TextColor.SECONDARY);
 
         legendLayout.add(dotMerah, lblLibur, dotBiru, lblCuti);
 
@@ -144,11 +144,11 @@ public class CompanyCalendarView extends Main {
         calendarCard.setPadding(true);
         // Menambahkan style card (Background putih, shadow halus, sudut melengkung)
         calendarCard.addClassNames(
-                LumoUtility.Background.BASE,
-//                LumoUtility.BoxShadow.XS,
-                LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.Border.ALL,
-                LumoUtility.BorderColor.CONTRAST_10
+                ThemeUtility.Background.BASE,
+//                ThemeUtility.BoxShadow.XS,
+                ThemeUtility.BorderRadius.MEDIUM,
+                ThemeUtility.Border.ALL,
+                ThemeUtility.BorderColor.CONTRAST_10
         );
 
         calendar = FullCalendarBuilder.create().build();

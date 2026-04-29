@@ -3,18 +3,18 @@ package com.fusi24.pangreksa.web.view.employee;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.DatePickerUtil;
-import com.fusi24.pangreksa.security.AppUserInfo;
+import com.pangreksa.service.shared.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.HrLeaveAbsenceTypes;
-import com.fusi24.pangreksa.web.model.entity.HrLeaveApplication;
-import com.fusi24.pangreksa.web.model.entity.HrLeaveBalance;
-import com.fusi24.pangreksa.web.model.entity.HrPerson;
-import com.fusi24.pangreksa.web.model.enumerate.LeaveStatusEnum;
+import com.pangreksa.service.shared.Authorization;
+import com.pangreksa.service.model.entity.HrLeaveAbsenceTypes;
+import com.pangreksa.service.model.entity.HrLeaveApplication;
+import com.pangreksa.service.model.entity.HrLeaveBalance;
+import com.pangreksa.service.model.entity.HrPerson;
+import com.pangreksa.service.model.enumerate.LeaveStatusEnum;
 import com.fusi24.pangreksa.web.model.view.LeaveBalanceView;
-import com.fusi24.pangreksa.web.service.CommonService;
-import com.fusi24.pangreksa.web.service.LeaveService;
-import com.fusi24.pangreksa.web.service.PersonService;
+import com.pangreksa.service.service.CommonService;
+import com.pangreksa.service.service.LeaveService;
+import com.pangreksa.service.service.PersonService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.card.Card;
@@ -33,7 +33,7 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,8 +82,8 @@ public class LeaveRequestView extends Main {
 
         log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
 
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
 
         add(new ViewToolbar(VIEW_NAME));
         setSizeFull();

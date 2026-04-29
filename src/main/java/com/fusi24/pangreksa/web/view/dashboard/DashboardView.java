@@ -1,15 +1,15 @@
 package com.fusi24.pangreksa.web.view.dashboard;
 
 import com.fusi24.pangreksa.base.ui.view.MainLayout;
-import com.fusi24.pangreksa.security.AppUserInfo;
+import com.pangreksa.service.shared.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.model.entity.HrAttendance;
-import com.fusi24.pangreksa.web.model.entity.HrLeaveBalance;
-import com.fusi24.pangreksa.web.model.entity.HrPerson;
-import com.fusi24.pangreksa.web.service.AttendanceService;
-import com.fusi24.pangreksa.web.service.CampaignService;
-import com.fusi24.pangreksa.web.service.LeaveService;
-import com.fusi24.pangreksa.web.service.PersonService;
+import com.pangreksa.service.model.entity.HrAttendance;
+import com.pangreksa.service.model.entity.HrLeaveBalance;
+import com.pangreksa.service.model.entity.HrPerson;
+import com.pangreksa.service.service.AttendanceService;
+import com.pangreksa.service.service.CampaignService;
+import com.pangreksa.service.service.LeaveService;
+import com.pangreksa.service.service.PersonService;
 
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.html.*;

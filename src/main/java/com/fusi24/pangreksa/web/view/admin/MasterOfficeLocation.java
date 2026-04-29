@@ -2,9 +2,9 @@ package com.fusi24.pangreksa.web.view.admin;
 
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
-import com.fusi24.pangreksa.base.util.GeometryUtil;
-import com.fusi24.pangreksa.web.model.entity.HrOfficeLocation;
-import com.fusi24.pangreksa.web.repo.HrOfficeLocationRepo;
+import com.pangreksa.service.shared.GeometryUtil;
+import com.pangreksa.service.model.entity.HrOfficeLocation;
+import com.pangreksa.service.model.repo.HrOfficeLocationRepository;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -23,7 +23,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.lang3.StringUtils;
 import org.locationtech.jts.geom.Point;
@@ -47,7 +47,7 @@ public class MasterOfficeLocation extends Main {
 
     public static final String VIEW_NAME = "Master Lokasi Kantor";
 
-    private final HrOfficeLocationRepo repo;
+    private final HrOfficeLocationRepository repo;
     private final Grid<HrOfficeLocation> grid = new Grid<>(HrOfficeLocation.class);
 
     private final Button addButton = new Button("Tambah Lokasi Kantor");
@@ -78,11 +78,11 @@ public class MasterOfficeLocation extends Main {
     private HrOfficeLocation currentEntity;
 
     @Autowired
-    public MasterOfficeLocation(HrOfficeLocationRepo hrOfficeLocationRepo) {
+    public MasterOfficeLocation(HrOfficeLocationRepository hrOfficeLocationRepo) {
         this.repo = hrOfficeLocationRepo;
 
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
 
         setupEditorDialog();
         configureGrid();

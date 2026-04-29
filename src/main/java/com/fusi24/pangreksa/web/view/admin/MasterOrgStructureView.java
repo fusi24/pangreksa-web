@@ -3,11 +3,11 @@ package com.fusi24.pangreksa.web.view.admin;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.base.util.ConfirmationDialogUtil;
-import com.fusi24.pangreksa.web.model.entity.HrCompany;
-import com.fusi24.pangreksa.web.model.entity.HrOrgStructure;
-import com.fusi24.pangreksa.web.model.enumerate.OrgStructureEnum;
-import com.fusi24.pangreksa.web.repo.HrCompanyRepository;
-import com.fusi24.pangreksa.web.repo.HrOrgStructureRepository;
+import com.pangreksa.service.model.entity.HrCompany;
+import com.pangreksa.service.model.entity.HrOrgStructure;
+import com.pangreksa.service.model.enumerate.OrgStructureEnum;
+import com.pangreksa.service.model.repo.HrCompanyRepository;
+import com.pangreksa.service.model.repo.HrOrgStructureRepository;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -27,7 +27,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,8 +69,8 @@ public class MasterOrgStructureView extends Main {
         this.orgStructureRepo = orgStructureRepo;
         this.companyRepo = companyRepo;
 
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
+                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
         setHeightFull();
 
         configureGrid();
