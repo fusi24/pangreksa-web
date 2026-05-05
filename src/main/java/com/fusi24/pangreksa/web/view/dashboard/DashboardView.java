@@ -52,13 +52,15 @@ public class DashboardView extends VerticalLayout {
 
 
         setWidthFull();
-        setPadding(true);
+        setPadding(false);
+        setSpacing(false);
+        addClassName("main-container");
 
         AppUserInfo user = currentUser.require();
         attendanceService.setUser(user);
 
         H2 title = new H2("Dashboard Karyawan");
-        title.getStyle().set("margin-top", "0").set("color", "#111827");
+        title.addClassName("title");
 
         Div grid = new Div();
         grid.addClassName("dashboard-grid");
@@ -67,15 +69,14 @@ public class DashboardView extends VerticalLayout {
 
         // Baris 1: Sisa Cuti, Kehadiran, Notifikasi (Masing-masing ambil 2 slot dari total 6)
         grid.add(
-                createLeaveBalanceCard(user),
-                createAttendanceCard(user),
-                createNotificationCard()
+                createLeaveBalanceCard(user), // Ganti class ke col-span-4
+                createAttendanceCard(user),   // Ganti class ke col-span-4
+                createNotificationCard()      // Ganti class ke col-span-4
         );
 
-        // Baris 2: Direktori Karyawan, Ulang Tahun (Masing-masing ambil 3 slot dari total 6)
         grid.add(
-                createCoworkerCard(),
-                createBirthdayCard()
+                createCoworkerCard(),         // Ganti class ke col-span-6
+                createBirthdayCard()          // Ganti class ke col-span-6
         );
 
         add(title,campaignCarousel, grid);
@@ -142,7 +143,7 @@ public class DashboardView extends VerticalLayout {
         Div card = new Div();
         card.addClassNames("dashboard-card", "col-span-2");
 
-        Div title = new Div(VaadinIcon.FLIGHT_TAKEOFF.create(), new Span("Sisa Cuti Saya"));
+        Div title = createCardHeader("Sisa Cuti Saya", VaadinIcon.FLIGHT_TAKEOFF);
         title.addClassName("dashboard-title");
 
         // Lingkaran Cuti
@@ -170,6 +171,11 @@ public class DashboardView extends VerticalLayout {
         return card;
     }
 
+    private Div createCardHeader(String text, VaadinIcon icon){
+        Div header = new Div(icon.create(), new Span(text));
+        header.addClassName("card-header");
+        return header;
+    }
     /* =====================================================
            2. ATTENDANCE TODAY
         ===================================================== */
@@ -218,7 +224,7 @@ public class DashboardView extends VerticalLayout {
         Div card = new Div();
         card.addClassNames("dashboard-card", "col-span-2");
 
-        Div title = new Div(VaadinIcon.CLOCK.create(), new Span("Kehadiran Hari Ini"));
+        Div title = createCardHeader("Kehadiran Hari Ini", VaadinIcon.CLOCK);
         title.addClassName("dashboard-title");
 
         VerticalLayout list = new VerticalLayout(
@@ -233,15 +239,26 @@ public class DashboardView extends VerticalLayout {
         return card;
     }
 
-    private Div createAttendanceRow(String label, String value, String color){
+    private Div createAttendanceRow(String label, String value, String color) {
         Div row = new Div();
-        row.addClassName("attendance-row");
+        row.getStyle()
+                .set("display", "flex")
+                .set("justify-content", "between")
+                .set("align-items", "center")
+                .set("padding", "12px 0")
+                .set("border-bottom", "1px solid #f1f5f9");
 
         Span lbl = new Span(label);
-        lbl.getStyle().set("color", "#475569").set("font-weight", "500");
+        lbl.getStyle().set("color", "#64748b").set("font-weight", "500");
 
         Span val = new Span(value);
-        val.getStyle().set("font-weight", "700").set("color", color);
+        val.getStyle()
+                .set("background-color", color + "15") // Transparansi 15%
+                .set("color", color)
+                .set("padding", "4px 12px")
+                .set("border-radius", "8px")
+                .set("font-weight", "700")
+                .set("font-size", "13px");
 
         row.add(lbl, val);
         return row;
@@ -254,7 +271,7 @@ public class DashboardView extends VerticalLayout {
         Div card = new Div();
         card.addClassNames("dashboard-card", "col-span-2");
 
-        Div title = new Div(VaadinIcon.ALARM.create(), new Span("Pengumuman"));
+        Div title = createCardHeader("Pengumuman", VaadinIcon.ALARM);
         title.addClassName("dashboard-title");
 
         Div note = new Div(new Span("Remember to complete your attendance today."));
@@ -272,7 +289,7 @@ public class DashboardView extends VerticalLayout {
         Div card = new Div();
         card.addClassNames("dashboard-card", "col-span-3");
 
-        Div title = new Div(VaadinIcon.USERS.create(), new Span("Rekan Kerja"));
+        Div title = createCardHeader("Rekan Kerja", VaadinIcon.USERS);
         title.addClassName("dashboard-title");
 
         VerticalLayout list = new VerticalLayout();
@@ -377,7 +394,7 @@ public class DashboardView extends VerticalLayout {
         Div card = new Div();
         card.addClassNames("dashboard-card", "col-span-3");
 
-        Div title = new Div(VaadinIcon.GIFT.create(), new Span("Ulang Tahun Bulan Ini"));
+        Div title = createCardHeader("Ulang Tahun Bulan Ini", VaadinIcon.GIFT);
         title.addClassName("dashboard-title");
 
         VerticalLayout list = new VerticalLayout();

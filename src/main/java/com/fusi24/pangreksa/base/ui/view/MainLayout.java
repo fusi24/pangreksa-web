@@ -1,5 +1,8 @@
 package com.fusi24.pangreksa.base.ui.view;
 
+import com.fusi24.pangreksa.web.view.common.CheckInOutDialog;
+import com.pangreksa.service.model.entity.HrNotification;
+import com.pangreksa.service.service.NotificationService;
 import com.pangreksa.service.shared.security.AppUserInfo;
 import com.fusi24.pangreksa.security.CurrentUser;
 import com.fusi24.pangreksa.web.model.Responsibility;
@@ -7,7 +10,7 @@ import com.pangreksa.service.model.entity.HrAttendance;
 import com.fusi24.pangreksa.web.service.AppUserAuthService;
 import com.pangreksa.service.service.AttendanceService;
 import com.pangreksa.service.service.SystemService;
-import com.fusi24.pangreksa.web.view.common.CheckInOutDialog;
+
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -33,11 +36,13 @@ import jakarta.annotation.security.PermitAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
 import static com.fusi24.pangreksa.base.ui.ThemeUtility.*;
+import static org.apache.catalina.manager.StatusTransformer.formatTime;
 
 @Layout
 @PermitAll // When security is enabled, allow all authenticated users
@@ -49,17 +54,25 @@ public final class MainLayout extends AppLayout {
     private final AuthenticationContext authenticationContext;
     private final SystemService systemService;
     private ComboBox<Responsibility> responsibilityDropdown;
+    private Span notificationBadge;
+    private final NotificationService notificationService;
 
     VerticalLayout navLayout;
     List<Responsibility> responsibilityList;
     AppUserInfo user;
 
-    MainLayout(CurrentUser currentUser, AuthenticationContext authenticationContext, AppUserAuthService appUserAuthService, SystemService systemService, AttendanceService attendanceService) {
+    MainLayout(CurrentUser currentUser,
+               AuthenticationContext authenticationContext,
+               AppUserAuthService appUserAuthService,
+               SystemService systemService,
+               AttendanceService attendanceService,
+               NotificationService notificationService) {
         this.currentUser = currentUser;
         this.authenticationContext = authenticationContext;
         this.appUserAuthService = appUserAuthService;
         this.systemService = systemService;
         this.attendanceService = attendanceService;
+        this.notificationService = notificationService;
 
         this.user = currentUser.require();
         responsibilityList = appUserAuthService.getAllResponsibilitiesFromUsername(user.getUserId().toString());
@@ -247,27 +260,105 @@ public final class MainLayout extends AppLayout {
     private Component createUserMenu() {
         var user = currentUser.require();
 
-        var avatar = new Avatar(user.getFullName(), user.getPictureUrl());
-        avatar.addThemeVariants(AvatarVariant.LUMO_XSMALL);
-        avatar.addClassNames(Margin.Right.SMALL);
-        avatar.setColorIndex(5);
-
         var userMenu = new MenuBar();
         userMenu.addThemeVariants(MenuBarVariant.LUMO_TERTIARY_INLINE);
         userMenu.addClassNames(Margin.MEDIUM);
 
+        // 🔔 ICON NOTIFICATION
+        Icon bell = VaadinIcon.BELL.create();
+        bell.getStyle().set("cursor", "pointer");
+
+        notificationBadge = new Span();
+        notificationBadge.getStyle()
+                .set("background", "red")
+                .set("color", "white")
+                .set("border-radius", "50%")
+                .set("padding", "2px 6px")
+                .set("font-size", "10px");
+
+        String username = user.getUserId().toString();
+
+        int unread = notificationService.countUnread(username);
+        notificationBadge.setText(String.valueOf(unread));
+
+        Div notifWrapper = new Div(bell, notificationBadge);
+        notifWrapper.getStyle().set("display", "flex");
+        notifWrapper.getStyle().set("align-items", "center");
+
+        notifWrapper.addClickListener(e -> openNotificationPanel());
+
+        userMenu.addItem(notifWrapper);
+
+        // avatar
+        var avatar = new Avatar(user.getFullName(), user.getPictureUrl());
+        avatar.addThemeVariants(AvatarVariant.LUMO_XSMALL);
+
         var userMenuItem = userMenu.addItem(avatar);
         userMenuItem.add(user.getFullName());
-        if (user.getProfileUrl() != null) {
-            userMenuItem.getSubMenu().addItem("View Profile",
-                    event -> {
-                        UI.getCurrent().getPage().open(user.getProfileUrl());
-                        log.info("User {} opened profile URL: {}", user.getUserId(), user.getProfileUrl());
-                    });
-        }
-        // TODO Add additional items to the user menu if needed
+
         userMenuItem.getSubMenu().addItem("Logout", event -> authenticationContext.logout());
 
         return userMenu;
     }
+
+    private void openNotificationPanel() {
+        var user = currentUser.require();
+
+        Div panel = new Div();
+        panel.setWidth("320px");
+
+        panel.getStyle()
+                .set("position", "fixed")
+                .set("top", "70px")
+                .set("right", "20px")
+                .set("background", "white")
+                .set("box-shadow", "0 2px 10px rgba(0,0,0,0.2)")
+                .set("padding", "10px")
+                .set("z-index", "999");
+
+        Icon close = VaadinIcon.CLOSE.create();
+        close.addClickListener(e -> panel.removeFromParent());
+
+        panel.add(close);
+
+        String username = user.getUserId().toString();
+
+        List<HrNotification> notifications =
+                notificationService.getNotifications(username);
+
+        for (HrNotification n : notifications) {
+
+            Div item = new Div();
+
+            Span title = new Span(n.getTitle());
+
+            if (!n.getIsRead()) {
+                title.getStyle().set("font-weight", "bold");
+                title.getStyle().set("color", "red");
+            }
+
+            Span time = new Span(formatTime(n.getCreatedAt()));
+            time.getStyle().set("font-size", "10px");
+
+            item.add(title, new Div(time));
+
+            panel.add(item);
+        }
+
+        UI.getCurrent().add(panel);
+    }
+
+    private String formatTime(LocalDateTime time) {
+        var duration = java.time.Duration.between(time, LocalDateTime.now());
+
+        if (duration.toHours() < 24) {
+            return duration.toHours() + " jam lalu";
+        } else if (duration.toDays() < 30) {
+            return duration.toDays() + " hari lalu";
+        } else {
+            return duration.toDays() / 30 + " bulan lalu";
+        }
+    }
+
+
 }
