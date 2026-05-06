@@ -39,7 +39,7 @@ jobs:
       # Step 5: Replace FSTSecurityConfig.java with prod version from /opt/source
       - name: Replace FSTSecurityConfig.java
         run: |
-          cp /opt/source/FSTSecurityConfig.java src/main/java/com/fusi24/pangreksa/security/FSTSecurityConfig.java
+          cp /opt/source/hexagonal/FSTSecurityConfig.java src/main/java/com/fusi24/pangreksa/security/FSTSecurityConfig.java
 
       # Step 6: Copy application.properties from /opt/source
       - name: Add cloud DB application.properties
