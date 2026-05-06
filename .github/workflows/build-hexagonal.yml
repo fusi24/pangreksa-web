@@ -1,21 +1,29 @@
-name: Build JAR with Cloud DB Properties
+name: Build & Deploy (hexagonal branch)
 
 on:
-  workflow_dispatch:   # manual trigger
+  workflow_dispatch:
   push:
     branches:
-      - main
+      - hexagonal
 
 jobs:
   build:
     runs-on: self-hosted
 
     steps:
-      # Step 1: Checkout repo
+      # Step 1: Checkout this repo (pangreksa-web)
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Set up JDK 21
+      # Step 2: Checkout pangreksa-service into a subdirectory
+      - name: Checkout pangreksa-service
+        uses: actions/checkout@v4
+        with:
+          repository: fusi24/pangreksa-service
+          ref: main
+          path: _pangreksa-service
+
+      # Step 3: Set up JDK 21
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -23,30 +31,35 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # Step 2.5: Replace FSTSecurityConfig.java from /opt/source
+      # Step 4: Install pangreksa-service into local Maven repo (~/.m2)
+      - name: Install pangreksa-service
+        working-directory: _pangreksa-service
+        run: mvn clean install -DskipTests
+
+      # Step 5: Replace FSTSecurityConfig.java with prod version from /opt/source
       - name: Replace FSTSecurityConfig.java
         run: |
           cp /opt/source/FSTSecurityConfig.java src/main/java/com/fusi24/pangreksa/security/FSTSecurityConfig.java
 
-      # Step 3: Copy application.properties from /opt/source
+      # Step 6: Copy application.properties from /opt/source
       - name: Add cloud DB application.properties
         run: |
           cp /opt/source/application.properties_cloud_db src/main/resources/application.properties
 
-      # Step 4: Build JAR with Maven (skip tests)
+      # Step 7: Build JAR with Maven, production profile (skip tests)
       - name: Build with Maven
         run: mvn -B clean package -DskipTests -Pproduction
 
-      # Step 5: Save artifact for next stage
+      # Step 8: Save artifact for next stage
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: built-jar
           path: target/web-1.0-SNAPSHOT.jar
-  
+
   deploy:
     runs-on: self-hosted
-    needs: build   # only run if build succeeds
+    needs: build
 
     steps:
       # Step 1: Download the JAR artifact
@@ -82,5 +95,3 @@ jobs:
       - name: Run JAR on remote
         run: |
           ssh root@cloudserver "nohup java -jar ~/$(echo ${{ env.JAR_NAME }}) --spring.profiles.active=prod > ~/run.log 2>&1 &"
-
-  
