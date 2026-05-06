@@ -49,6 +49,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import com.pangreksa.service.model.repo.FwAppUserRepository;
+import com.vaadin.flow.component.html.Span;
 
 @Route("profil-data-karyawan-page-access")
 @PageTitle("Profil Data Karyawan")
@@ -89,6 +91,9 @@ public class ProfilDataKaryawanView extends Main {
 
     @Autowired
     private HrCompanyRepository hrCompanyRepository;
+
+    @Autowired
+    private FwAppUserRepository fwAppUserRepository;
 
     public ProfilDataKaryawanView(CurrentUser currentUser,
                                   CommonService commonService,
@@ -525,6 +530,40 @@ public class ProfilDataKaryawanView extends Main {
 //        }).setHeader("Departemen").setSortable(true);
         // Tanggal Mulai
         gridEmployees.addColumn(HrPersonPosition::getStartDate).setHeader("Tanggal Mulai").setSortable(true);
+
+        gridEmployees.addColumn(new ComponentRenderer<>(personPosition -> {
+
+            HrPerson person = personPosition.getPerson();
+
+            Span badge = new Span("Nonaktif");
+
+            badge.getStyle()
+                    .set("padding", "4px 10px")
+                    .set("border-radius", "12px")
+                    .set("font-size", "12px")
+                    .set("font-weight", "600")
+                    .set("color", "white")
+                    .set("background-color", "#ef4444");
+
+            if (person != null) {
+
+                Optional<FwAppUser> appUserOpt =
+                        fwAppUserRepository.findByPerson(person);
+
+                if (appUserOpt.isPresent()
+                        && Boolean.TRUE.equals(appUserOpt.get().getIsActive())) {
+
+                    badge.setText("Aktif");
+
+                    badge.getStyle()
+                            .set("background-color", "#22c55e");
+                }
+            }
+
+            return badge;
+
+        })).setHeader("Status");
+
         // Action column with delete button (icon only, no title)
         gridEmployees.addColumn(new ComponentRenderer<>(personPosition -> {
             HorizontalLayout actionLayout = new HorizontalLayout();
