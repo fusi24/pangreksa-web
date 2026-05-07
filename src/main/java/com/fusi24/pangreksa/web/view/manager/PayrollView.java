@@ -16,6 +16,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
@@ -25,6 +26,7 @@ import com.vaadin.flow.component.html.Main;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller;
@@ -45,14 +47,22 @@ import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.vaadin.flow.server.StreamRegistration;
+import com.vaadin.flow.server.StreamResource;
+import com.vaadin.flow.server.VaadinSession;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.Getter;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.format.TextStyle;
@@ -104,6 +114,7 @@ public class PayrollView extends Main {
     private final VerticalLayout gridContent = new VerticalLayout();
     private final VerticalLayout pajakContent = new VerticalLayout();
     private final Span pajakTitle = new Span("PPh Non Gross-Up");
+    private Tab activeTab = payrollTab;
 
     private Grid.Column<HrPayroll> payrollNameColumn;
     private Grid.Column<HrPayroll> payrollGapokColumn;
@@ -408,6 +419,7 @@ public class PayrollView extends Main {
         resetButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
         Button addButton = new Button("Add Payroll", e -> openAddPayrollDialog());
+        MenuBar exportMenu = buildExportMenu();
         addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         addButton.setVisible(true);
 
@@ -442,7 +454,7 @@ public class PayrollView extends Main {
         filterBar.setAlignItems(FlexComponent.Alignment.END);
         filterBar.setSpacing(true);
 
-        HorizontalLayout actionBar = new HorizontalLayout(deleteButton, addButton);
+        HorizontalLayout actionBar = new HorizontalLayout(deleteButton, addButton, exportMenu);
         actionBar.setAlignItems(FlexComponent.Alignment.END);
         actionBar.setSpacing(true);
 
@@ -515,6 +527,474 @@ public class PayrollView extends Main {
         updateFooterSummaries(filteredPayrolls);
     }
 
+    private MenuBar buildExportMenu() {
+        MenuBar menuBar = new MenuBar();
+        menuBar.addThemeName("small");
+
+        MenuItem export = menuBar.addItem(new Icon(VaadinIcon.DOWNLOAD_ALT));
+        export.add(" Export");
+
+        export.getSubMenu().addItem("Current Tab - CSV", e -> downloadExport(false, false));
+        export.getSubMenu().addItem("Current Tab - XLSX", e -> downloadExport(false, true));
+        export.getSubMenu().addItem("All Tabs - XLSX", e -> downloadExport(true, true));
+
+        return menuBar;
+    }
+
+    @SuppressWarnings("deprecation")
+    private void downloadExport(boolean allTabs, boolean xlsx) {
+        Dialog loading = new Dialog();
+        loading.setModal(true);
+        loading.setCloseOnEsc(false);
+        loading.setCloseOnOutsideClick(false);
+        loading.setWidth("420px");
+
+        Span title = new Span("Menyiapkan file export...");
+        title.getStyle().set("font-weight", "600");
+
+        ProgressBar progressBar = new ProgressBar(0, 100, 1);
+        progressBar.setWidthFull();
+
+        Span percentText = new Span("1%");
+        Span statusText = new Span("Mengambil data payroll...");
+
+        Button finishButton = new Button("Selesai", e -> loading.close());
+        finishButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        finishButton.setVisible(false);
+
+        VerticalLayout box = new VerticalLayout(title, statusText, progressBar, percentText, finishButton);
+        box.setPadding(true);
+        box.setSpacing(true);
+        box.setAlignItems(FlexComponent.Alignment.STRETCH);
+
+        loading.add(box);
+        loading.open();
+
+        UI ui = UI.getCurrent();
+
+        CompletableFuture
+                .runAsync(() -> {
+                    try {
+                        updateExportProgress(ui, progressBar, percentText, statusText, 10, "Mengambil data payroll...");
+
+                        List<HrPayroll> payrolls = getFilteredPayrollsForExport();
+
+                        if (payrolls.isEmpty()) {
+                            ui.access(() -> {
+                                statusText.setText("Tidak ada data untuk diekspor.");
+                                progressBar.setValue(100);
+                                percentText.setText("100%");
+                                finishButton.setVisible(true);
+                                AppNotification.error("Tidak ada data untuk diekspor.");
+                                ui.push();
+                            });
+                            return;
+                        }
+
+                        updateExportProgress(ui, progressBar, percentText, statusText, 35, "Menyusun data export...");
+
+                        List<ExportTable> tables = allTabs
+                                ? List.of(
+                                buildPayrollExportTable(payrolls),
+                                buildBpjsTkExportTable(payrolls),
+                                buildBpjsJknExportTable(payrolls),
+                                buildPajakExportTable(payrolls)
+                        )
+                                : List.of(buildCurrentTabExportTable(payrolls));
+
+                        updateExportProgress(ui, progressBar, percentText, statusText, 70, "Membuat file...");
+
+                        byte[] bytes = xlsx ? buildXlsx(tables) : buildCsv(tables.get(0));
+                        String filename = buildExportFilename(allTabs, xlsx);
+
+                        updateExportProgress(ui, progressBar, percentText, statusText, 90, "Menyiapkan download...");
+
+                        ui.access(() -> {
+                            StreamResource resource = new StreamResource(
+                                    filename,
+                                    () -> new ByteArrayInputStream(bytes)
+                            );
+
+                            StreamRegistration registration = VaadinSession.getCurrent()
+                                    .getResourceRegistry()
+                                    .registerResource(resource);
+
+                            UI.getCurrent().getPage().open(registration.getResourceUri().toString(), "_blank");
+
+                            progressBar.setValue(100);
+                            percentText.setText("100%");
+                            statusText.setText("File berhasil dibuat. Silakan klik Selesai.");
+                            finishButton.setVisible(true);
+                            ui.push();
+                        });
+
+                    } catch (Exception ex) {
+                        log.error("Export payroll failed", ex);
+
+                        ui.access(() -> {
+                            progressBar.setValue(100);
+                            percentText.setText("100%");
+                            statusText.setText("Export gagal: " + ex.getMessage());
+                            finishButton.setText("Tutup");
+                            finishButton.setVisible(true);
+                            AppNotification.error("Export gagal: " + ex.getMessage());
+                            ui.push();
+                        });
+                    }
+                }, executor);
+    }
+
+    private void updateExportProgress(UI ui,
+                                      ProgressBar progressBar,
+                                      Span percentText,
+                                      Span statusText,
+                                      int value,
+                                      String message) {
+        if (ui == null || !ui.isAttached()) return;
+
+        ui.access(() -> {
+            progressBar.setValue(value);
+            percentText.setText(value + "%");
+            statusText.setText(message);
+            ui.push();
+        });
+    }
+
+    private List<HrPayroll> getFilteredPayrollsForExport() {
+        Integer selectedYear = yearFilter.getValue();
+        Integer selectedMonth = monthFilter.getValue();
+        String searchTerm = searchField.getValue();
+
+        LocalDate filterDate = null;
+        if (selectedYear != null && selectedMonth != null) {
+            filterDate = LocalDate.of(selectedYear, selectedMonth, 1);
+        }
+
+        rowNoByPayrollId.clear();
+        calculationCache.clear();
+        componentCache.clear();
+
+        List<HrPayroll> payrolls = payrollService.getPayrollList(selectedYear, filterDate, searchTerm);
+        for (int i = 0; i < payrolls.size(); i++) {
+            HrPayroll p = payrolls.get(i);
+            if (p.getId() != null) {
+                rowNoByPayrollId.put(p.getId(), i + 1);
+            }
+        }
+        return payrolls;
+    }
+
+    private ExportTable buildCurrentTabExportTable(List<HrPayroll> payrolls) {
+        if (Objects.equals(activeTab, bpjsTkTab)) return buildBpjsTkExportTable(payrolls);
+        if (Objects.equals(activeTab, bpjsJknTab)) return buildBpjsJknExportTable(payrolls);
+        if (Objects.equals(activeTab, pajakTab)) return buildPajakExportTable(payrolls);
+        return buildPayrollExportTable(payrolls);
+    }
+
+    private ExportTable buildPayrollExportTable(List<HrPayroll> payrolls) {
+        List<String> headers = List.of(
+                "No", "NIP", "Nama Karyawan", "Gapok", "Tunjangan Jabatan", "Keahlian",
+                "Tunjangan Tetap", "Allowance", "BPJS TK", "BPJS JKN",
+                "Tunjangan Tidak Tetap", "Penghasilan Kotor", "Asuransi", "PPh 21 (TER)", "THP"
+        );
+
+        List<List<Object>> rows = new ArrayList<>();
+
+        for (int i = 0; i < payrolls.size(); i++) {
+            HrPayroll p = payrolls.get(i);
+
+            BigDecimal bpjsTk = sumComponentByCodes(p, Set.of(
+                    "BPJS_JHT_COMPANY", "BPJS_JP_COMPANY", "BPJS_JKK_COMPANY", "BPJS_JK_COMPANY",
+                    "BPJS_JHT", "BPJS_JP", "BPJS_JKK", "BPJS_JK"
+            ));
+
+            BigDecimal bpjsJkn = sumComponentByCodes(p, Set.of("BPJS_JKN_COMPANY", "BPJS_JKN"));
+            HrPayrollCalculation calc = getCalc(p).orElse(null);
+
+            BigDecimal variableAllowance = calc == null ? BigDecimal.ZERO : nvl(calc.getVariableAllowanceTotal());
+            BigDecimal tunjanganTidakTetap = variableAllowance.add(bpjsTk).add(bpjsJkn);
+            BigDecimal gross = calc == null ? BigDecimal.ZERO : nvl(calc.getGrossSalary());
+            BigDecimal pph = calc == null ? BigDecimal.ZERO : nvl(calc.getPph21Deduction());
+            BigDecimal thp = calc == null ? BigDecimal.ZERO : nvl(calc.getNetTakeHomePay());
+
+            rows.add(List.of(
+                    i + 1,
+                    blankToDash(p.getEmployeeNumber()),
+                    getEmployeeName(p),
+                    nvl(p.getBaseSalary()),
+                    findComponentAmountByName(p, "Jabatan"),
+                    findComponentAmountByName(p, "Keahlian"),
+                    calc == null ? BigDecimal.ZERO : nvl(calc.getFixedAllowanceTotal()),
+                    variableAllowance,
+                    bpjsTk,
+                    bpjsJkn,
+                    tunjanganTidakTetap,
+                    gross,
+                    bpjsTk.add(bpjsJkn),
+                    pph,
+                    thp
+            ));
+        }
+
+        List<Object> total = List.of(
+                "", "", "Total",
+                sumPayrolls(payrolls, HrPayroll::getBaseSalary),
+                sumPayrolls(payrolls, p -> findComponentAmountByName(p, "Jabatan")),
+                sumPayrolls(payrolls, p -> findComponentAmountByName(p, "Keahlian")),
+                sumPayrolls(payrolls, p -> getCalc(p).map(HrPayrollCalculation::getFixedAllowanceTotal).orElse(BigDecimal.ZERO)),
+                sumPayrolls(payrolls, p -> getCalc(p).map(HrPayrollCalculation::getVariableAllowanceTotal).orElse(BigDecimal.ZERO)),
+                sumPayrolls(payrolls, p -> sumComponentByCodes(p, Set.of("BPJS_JHT_COMPANY", "BPJS_JP_COMPANY", "BPJS_JKK_COMPANY", "BPJS_JK_COMPANY", "BPJS_JHT", "BPJS_JP", "BPJS_JKK", "BPJS_JK"))),
+                sumPayrolls(payrolls, p -> sumComponentByCodes(p, Set.of("BPJS_JKN_COMPANY", "BPJS_JKN"))),
+                sumPayrolls(payrolls, p -> {
+                    BigDecimal bpjsTk = sumComponentByCodes(p, Set.of("BPJS_JHT_COMPANY", "BPJS_JP_COMPANY", "BPJS_JKK_COMPANY", "BPJS_JK_COMPANY", "BPJS_JHT", "BPJS_JP", "BPJS_JKK", "BPJS_JK"));
+                    BigDecimal bpjsJkn = sumComponentByCodes(p, Set.of("BPJS_JKN_COMPANY", "BPJS_JKN"));
+                    return getCalc(p).map(c -> nvl(c.getVariableAllowanceTotal()).add(bpjsTk).add(bpjsJkn)).orElse(BigDecimal.ZERO);
+                }),
+                sumPayrolls(payrolls, p -> getCalc(p).map(HrPayrollCalculation::getGrossSalary).orElse(BigDecimal.ZERO)),
+                sumPayrolls(payrolls, p -> {
+                    BigDecimal bpjsTk = sumComponentByCodes(p, Set.of("BPJS_JHT_COMPANY", "BPJS_JP_COMPANY", "BPJS_JKK_COMPANY", "BPJS_JK_COMPANY", "BPJS_JHT", "BPJS_JP", "BPJS_JKK", "BPJS_JK"));
+                    BigDecimal bpjsJkn = sumComponentByCodes(p, Set.of("BPJS_JKN_COMPANY", "BPJS_JKN"));
+                    return bpjsTk.add(bpjsJkn);
+                }),
+                sumPayrolls(payrolls, p -> getCalc(p).map(HrPayrollCalculation::getPph21Deduction).orElse(BigDecimal.ZERO)),
+                sumPayrolls(payrolls, p -> getCalc(p).map(HrPayrollCalculation::getNetTakeHomePay).orElse(BigDecimal.ZERO))
+        );
+
+        return new ExportTable("Payroll", headers, rows, total);
+    }
+
+    private ExportTable buildBpjsTkExportTable(List<HrPayroll> payrolls) {
+        List<String> headers = List.of(
+                "NIP", "Nama Lengkap", "Tanggal Lahir", "Data Upah", "Dasar Upah JP",
+                "Iuran JP TK", "Iuran JP Perusahaan", "Iuran JKK", "Iuran JKM",
+                "Iuran JHT TK", "Iuran JHT Perusahaan", "Total Iuran"
+        );
+
+        List<BpjsTkRow> mapped = payrolls.stream().map(this::mapToBpjsTkRow).toList();
+        List<List<Object>> rows = mapped.stream()
+                .map(r -> List.<Object>of(
+                        r.getEmployeeNumber(), r.getFullName(), r.getDateOfBirth(),
+                        r.getWage(), r.getJpBaseWage(), r.getEmployeeJp(), r.getCompanyJp(),
+                        r.getCompanyJkk(), r.getCompanyJkm(), r.getEmployeeJht(),
+                        r.getCompanyJht(), r.getTotalContribution()
+                ))
+                .toList();
+
+        List<Object> total = List.of(
+                "Total", "", "",
+                sumRows(mapped, BpjsTkRow::getWage),
+                sumRows(mapped, BpjsTkRow::getJpBaseWage),
+                sumRows(mapped, BpjsTkRow::getEmployeeJp),
+                sumRows(mapped, BpjsTkRow::getCompanyJp),
+                sumRows(mapped, BpjsTkRow::getCompanyJkk),
+                sumRows(mapped, BpjsTkRow::getCompanyJkm),
+                sumRows(mapped, BpjsTkRow::getEmployeeJht),
+                sumRows(mapped, BpjsTkRow::getCompanyJht),
+                sumRows(mapped, BpjsTkRow::getTotalContribution)
+        );
+
+        return new ExportTable("BPJS TK", headers, rows, total);
+    }
+
+    private ExportTable buildBpjsJknExportTable(List<HrPayroll> payrolls) {
+        List<String> headers = List.of(
+                "Nama Lengkap", "NIP", "Data Upah", "Dasar Upah JKN",
+                "JKN Perusahaan", "JKN TK", "Premi"
+        );
+
+        List<BpjsJknRow> mapped = payrolls.stream().map(this::mapToBpjsJknRow).toList();
+        List<List<Object>> rows = mapped.stream()
+                .map(r -> List.<Object>of(
+                        r.getFullName(), r.getEmployeeNumber(), r.getWage(),
+                        r.getJknBaseWage(), r.getCompanyJkn(), r.getEmployeeJkn(), r.getPremium()
+                ))
+                .toList();
+
+        List<Object> total = List.of(
+                "Total", "",
+                sumRows(mapped, BpjsJknRow::getWage),
+                sumRows(mapped, BpjsJknRow::getJknBaseWage),
+                sumRows(mapped, BpjsJknRow::getCompanyJkn),
+                sumRows(mapped, BpjsJknRow::getEmployeeJkn),
+                sumRows(mapped, BpjsJknRow::getPremium)
+        );
+
+        return new ExportTable("BPJS JKN", headers, rows, total);
+    }
+
+    private ExportTable buildPajakExportTable(List<HrPayroll> payrolls) {
+        List<String> headers = List.of(
+                "No", "NIP", "Nama Lengkap", "Status", "Gapok", "Tunjangan Jabatan",
+                "Tunjangan Keahlian", "Allowance", "JKK", "JKM", "JKN",
+                "Penghasilan Teratur", "DPP TER", "Kategori TER", "Tarif TER", "21 PAID"
+        );
+
+        List<PajakRow> mapped = new ArrayList<>();
+        for (int i = 0; i < payrolls.size(); i++) {
+            mapped.add(mapToPajakRow(payrolls.get(i), i));
+        }
+
+        List<List<Object>> rows = mapped.stream()
+                .map(r -> List.<Object>of(
+                        r.getRowNumber(), r.getEmployeeNumber(), r.getFullName(), r.getPtkpCode(),
+                        r.getBaseSalary(), r.getPositionAllowance(), r.getSkillAllowance(),
+                        r.getVariableAllowance(), r.getCompanyJkk(), r.getCompanyJkm(),
+                        r.getCompanyJkn(), r.getPenghasilanTeratur(), r.getTerDpp(),
+                        r.getTerCategory(), r.getTerRateDisplay(), r.getPph21Paid()
+                ))
+                .toList();
+
+        List<Object> total = List.of(
+                "", "", "Total", "",
+                sumRows(mapped, PajakRow::getBaseSalary),
+                sumRows(mapped, PajakRow::getPositionAllowance),
+                sumRows(mapped, PajakRow::getSkillAllowance),
+                sumRows(mapped, PajakRow::getVariableAllowance),
+                sumRows(mapped, PajakRow::getCompanyJkk),
+                sumRows(mapped, PajakRow::getCompanyJkm),
+                sumRows(mapped, PajakRow::getCompanyJkn),
+                sumRows(mapped, PajakRow::getPenghasilanTeratur),
+                sumRows(mapped, PajakRow::getTerDpp),
+                "", "",
+                sumRows(mapped, PajakRow::getPph21Paid)
+        );
+
+        return new ExportTable("Pajak", headers, rows, total);
+    }
+
+    private byte[] buildCsv(ExportTable table) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('\uFEFF'); // UTF-8 BOM agar Excel aman membaca karakter Indonesia
+
+        sb.append(toCsvLine(table.headers())).append("\n");
+        for (List<Object> row : table.rows()) {
+            sb.append(toCsvLine(row)).append("\n");
+        }
+        sb.append(toCsvLine(table.summaryRow())).append("\n");
+
+        return sb.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private String toCsvLine(List<?> values) {
+        return values.stream()
+                .map(this::toCsvValue)
+                .collect(Collectors.joining(","));
+    }
+
+    private String toCsvValue(Object value) {
+        String text;
+        if (value == null) {
+            text = "";
+        } else if (value instanceof BigDecimal bd) {
+            text = fmt(bd);
+        } else {
+            text = String.valueOf(value);
+        }
+
+        text = text.replace("\"", "\"\"");
+        return "\"" + text + "\"";
+    }
+
+    private byte[] buildXlsx(List<ExportTable> tables) throws Exception {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            CellStyle totalStyle = workbook.createCellStyle();
+            Font totalFont = workbook.createFont();
+            totalFont.setBold(true);
+            totalStyle.setFont(totalFont);
+
+            CellStyle moneyStyle = workbook.createCellStyle();
+            DataFormat dataFormat = workbook.createDataFormat();
+            moneyStyle.setDataFormat(dataFormat.getFormat("#,##0.00"));
+
+            CellStyle totalMoneyStyle = workbook.createCellStyle();
+            totalMoneyStyle.cloneStyleFrom(moneyStyle);
+            totalMoneyStyle.setFont(totalFont);
+
+            for (ExportTable table : tables) {
+                Sheet sheet = workbook.createSheet(safeSheetName(table.sheetName()));
+
+                int rowIndex = 0;
+                Row headerRow = sheet.createRow(rowIndex++);
+                for (int i = 0; i < table.headers().size(); i++) {
+                    Cell cell = headerRow.createCell(i);
+                    cell.setCellValue(table.headers().get(i));
+                    cell.setCellStyle(headerStyle);
+                }
+
+                for (List<Object> rowData : table.rows()) {
+                    Row row = sheet.createRow(rowIndex++);
+                    writeXlsxRow(row, rowData, moneyStyle, null);
+                }
+
+                Row totalRow = sheet.createRow(rowIndex);
+                writeXlsxRow(totalRow, table.summaryRow(), totalMoneyStyle, totalStyle);
+
+                for (int i = 0; i < table.headers().size(); i++) {
+                    sheet.autoSizeColumn(i);
+                }
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        }
+    }
+
+    private void writeXlsxRow(Row row, List<Object> values, CellStyle moneyStyle, CellStyle textStyle) {
+        for (int i = 0; i < values.size(); i++) {
+            Cell cell = row.createCell(i);
+            Object value = values.get(i);
+
+            if (value instanceof BigDecimal bd) {
+                cell.setCellValue(bd.doubleValue());
+                if (moneyStyle != null) cell.setCellStyle(moneyStyle);
+            } else if (value instanceof Number n) {
+                cell.setCellValue(n.doubleValue());
+                if (textStyle != null) cell.setCellStyle(textStyle);
+            } else {
+                cell.setCellValue(value == null ? "" : String.valueOf(value));
+                if (textStyle != null) cell.setCellStyle(textStyle);
+            }
+        }
+    }
+
+    private String buildExportFilename(boolean allTabs, boolean xlsx) {
+        String period = "all-period";
+        if (yearFilter.getValue() != null && monthFilter.getValue() != null) {
+            period = yearFilter.getValue() + "-" + String.format("%02d", monthFilter.getValue());
+        } else if (yearFilter.getValue() != null) {
+            period = String.valueOf(yearFilter.getValue());
+        }
+
+        String scope = allTabs ? "all-tabs" : safeFilePart(activeTab.getLabel());
+        return "payroll-" + scope + "-" + period + (xlsx ? ".xlsx" : ".csv");
+    }
+
+    private String safeSheetName(String name) {
+        String safe = name == null ? "Sheet" : name.replaceAll("[\\\\/?*\\[\\]:]", " ");
+        return safe.length() > 31 ? safe.substring(0, 31) : safe;
+    }
+
+    private String safeFilePart(String raw) {
+        return (raw == null || raw.isBlank() ? "export" : raw)
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("(^-|-$)", "");
+    }
+
+    private record ExportTable(
+            String sheetName,
+            List<String> headers,
+            List<List<Object>> rows,
+            List<Object> summaryRow
+    ) {}
+
     private void resetFilter() {
         yearFilter.clear();
         monthFilter.clear();
@@ -556,7 +1036,10 @@ public class PayrollView extends Main {
         });
 
         showTabContent(payrollTab);
-        dataTabs.addSelectedChangeListener(event -> showTabContent(event.getSelectedTab()));
+        dataTabs.addSelectedChangeListener(event -> {
+            activeTab = event.getSelectedTab();
+            showTabContent(event.getSelectedTab());
+        });
     }
 
     private void showTabContent(Tab selectedTab) {
