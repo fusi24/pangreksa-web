@@ -1,333 +1,371 @@
 @import url("dev-login.css");
 
-.no-dropdown-icon::part(toggle-button) {
-    display: none;
-}
-
 /* =========================================
-   ENTERPRISE GLOBAL CONFIG
+   🌍 GLOBAL DESIGN SYSTEM (LUMO OVERRIDE)
 ========================================= */
 
 html {
-    --lumo-font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+  background-color: yellow !important;
+}
 
-    --lumo-font-size-xxl: 1.15rem;
-    --lumo-font-size-xl: 1.0rem;
-    --lumo-font-size-l: 0.92rem;
-    --lumo-font-size-m: 0.82rem;
-    --lumo-font-size-s: 0.74rem;
-    --lumo-font-size-xs: 0.68rem;
+html {
+  --lumo-primary-color: #0f172a; /* Slate 900 untuk kesan mewah */
+  --lumo-primary-text-color: #0f172a;
+  --lumo-border-radius-m: 16px; /* Lebih rounded agar modern */
 
-    --lumo-border-radius-m: 6px;
-    --lumo-border-radius-s: 4px;
+  --bg-subtle: #f8fafc;
+  --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --border-color: #e2e8f0;
+}
 
-    --lumo-space-xs: 4px;
-    --lumo-space-s: 6px;
-    --lumo-space-m: 10px;
-    --lumo-space-l: 14px;
+vaadin-app-layout::part(content) {
+  background: var(--bg-subtle);
 }
 
 /* =========================================
-   APP LAYOUT
+   🧱 APP BACKGROUND
 ========================================= */
-
-vaadin-app-layout::part(drawer) {
-    width: 230px;
-    border-right: 1px solid var(--lumo-contrast-10pct);
-}
-
-vaadin-app-layout::part(navbar) {
-    min-height: 48px;
-    border-bottom: 1px solid var(--lumo-contrast-10pct);
+vaadin-app-layout::part(content) {
+  background: #f5f7fb;
 }
 
 /* =========================================
-   SIDE NAV
+   📦 CARD SYSTEM (IMPORTANT)
 ========================================= */
-
-vaadin-side-nav {
-    font-size: 0.82rem;
-}
-
-vaadin-side-nav-item::part(link) {
-    padding: 6px 12px;
-    border-radius: 6px;
-}
-
-vaadin-side-nav-item::part(link):hover {
-    background-color: var(--lumo-contrast-5pct);
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 /* =========================================
-   GRID STYLE
+   📐 LAYOUT SYSTEM
 ========================================= */
+.main-container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
+}
 
+.section {
+  margin-bottom: 20px;
+}
+
+/* =========================================
+   🔤 TYPOGRAPHY
+========================================= */
+.title {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--lumo-secondary-text-color);
+}
+
+/* =========================================
+   📊 GRID (TABLE)
+========================================= */
 vaadin-grid {
-    font-size: 0.8rem;
-    border: 1px solid var(--lumo-contrast-10pct);
-    border-radius: 8px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
 }
 
 vaadin-grid::part(header-cell) {
-    font-weight: 600;
-    font-size: 0.78rem;
-    padding: 6px 8px;
-
-    background-color: var(--lumo-base-color); /* solid */
-    position: sticky;
-    top: 0;
-    z-index: 5;
-
-    border-bottom: 1px solid var(--lumo-contrast-10pct);
+  background: #f1f5f9;
+  font-weight: 600;
+  font-size: 13px;
 }
 
 vaadin-grid::part(cell) {
-    padding: 4px 8px;
-}
-
-vaadin-grid::part(row) {
-    min-height: 34px;
+  padding: 12px;
+  font-size: 13px;
 }
 
 /* =========================================
-   FORM COMPONENTS
+   🔘 BUTTON
 ========================================= */
-
-vaadin-text-field,
-vaadin-date-picker,
-vaadin-number-field,
-vaadin-combo-box {
-    font-size: 0.8rem;
-}
-
-vaadin-text-field::part(input-field),
-vaadin-date-picker::part(input-field),
-vaadin-number-field::part(input-field),
-vaadin-combo-box::part(input-field) {
-    min-height: 30px;
-}
-
-/* =========================================
-   BUTTON STYLE
-========================================= */
-
 vaadin-button {
-    font-size: 0.78rem;
-    border-radius: 6px;
-}
-
-vaadin-button[theme~="primary"] {
-    font-weight: 500;
+  border-radius: 8px;
+  font-weight: 500;
 }
 
 /* =========================================
-   MAIN CONTENT
+   🔍 INPUT
 ========================================= */
-
-main {
-    padding: 16px !important;
+vaadin-text-field::part(input-field),
+vaadin-combo-box::part(input-field) {
+  border-radius: 8px;
 }
 
 /* =========================================
-   GRID HOVER EFFECT
+   📊 DASHBOARD CARD
 ========================================= */
-
-vaadin-grid::part(row):hover {
-    background-color: var(--lumo-primary-color-10pct);
-    cursor: pointer;
-}
-
-/* =========================================
-   STICKY HEADER ENHANCEMENT
-========================================= */
-
-vaadin-grid::part(header-cell) {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-}
-
-/* =========================================
-   DENSITY MODE
-========================================= */
-
-vaadin-grid.compact-mode {
-    font-size: 0.75rem;
-}
-
-vaadin-grid.compact-mode::part(row) {
-    min-height: 30px;
-}
-
-vaadin-grid.compact-mode::part(cell) {
-    padding: 3px 6px;
-}
-
-vaadin-grid.compact-mode vaadin-text-field,
-vaadin-grid.compact-mode vaadin-date-picker,
-vaadin-grid.compact-mode vaadin-number-field,
-vaadin-grid.compact-mode vaadin-combo-box {
-    font-size: 0.75rem;
-}
-
-vaadin-grid::part(cell) {
-    border-bottom: 1px solid var(--lumo-contrast-10pct);
-}
-
-/* =========================================
-   ENTERPRISE SIDEBAR STYLE
-========================================= */
-
-/* Drawer width */
-vaadin-app-layout::part(drawer) {
-    width: 230px;
-    border-right: 1px solid var(--lumo-contrast-10pct);
-}
-
-/* Group header style */
-vaadin-side-nav-item[expanded]::part(link) {
-    font-weight: 600;
-}
-
-/* Default menu item */
-vaadin-side-nav-item::part(link) {
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    transition: background 0.15s ease-in-out;
-}
-
-/* Hover effect */
-vaadin-side-nav-item::part(link):hover {
-    background-color: var(--lumo-primary-color-10pct);
-}
-
-/* Active menu highlight */
-vaadin-side-nav-item[active]::part(link) {
-    background-color: var(--lumo-primary-color-20pct);
-    font-weight: 600;
-}
-
-/* Nested child indentation */
-vaadin-side-nav-item vaadin-side-nav-item::part(link) {
-    padding-left: 24px;
-}
-
-vaadin-combo-box {
-    font-size: 0.8rem;
-}
-
-/* =========================================
-   HR DASHBOARD - UNIFIED PROFESSIONAL UI
-========================================= */
-
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 24px;
-    padding-top: 16px;
-    padding-bottom: 24px;
-    width: 100%;
-}
-
-/* Ukuran Kolom Fleksibel */
-.col-span-2 { grid-column: span 2; } /* Lebar 33% (3 card sebaris) */
-.col-span-3 { grid-column: span 3; } /* Lebar 50% (2 card sebaris) */
-.col-span-6 { grid-column: span 6; } /* Lebar 100% (Full) */
-
-@media (max-width: 900px) {
-    .col-span-2, .col-span-3 { grid-column: span 6; } /* Di HP otomatis memanjang ke bawah */
-}
-
 .dashboard-card {
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 24px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  display: block; /* 🔥 penting */
+}
+
+.dashboard-card > * {
+  margin-bottom: 10px;
+}
+
+.dashboard-card > *:last-child {
+  margin-bottom: 0;
+}
+
+/* =========================================
+   📱 MOBILE
+========================================= */
+/* =========================================
+   📱 MOBILE OPTIMIZATION
+   ========================================= */
+@media (max-width: 600px) {
+  .main-container {
+    padding: 12px; /* Perkecil padding container */
+  }
+
+  .title {
+    font-size: 18px; /* Judul lebih proporsional di HP */
+    margin-bottom: 15px;
+  }
+
+  /* Reset Grid menjadi 1 kolom saja */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  /* Paksa semua card mengambil lebar penuh */
+  .col-span-2, .col-span-3, .col-span-6 {
+    grid-column: span 1 !important;
+  }
+
+  .dashboard-card {
+    padding: 12px;
+    min-height: auto; /* Biar tidak terlalu tinggi di mobile */
+  }
+
+  /* Styling tambahan untuk Leave Ring (Sisa Cuti) agar terlihat bagus */
+  .leave-ring {
+    width: 80px;
+    height: 80px;
+    border: 6px solid #e2e8f0;
+    border-top: 6px solid var(--lumo-primary-color);
+    border-radius: 50%;
     display: flex;
-    flex-direction: column;
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    align-items: center;
+    justify-content: center;
+    margin: 10px auto;
+  }
+
+  .leave-ring-inner {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--lumo-primary-color);
+  }
+
+  /* Perbaikan tampilan baris kehadiran di mobile */
+  .attendance-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px dashed #f1f5f9;
+  }
+}
+
+/* DASHBOARD GRID SYSTEM */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+}
+
+/* span system */
+.col-span-2 {
+  grid-column: span 2;
+}
+
+.col-span-3 {
+  grid-column: span 3;
+}
+
+.col-span-6 {
+  grid-column: span 6;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+/* =========================================
+   🌍 GLOBAL DESIGN SYSTEM (MODERNIZED)
+   ========================================= */
+html {
+  --lumo-primary-color: #0f172a; /* Slate 900 untuk kesan mewah */
+  --lumo-primary-text-color: #0f172a;
+  --lumo-border-radius-m: 16px; /* Lebih rounded agar modern */
+
+  --bg-subtle: #f8fafc;
+  --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --border-color: #e2e8f0;
+}
+
+vaadin-app-layout::part(content) {
+  background: var(--bg-subtle);
+}
+
+/* =========================================
+   🧱 MODERN CARD SYSTEM
+   ========================================= */
+.dashboard-card {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
 }
 
 .dashboard-card:hover {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
-    transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  transform: translateY(-2px);
 }
 
-.dashboard-title {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 20px;
+/* =========================================
+   📐 RESPONSIVE GRID (3-2-1 SYSTEM)
+   ========================================= */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+}
+
+/* Desktop: 3 kolom */
+.col-span-4 { grid-column: span 4; }
+.col-span-6 { grid-column: span 6; }
+
+/* Tablet & Mobile Optimization */
+@media (max-width: 1024px) {
+  .col-span-4 { grid-column: span 6; }
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .col-span-4, .col-span-6 { grid-column: span 1; }
+
+  .title { font-size: 20px; margin-bottom: 12px; }
+}
+
+/* =========================================
+   🎨 COMPONENT STYLING
+   ========================================= */
+.card-header {
+  font-size: 15px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Status Badge */
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Leave Ring Visualization */
+.leave-ring-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.leave-value {
+  font-size: 42px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.big-number {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+/* =========================================
+   👋 WELCOME VIEW STYLING
+   ========================================= */
+.welcome-view {
+    background-color: var(--bg-subtle);
+}
+
+.welcome-container {
+    text-align: center;
+    max-width: 500px;
+    padding: 40px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: var(--card-shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.welcome-illustration {
+    width: 280px;
+    height: auto;
+    margin-bottom: 10px;
+}
+
+.welcome-title {
+    margin: 0;
+    color: var(--lumo-primary-color);
+    font-size: 24px;
+}
+
+.welcome-message {
+    color: var(--lumo-secondary-text-color);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.welcome-hint {
     display: flex;
     align-items: center;
-    gap: 8px;
-    border-bottom: 1px solid #f1f5f9;
-    padding-bottom: 12px;
+    gap: 10px;
+    color: #2563eb;
+    font-weight: 600;
+    margin-top: 10px;
+    padding: 10px 20px;
+    background: #eff6ff;
+    border-radius: 12px;
+    animation: pulse 2s infinite;
 }
 
-/* Lingkaran Chart / Cuti */
-.progress-ring {
-    width: 80px; height: 80px;
-    min-width: 80px; min-height: 80px;
-    border-radius: 50%;
-    background: conic-gradient(#1f73b7 0% 92%, #e2e8f0 92% 100%);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-}
-
-.leave-ring {
-    width: 100px; height: 100px;
-    min-width: 100px; min-height: 100px;
-    border-radius: 50%;
-    background: conic-gradient(#16a34a 0% 100%); /* Hijau penuh untuk sisa cuti */
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; margin: 0 auto;
-}
-
-.progress-ring-inner {
-    width: 60px; height: 60px;
-    background: #ffffff; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 1.1rem; color: #0f172a;
-}
-
-.leave-ring-inner {
-    width: 80px; height: 80px;
-    background: #ffffff; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 1.8rem; color: #16a34a;
-}
-
-/* Donut Chart Simulasi */
-.donut-chart {
-    width: 160px; height: 160px;
-    min-width: 160px; min-height: 160px;
-    border-radius: 50%;
-    background: conic-gradient(#0f4a96 0% 45%, #1d71b8 45% 75%, #5ab0e2 75% 90%, #b1d4ef 90% 100%);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-}
-.donut-inner {
-    width: 90px; height: 90px;
-    background: #ffffff; border-radius: 50%;
-}
-
-/* Utilities */
-.activity-icon-bg {
-    background-color: #f1f5f9; width: 36px; height: 36px;
-    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    color: #64748b; flex-shrink: 0;
-}
-.legend-box { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
-.attendance-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.95rem;
-}
-.attendance-row:last-child { border-bottom: none; }
-
-.notification-box {
-    background: #eff6ff; border-left: 4px solid #3b82f6;
-    padding: 16px; border-radius: 8px; color: #1e3a8a; font-size: 0.95rem;
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
 }

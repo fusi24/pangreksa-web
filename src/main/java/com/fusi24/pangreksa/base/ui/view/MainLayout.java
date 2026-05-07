@@ -1,6 +1,7 @@
 package com.fusi24.pangreksa.base.ui.view;
 
 import com.fusi24.pangreksa.web.view.common.CheckInOutDialog;
+import com.fusi24.pangreksa.web.view.common.WelcomeView;
 import com.pangreksa.service.model.entity.HrNotification;
 import com.pangreksa.service.service.NotificationService;
 import com.pangreksa.service.shared.security.AppUserInfo;
@@ -10,6 +11,7 @@ import com.pangreksa.service.model.entity.HrAttendance;
 import com.fusi24.pangreksa.web.service.AppUserAuthService;
 import com.pangreksa.service.service.AttendanceService;
 import com.pangreksa.service.service.SystemService;
+import com.vaadin.flow.router.AfterNavigationEvent;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
@@ -46,7 +48,8 @@ import static org.apache.catalina.manager.StatusTransformer.formatTime;
 
 @Layout
 @PermitAll // When security is enabled, allow all authenticated users
-public final class MainLayout extends AppLayout {
+// Ubah baris ini (sekitar baris 46)
+public final class MainLayout extends AppLayout implements com.vaadin.flow.router.AfterNavigationObserver {
     private static final Logger log = LoggerFactory.getLogger(MainLayout.class);
     private final AppUserAuthService appUserAuthService;
     private final AttendanceService attendanceService;
@@ -88,6 +91,21 @@ public final class MainLayout extends AppLayout {
         addToDrawer(createHeader(), responsibilitySwitcher(), new Scroller(navLayout), createUserMenu());
     }
 
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        // Cek session responsibility
+        String resp = (String) UI.getCurrent().getSession().getAttribute("responsibility");
+
+        // Ambil path tujuan saat ini menggunakan event
+        String currentPath = event.getLocation().getPath();
+
+        // Jika belum pilih responsibility DAN tidak sedang di page "pilih-tanggung-jawab"
+        if (resp == null && !currentPath.equals("pilih-tanggung-jawab")) {
+            UI.getCurrent().navigate("pilih-tanggung-jawab");
+        }
+    }
+
+
     private Div createHeader() {
         // Menggunakan logo baru secara langsung dari folder images
         Image appLogo = new Image("images/Pangreksabw.png", "Pangreksa Logo");
@@ -128,15 +146,26 @@ public final class MainLayout extends AppLayout {
         Div div = new Div(responsibilityDropdown);
         div.addClassNames(Display.FLEX, Padding.MEDIUM, Gap.MEDIUM, AlignItems.CENTER, Padding.Top.NONE, Padding.Right.MEDIUM, Padding.Bottom.MEDIUM, Padding.Left.MEDIUM);
 
+        // ... kode sebelumnya di responsibilitySwitcher() ...
+
         responsibilityDropdown.addValueChangeListener( e -> {
             UI.getCurrent().getSession().setAttribute("responsibility", e.getValue().getResponsibility());
             log.debug("Responsibility changed to: {}", e.getValue().getResponsibility());
             this.navLayout.removeAll();
             navLayout.add(populateNavigation(e.getValue()));
+
+            // TAMBAHKAN INI: Navigasi ke Dashboard default setelah pilih role
+            if(e.getValue().getResponsibility().equalsIgnoreCase("Karyawan")){
+                UI.getCurrent().navigate("dashboard");
+            } else {
+                UI.getCurrent().navigate("admin-dashboard");
+            }
         });
 
         return div;
     }
+
+
 
     private Icon getGroupIcon(String groupName) {
         switch (groupName.toLowerCase()) {
