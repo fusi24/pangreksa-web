@@ -17,6 +17,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.datetimepicker.DateTimePicker;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -26,10 +27,12 @@ import com.vaadin.flow.component.html.Main;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.DataProvider;
@@ -38,12 +41,21 @@ import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.vaadin.flow.server.StreamRegistration;
+import com.vaadin.flow.server.StreamResource;
+import com.vaadin.flow.server.VaadinSession;
 import jakarta.annotation.security.RolesAllowed;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.component.grid.GridSortOrder;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import org.springframework.data.domain.Sort;
 import com.vaadin.flow.data.provider.QuerySortOrder;
@@ -53,6 +65,8 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @Route("attendance-page-access")
 @PageTitle("Kehadiran Karyawan")
@@ -83,6 +97,9 @@ public class AttendanceView extends Main {
 
     private Grid<HrAttendance> grid = new Grid<>(HrAttendance.class, false);
     private TextField searchField = new TextField();
+
+    private final java.util.concurrent.ExecutorService executor =
+            java.util.concurrent.Executors.newFixedThreadPool(2);
 
     // Filters
     private ComboBox<HrCompany> companyFilter = new ComboBox<>();
@@ -250,6 +267,7 @@ public class AttendanceView extends Main {
         searchField.setVisible(isHr);
 
         Button refreshButton = new Button(new Icon(VaadinIcon.REFRESH), e -> applyFilters());
+        MenuBar exportMenu = buildExportMenu();
         checkInButton = new Button("Clock-In / Clock-Out");
         checkInButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         checkInButton.setIcon(new Icon(VaadinIcon.CLOCK));
@@ -270,7 +288,8 @@ public class AttendanceView extends Main {
                 filterBar,
                 searchField,
                 refreshButton,
-                checkInButton, // ← TAMBAHKAN DI SINI
+                exportMenu,
+                checkInButton,
                 uploadAttendanceButton,
                 addAttendanceButton
         );
@@ -649,6 +668,310 @@ public class AttendanceView extends Main {
     }
 }
     }
+
+    private MenuBar buildExportMenu() {
+        MenuBar menuBar = new MenuBar();
+        menuBar.addThemeName("small");
+
+        MenuItem export = menuBar.addItem(new Icon(VaadinIcon.DOWNLOAD_ALT));
+        export.add(" Export");
+
+        export.getSubMenu().addItem("CSV", e -> downloadAttendanceExport(false));
+        export.getSubMenu().addItem("XLSX", e -> downloadAttendanceExport(true));
+
+        return menuBar;
+    }
+
+    @SuppressWarnings("deprecation")
+    private void downloadAttendanceExport(boolean xlsx) {
+        Dialog loading = new Dialog();
+        loading.setModal(true);
+        loading.setCloseOnEsc(false);
+        loading.setCloseOnOutsideClick(false);
+        loading.setWidth("420px");
+
+        Span title = new Span("Menyiapkan file rekap kehadiran...");
+        title.getStyle().set("font-weight", "600");
+
+        ProgressBar progressBar = new ProgressBar(0, 100, 1);
+        progressBar.setWidthFull();
+
+        Span percentText = new Span("1%");
+        Span statusText = new Span("Mengambil data kehadiran...");
+
+        Button finishButton = new Button("Selesai", e -> loading.close());
+        finishButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        finishButton.setVisible(false);
+
+        VerticalLayout box = new VerticalLayout(title, statusText, progressBar, percentText, finishButton);
+        box.setPadding(true);
+        box.setSpacing(true);
+        box.setAlignItems(FlexComponent.Alignment.STRETCH);
+
+        loading.add(box);
+        loading.open();
+
+        UI ui = UI.getCurrent();
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                updateExportProgress(ui, progressBar, percentText, statusText, 10, "Mengambil data kehadiran...");
+
+                List<HrAttendance> attendances = getFilteredAttendancesForExport();
+
+                if (attendances.isEmpty()) {
+                    ui.access(() -> {
+                        progressBar.setValue(100);
+                        percentText.setText("100%");
+                        statusText.setText("Tidak ada data untuk diekspor.");
+                        finishButton.setVisible(true);
+                        AppNotification.error("Tidak ada data untuk diekspor.");
+                        ui.push();
+                    });
+                    return;
+                }
+
+                updateExportProgress(ui, progressBar, percentText, statusText, 40, "Menyusun data export...");
+
+                AttendanceExportTable table = buildAttendanceExportTable(attendances);
+
+                updateExportProgress(ui, progressBar, percentText, statusText, 75, "Membuat file...");
+
+                byte[] bytes = xlsx ? buildAttendanceXlsx(table) : buildAttendanceCsv(table);
+                String filename = buildAttendanceExportFilename(xlsx);
+
+                updateExportProgress(ui, progressBar, percentText, statusText, 90, "Menyiapkan download...");
+
+                ui.access(() -> {
+                    StreamResource resource = new StreamResource(
+                            filename,
+                            () -> new ByteArrayInputStream(bytes)
+                    );
+
+                    StreamRegistration registration = VaadinSession.getCurrent()
+                            .getResourceRegistry()
+                            .registerResource(resource);
+
+                    UI.getCurrent().getPage().open(registration.getResourceUri().toString(), "_blank");
+
+                    progressBar.setValue(100);
+                    percentText.setText("100%");
+                    statusText.setText("File berhasil dibuat. Silakan klik Selesai.");
+                    finishButton.setVisible(true);
+                    ui.push();
+                });
+
+            } catch (Exception ex) {
+                log.error("Export attendance failed", ex);
+
+                ui.access(() -> {
+                    progressBar.setValue(100);
+                    percentText.setText("100%");
+                    statusText.setText("Export gagal: " + ex.getMessage());
+                    finishButton.setText("Tutup");
+                    finishButton.setVisible(true);
+                    AppNotification.error("Export gagal: " + ex.getMessage());
+                    ui.push();
+                });
+            }
+        }, executor);
+    }
+
+    private void updateExportProgress(UI ui,
+                                      ProgressBar progressBar,
+                                      Span percentText,
+                                      Span statusText,
+                                      int value,
+                                      String message) {
+        if (ui == null || !ui.isAttached()) return;
+
+        ui.access(() -> {
+            progressBar.setValue(value);
+            percentText.setText(value + "%");
+            statusText.setText(message);
+            ui.push();
+        });
+    }
+
+    private List<HrAttendance> getFilteredAttendancesForExport() {
+        HrPerson emp = "Karyawan".equals(this.responsibility)
+                ? attendanceService.getCurrentUser().getPerson()
+                : null;
+
+        return attendanceService.getAttendanceList(
+                startDateFilter.getValue(),
+                endDateFilter.getValue(),
+                searchField.getValue(),
+                companyFilter.getValue(),
+                orgStructureFilter.getValue(),
+                emp
+        );
+    }
+
+    private AttendanceExportTable buildAttendanceExportTable(List<HrAttendance> attendances) {
+        List<String> headers = List.of(
+                "No",
+                "Karyawan",
+                "Tanggal Absensi",
+                "Clock-In",
+                "Clock-Out",
+                "Total Jam Kerja",
+                "Lokasi Absen",
+                "Status",
+                "Catatan"
+        );
+
+        List<List<Object>> rows = new ArrayList<>();
+
+        for (int i = 0; i < attendances.size(); i++) {
+            HrAttendance att = attendances.get(i);
+
+            rows.add(List.of(
+                    i + 1,
+                    getAttendanceEmployeeName(att),
+                    att.getAttendanceDate() == null ? "-" : att.getAttendanceDate().format(dateFormatter),
+                    att.getCheckIn() == null ? "-" : att.getCheckIn().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")),
+                    att.getCheckOut() == null ? "-" : att.getCheckOut().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")),
+                    formatWorkDuration(att.getTotalWorkMinutes()),
+                    formatAttendanceLocation(att),
+                    resolveAttendanceStatusForExport(att),
+                    att.getNotes() == null ? "-" : att.getNotes()
+            ));
+        }
+
+        List<Object> summaryRow = List.of(
+                "",
+                "Total Data",
+                attendances.size(),
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+        );
+
+        return new AttendanceExportTable("Rekap Kehadiran", headers, rows, summaryRow);
+    }
+
+    private String getAttendanceEmployeeName(HrAttendance att) {
+        if (att == null || att.getPerson() == null) return "-";
+
+        String firstName = att.getPerson().getFirstName() == null ? "" : att.getPerson().getFirstName();
+        String lastName = att.getPerson().getLastName() == null ? "" : att.getPerson().getLastName();
+
+        String fullName = (firstName + " " + lastName).trim().replaceAll("\\s+", " ");
+        return fullName.isBlank() ? "-" : fullName;
+    }
+
+    private String resolveAttendanceStatusForExport(HrAttendance att) {
+        if (att == null) return "-";
+        if (att.getCheckOut() == null) return "-";
+        return att.getStatus() == null || att.getStatus().isBlank() ? "-" : att.getStatus();
+    }
+
+    private byte[] buildAttendanceCsv(AttendanceExportTable table) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('\uFEFF');
+
+        sb.append(toAttendanceCsvLine(table.headers())).append("\n");
+        for (List<Object> row : table.rows()) {
+            sb.append(toAttendanceCsvLine(row)).append("\n");
+        }
+        sb.append(toAttendanceCsvLine(table.summaryRow())).append("\n");
+
+        return sb.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private String toAttendanceCsvLine(List<?> values) {
+        return values.stream()
+                .map(this::toAttendanceCsvValue)
+                .collect(Collectors.joining(","));
+    }
+
+    private String toAttendanceCsvValue(Object value) {
+        String text = value == null ? "" : String.valueOf(value);
+        text = text.replace("\"", "\"\"");
+        return "\"" + text + "\"";
+    }
+
+    private byte[] buildAttendanceXlsx(AttendanceExportTable table) throws Exception {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Rekap Kehadiran");
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            CellStyle totalStyle = workbook.createCellStyle();
+            Font totalFont = workbook.createFont();
+            totalFont.setBold(true);
+            totalStyle.setFont(totalFont);
+
+            int rowIndex = 0;
+
+            Row headerRow = sheet.createRow(rowIndex++);
+            for (int i = 0; i < table.headers().size(); i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(table.headers().get(i));
+                cell.setCellStyle(headerStyle);
+            }
+
+            for (List<Object> rowData : table.rows()) {
+                Row row = sheet.createRow(rowIndex++);
+                writeAttendanceXlsxRow(row, rowData, null);
+            }
+
+            Row totalRow = sheet.createRow(rowIndex);
+            writeAttendanceXlsxRow(totalRow, table.summaryRow(), totalStyle);
+
+            for (int i = 0; i < table.headers().size(); i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        }
+    }
+
+    private void writeAttendanceXlsxRow(Row row, List<Object> values, CellStyle style) {
+        for (int i = 0; i < values.size(); i++) {
+            Cell cell = row.createCell(i);
+            Object value = values.get(i);
+
+            if (value instanceof Number number) {
+                cell.setCellValue(number.doubleValue());
+            } else {
+                cell.setCellValue(value == null ? "" : String.valueOf(value));
+            }
+
+            if (style != null) {
+                cell.setCellStyle(style);
+            }
+        }
+    }
+
+    private String buildAttendanceExportFilename(boolean xlsx) {
+        String start = startDateFilter.getValue() == null
+                ? "start"
+                : startDateFilter.getValue().toString();
+
+        String end = endDateFilter.getValue() == null
+                ? "end"
+                : endDateFilter.getValue().toString();
+
+        return "rekap-kehadiran-" + start + "-to-" + end + (xlsx ? ".xlsx" : ".csv");
+    }
+
+    private record AttendanceExportTable(
+            String sheetName,
+            List<String> headers,
+            List<List<Object>> rows,
+            List<Object> summaryRow
+    ) {}
 
     private String formatWorkDuration(Integer totalMinutes) {
         if (totalMinutes == null || totalMinutes <= 0) return "-";
