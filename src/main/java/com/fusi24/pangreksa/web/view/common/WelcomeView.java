@@ -27,13 +27,13 @@ public class WelcomeView extends VerticalLayout {
         container.addClassName("welcome-container");
 
         // Pastikan gambar ada di src/main/resources/static/images/select-role.svg
-        Image illustration = new Image("images/pointing.jpg", "Pilih Tanggung Jawab");
+        Image illustration = new Image("images/pointing.jpg", "responsibility");
         illustration.addClassName("welcome-illustration");
 
         H2 title = new H2("Selamat Datang di Pangreksa");
         title.addClassName("welcome-title");
 
-        Paragraph message = new Paragraph("Mohon pilih 'Tanggung Jawab' Anda pada menu di sebelah kiri untuk melanjutkan.");
+        Paragraph message = new Paragraph("Mohon pilih 'Responsibility' Anda pada menu di sebelah kiri untuk melanjutkan.");
         message.addClassName("welcome-message");
 
         Div hint = new Div();
