@@ -20,6 +20,9 @@ import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
+import com.pangreksa.service.model.repo.FwAppUserRepository;
+import com.pangreksa.service.model.repo.FwSystemRepository;
+import com.pangreksa.service.model.repo.HrPersonRepository;
 
 import java.time.LocalDate;
 
@@ -29,6 +32,11 @@ import java.time.LocalDate;
 @RolesAllowed("CONTRACT_MGT")
 public class ContractManagementView extends Main {
 
+    private final HrPersonRepository personRepository;
+
+    private final FwAppUserRepository appUserRepository;
+
+    private final FwSystemRepository systemRepository;
     private final ContractService contractService;
     private final CurrentUser currentUser;
 
@@ -40,11 +48,19 @@ public class ContractManagementView extends Main {
 
     public ContractManagementView(
             ContractService contractService,
-            CurrentUser currentUser
-    ) {
+            CurrentUser currentUser,
+            HrPersonRepository personRepository,
+            FwAppUserRepository appUserRepository,
+            FwSystemRepository systemRepository
+    ){
 
         this.contractService = contractService;
         this.currentUser = currentUser;
+        this.personRepository = personRepository;
+
+        this.appUserRepository = appUserRepository;
+
+        this.systemRepository = systemRepository;
 
         addClassNames(
                 ThemeUtility.BoxSizing.BORDER,
@@ -81,9 +97,18 @@ public class ContractManagementView extends Main {
         addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         addButton.addClickListener(e -> {
-            AppNotification.success(
-                    "Form kontrak akan dibuat berikutnya"
-            );
+
+            ContractFormDialog dialog =
+                    new ContractFormDialog(
+                            contractService,
+                            currentUser,
+                            personRepository,
+                            appUserRepository,
+                            systemRepository,
+                            this::loadData
+                    );
+
+            dialog.open();
         });
 
         HorizontalLayout toolbar =
