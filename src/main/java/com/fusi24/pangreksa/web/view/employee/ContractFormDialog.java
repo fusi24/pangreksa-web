@@ -156,13 +156,9 @@ public class ContractFormDialog extends Dialog {
         // APPROVER
         // =================================================
 
-        List<HrPerson> approvers =
-                appUserRepository.findAll()
-                        .stream()
-                        .map(FwAppUser::getPerson)
-                        .toList();
-
-        approverField.setItems(approvers);
+        approverField.setItems(
+                personRepository.findAll()
+        );
 
         approverField.setItemLabelGenerator(person ->
                 person.getFirstName() + " " +
