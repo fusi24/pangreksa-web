@@ -26,7 +26,7 @@ import java.time.LocalDate;
 @Route("contract-management")
 @PageTitle("Manajemen Kontrak")
 @Menu(order = 40, icon = "vaadin:file-text", title = "Manajemen Kontrak")
-@RolesAllowed({"HR", "HR_MANAGER"})
+@RolesAllowed("CONTRACT_MGT")
 public class ContractManagementView extends Main {
 
     private final ContractService contractService;
