@@ -4,6 +4,7 @@ import com.fusi24.pangreksa.base.ui.ThemeUtility;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
+import com.pangreksa.service.model.entity.FwAppUser;
 import com.pangreksa.service.model.entity.HrContract;
 import com.pangreksa.service.model.enumerate.ContractStatusEnum;
 import com.pangreksa.service.service.ContractService;
@@ -160,17 +161,31 @@ public class ContractManagementView extends Main {
         grid.addColumn(contract -> {
 
                     if (contract.getEndDate() == null) {
-                        return "-";
+                        return "Permanent";
                     }
 
                     long days =
-                            LocalDate.now()
-                                    .until(contract.getEndDate())
-                                    .getDays();
+                            java.time.temporal.ChronoUnit.DAYS
+                                    .between(
+                                            LocalDate.now(),
+                                            contract.getEndDate()
+                                    );
+
+                    if (days < 0) {
+                        return "Expired";
+                    }
+
+                    if (days <= 30) {
+                        return "H-30";
+                    }
+
+                    if (days <= 60) {
+                        return "H-60";
+                    }
 
                     return days + " hari";
                 })
-                .setHeader("Sisa Kontrak");
+                .setHeader("Masa Kontrak");
 
         // ACTION
         grid.addComponentColumn(this::buildActionButtons)
@@ -254,7 +269,7 @@ public class ContractManagementView extends Main {
 
                     contractService.approveContract(
                             contract,
-                            null
+                            getCurrentAppUser()
                     );
 
                     AppNotification.success(
@@ -294,7 +309,7 @@ public class ContractManagementView extends Main {
 
                     contractService.activateContract(
                             contract,
-                            null
+                            getCurrentAppUser()
                     );
 
                     AppNotification.success(
@@ -334,7 +349,7 @@ public class ContractManagementView extends Main {
 
                     contractService.terminateContract(
                             contract,
-                            null
+                            getCurrentAppUser()
                     );
 
                     AppNotification.success(
@@ -376,5 +391,17 @@ public class ContractManagementView extends Main {
                     contractService.findAll()
             );
         }
+    }
+
+    private FwAppUser getCurrentAppUser() {
+
+        String username =
+                currentUser.require()
+                        .getUserId()
+                        .toString();
+
+        return appUserRepository
+                .findByUsername(username)
+                .orElseThrow();
     }
 }

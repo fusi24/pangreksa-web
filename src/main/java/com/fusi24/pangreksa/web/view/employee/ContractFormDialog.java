@@ -369,7 +369,9 @@ public class ContractFormDialog extends Dialog {
             contract.setCreatedBy(
                     getCurrentAppUser()
             );
-
+            contract.setCompany(
+                    getCurrentAppUser().getCompany()
+            );
             HrContract saved =
                     contractService.createDraft(
                             contract,
