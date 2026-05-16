@@ -102,7 +102,10 @@ public class AttendanceCorrectionRequestView extends Main {
     }
 
     private void openRequestDialog() {
-        FwAppUser user = attendanceService.getCurrentUser();
+
+        FwAppUser user =
+                attendanceService.getCurrentUser();
+
         HrPerson defaultApprover = null;
 
         try {
@@ -117,89 +120,268 @@ public class AttendanceCorrectionRequestView extends Main {
         }
 
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Form Pengajuan Koreksi Absensi");
+
+        dialog.setHeaderTitle(
+                "Form Pengajuan Koreksi Absensi"
+        );
+
         dialog.setWidth("720px");
 
-        ComboBox<HrAttendance> attendanceRef = new ComboBox<>("Referensi Data Absensi");
-        List<HrAttendance> histories = attendanceService.getAttendanceList(
-                LocalDate.now().minusMonths(2),
-                LocalDate.now(),
-                "",
-                null,
-                null,
-                user.getPerson()
-        );
+        // =====================================================
+        // ATTENDANCE REFERENCE
+        // =====================================================
+
+        ComboBox<HrAttendance> attendanceRef =
+                new ComboBox<>("Referensi Data Absensi");
+
+        List<HrAttendance> histories =
+                attendanceService.getAttendanceList(
+                        LocalDate.now().minusMonths(2),
+                        LocalDate.now(),
+                        "",
+                        null,
+                        null,
+                        user.getPerson()
+                );
+
         attendanceRef.setItems(histories);
-        attendanceRef.setItemLabelGenerator(att -> att.getAttendanceDate() + " | IN: "
-                + formatDateTime(att.getCheckIn()) + " | OUT: " + formatDateTime(att.getCheckOut()));
+
+        attendanceRef.setItemLabelGenerator(att ->
+                att.getAttendanceDate()
+                        + " | IN: "
+                        + formatDateTime(att.getCheckIn())
+                        + " | OUT: "
+                        + formatDateTime(att.getCheckOut())
+        );
+
         attendanceRef.setWidthFull();
 
-        DatePicker requestedDate = new DatePicker("Tanggal Absensi Yang Dibenarkan");
-        DateTimePicker requestedIn = new DateTimePicker("Check-In Baru");
-        DateTimePicker requestedOut = new DateTimePicker("Check-Out Baru");
+        // =====================================================
+        // REQUESTED DATE
+        // =====================================================
 
-        ComboBox<HrPerson> submittedTo = new ComboBox<>("Approver (HR/Atasan)");
-        submittedTo.setItemLabelGenerator(p -> p.getFirstName() + " " + p.getLastName());
-        submittedTo.setItems(query -> personService.findPersonByKeyword(query.getFilter().orElse("")).stream());
+        DatePicker requestedDate =
+                new DatePicker(
+                        "Tanggal Absensi Yang Dibenarkan"
+                );
+
+        DateTimePicker requestedIn =
+                new DateTimePicker(
+                        "Check-In Baru"
+                );
+
+        DateTimePicker requestedOut =
+                new DateTimePicker(
+                        "Check-Out Baru"
+                );
+
+        // =====================================================
+        // APPROVER
+        // =====================================================
+
+        ComboBox<HrPerson> submittedToCombo =
+                new ComboBox<>("Penyetuju / Atasan");
+
+        submittedToCombo.addClassName(
+                "no-dropdown-icon"
+        );
+
+        submittedToCombo.setItemLabelGenerator(p ->
+                p.getFirstName()
+                        + " "
+                        + (
+                        p.getLastName() != null
+                                ? p.getLastName()
+                                : ""
+                )
+        );
+
+        submittedToCombo.setPlaceholder(
+                "Ketik untuk mencari penyetuju"
+        );
+
+        submittedToCombo.setClearButtonVisible(true);
+
+        submittedToCombo.setWidthFull();
+
+        submittedToCombo.setItems(
+                personService.findAllPerson()
+        );
+
         if (defaultApprover != null) {
-            submittedTo.setValue(defaultApprover);
-        }
-        submittedTo.setWidthFull();
 
-        TextArea reason = new TextArea("Alasan Koreksi");
+            submittedToCombo.setValue(
+                    defaultApprover
+            );
+        }
+
+        // =====================================================
+        // REASON
+        // =====================================================
+
+        TextArea reason =
+                new TextArea(
+                        "Alasan Koreksi"
+                );
+
         reason.setWidthFull();
 
-        attendanceRef.addValueChangeListener(event -> {
-            HrAttendance selected = event.getValue();
-            if (selected == null) return;
-            requestedDate.setValue(selected.getAttendanceDate());
-            requestedIn.setValue(selected.getCheckIn());
-            requestedOut.setValue(selected.getCheckOut());
-        });
+        // =====================================================
+        // AUTO FILL
+        // =====================================================
 
-        Button submit = new Button("Submit");
-        submit.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        submit.addClickListener(e -> {
-            if (submittedTo.getValue() == null) {
-                AppNotification.error("Approver wajib dipilih.");
+        attendanceRef.addValueChangeListener(event -> {
+
+            HrAttendance selected =
+                    event.getValue();
+
+            if (selected == null) {
                 return;
             }
-            if (requestedIn.getValue() == null && requestedOut.getValue() == null) {
-                AppNotification.error("Minimal isi salah satu: check-in atau check-out.");
+
+            requestedDate.setValue(
+                    selected.getAttendanceDate()
+            );
+
+            requestedIn.setValue(
+                    selected.getCheckIn()
+            );
+
+            requestedOut.setValue(
+                    selected.getCheckOut()
+            );
+        });
+
+        // =====================================================
+        // SUBMIT BUTTON
+        // =====================================================
+
+        Button submit =
+                new Button("Submit");
+
+        submit.addThemeVariants(
+                ButtonVariant.LUMO_PRIMARY
+        );
+
+        submit.addClickListener(e -> {
+
+            if (submittedToCombo.getValue() == null) {
+
+                AppNotification.error(
+                        "Approver wajib dipilih."
+                );
+
+                return;
+            }
+
+            if (
+                    requestedIn.getValue() == null
+                            &&
+                            requestedOut.getValue() == null
+            ) {
+
+                AppNotification.error(
+                        "Minimal isi salah satu: check-in atau check-out."
+                );
+
                 return;
             }
 
             try {
-                HrAttendanceCorrection request = HrAttendanceCorrection.builder()
-                        .attendance(attendanceRef.getValue())
-                        .requestedAttendanceDate(requestedDate.getValue())
-                        .requestedCheckIn(requestedIn.getValue())
-                        .requestedCheckOut(requestedOut.getValue())
-                        .submittedTo(submittedTo.getValue())
-                        .reason(reason.getValue())
-                        .status(AttendanceCorrectionStatusEnum.SUBMITTED)
-                        .build();
 
-                correctionService.submitCorrection(request, user);
-                AppNotification.success("Pengajuan koreksi absensi berhasil dikirim.");
+                HrAttendanceCorrection request =
+                        HrAttendanceCorrection.builder()
+                                .attendance(
+                                        attendanceRef.getValue()
+                                )
+                                .requestedAttendanceDate(
+                                        requestedDate.getValue()
+                                )
+                                .requestedCheckIn(
+                                        requestedIn.getValue()
+                                )
+                                .requestedCheckOut(
+                                        requestedOut.getValue()
+                                )
+                                .submittedTo(
+                                        submittedToCombo.getValue()
+                                )
+                                .reason(
+                                        reason.getValue()
+                                )
+                                .status(
+                                        AttendanceCorrectionStatusEnum.SUBMITTED
+                                )
+                                .build();
+
+                correctionService.submitCorrection(
+                        request,
+                        user
+                );
+
+                AppNotification.success(
+                        "Pengajuan koreksi absensi berhasil dikirim."
+                );
+
                 dialog.close();
+
                 refreshGrid();
+
             } catch (Exception ex) {
-                AppNotification.error("Gagal submit pengajuan: " + ex.getMessage());
+
+                AppNotification.error(
+                        "Gagal submit pengajuan: "
+                                + ex.getMessage()
+                );
             }
         });
 
-        Button cancel = new Button("Batal", e -> dialog.close());
-        HorizontalLayout actions = new HorizontalLayout(cancel, submit);
+        // =====================================================
+        // CANCEL
+        // =====================================================
 
-        FormLayout formLayout = new FormLayout();
-        formLayout.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1), new FormLayout.ResponsiveStep("700px", 2));
-        formLayout.add(attendanceRef, submittedTo, requestedDate, reason, requestedIn, requestedOut);
+        Button cancel =
+                new Button(
+                        "Batal",
+                        e -> dialog.close()
+                );
+
+        HorizontalLayout actions =
+                new HorizontalLayout(
+                        cancel,
+                        submit
+                );
+
+        // =====================================================
+        // FORM
+        // =====================================================
+
+        FormLayout formLayout =
+                new FormLayout();
+
+        formLayout.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 1),
+                new FormLayout.ResponsiveStep("700px", 2)
+        );
+
+        formLayout.add(
+                attendanceRef,
+                submittedToCombo,
+                requestedDate,
+                reason,
+                requestedIn,
+                requestedOut
+        );
+
         formLayout.setColspan(attendanceRef, 2);
-        formLayout.setColspan(submittedTo, 2);
+        formLayout.setColspan(submittedToCombo, 2);
         formLayout.setColspan(reason, 2);
 
-        dialog.add(formLayout, actions);
+        dialog.add(
+                formLayout,
+                actions
+        );
+
         dialog.open();
     }
 
