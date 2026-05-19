@@ -23,9 +23,11 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import lombok.extern.slf4j.Slf4j;
 
-import jakarta.servlet.ServletContext;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.ResourcePatternResolver;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -50,7 +52,7 @@ class FSTLoginView extends Main implements BeforeEnterObserver {
 
     FSTLoginView(com.vaadin.flow.spring.security.AuthenticationContext authenticationContext,
                  SystemService systemService,
-                 ServletContext servletContext) {
+                 ResourcePatternResolver resourceResolver) {
         this.authenticationContext = authenticationContext;
 
         setSizeFull();
@@ -58,7 +60,7 @@ class FSTLoginView extends Main implements BeforeEnterObserver {
         UI.getCurrent().getPage().setColorScheme(ColorScheme.Value.LIGHT);
 
         // ── Left: banner (2/3) ─────────────────────────────────────────
-        String bannerUrl = pickRandomBanner(servletContext);
+        String bannerUrl = pickRandomBanner(resourceResolver);
 
         // Brand overlay: logo + app name + tagline
         Image appLogo = new Image("images/pangreksa-logo-white.png", "Pangreksa Logo");
@@ -141,26 +143,25 @@ class FSTLoginView extends Main implements BeforeEnterObserver {
     }
 
     /**
-     * Scans the {@code /images/login/} resource directory for files whose name
-     * starts with {@code login-banner-} and picks one at random.
+     * Scans the classpath for banner images whose filename starts with
+     * {@code login-banner-}. Works in both exploded (dev) and packaged JAR
+     * (production) mode — unlike {@code ServletContext.getResourcePaths()},
+     * Spring's {@link ResourcePatternResolver} can list entries inside JARs.
      */
-    private static String pickRandomBanner(ServletContext servletContext) {
+    private static String pickRandomBanner(ResourcePatternResolver resolver) {
         try {
-            var paths = servletContext.getResourcePaths(BANNER_DIR);
-            if (paths != null) {
-                List<String> banners = paths.stream()
-                        .map(p -> p.startsWith("/") ? p.substring(1) : p)  // strip leading /
-                        .filter(p -> {
-                            String fileName = p.substring(p.lastIndexOf('/') + 1);
-                            return fileName.startsWith(BANNER_PREFIX);
-                        })
-                        .toList();
-                if (!banners.isEmpty()) {
-                    return banners.get(ThreadLocalRandom.current().nextInt(banners.size()));
-                }
+            Resource[] resources = resolver.getResources(
+                    "classpath:/META-INF/resources/images/login/" + BANNER_PREFIX + "*");
+            List<String> banners = Arrays.stream(resources)
+                    .map(Resource::getFilename)
+                    .filter(name -> name != null && name.startsWith(BANNER_PREFIX))
+                    .map(name -> "images/login/" + name)
+                    .toList();
+            if (!banners.isEmpty()) {
+                return banners.get(ThreadLocalRandom.current().nextInt(banners.size()));
             }
-        } catch (Exception e) {
-            log.warn("Could not list login banners from {}: {}", BANNER_DIR, e.getMessage());
+        } catch (IOException e) {
+            log.warn("Could not list login banners: {}", e.getMessage());
         }
         return FALLBACK_BANNER;
     }
