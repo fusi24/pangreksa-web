@@ -1,6 +1,6 @@
 package com.fusi24.pangreksa.web.view.employee;
 
-import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.fusi24.pangreksa.base.ui.TailwindUtility.*;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
@@ -56,11 +56,11 @@ public class ContractApprovalView extends Main {
         this.appUserRepository = appUserRepository;
 
         addClassNames(
-                ThemeUtility.BoxSizing.BORDER,
-                ThemeUtility.Display.FLEX,
-                ThemeUtility.FlexDirection.COLUMN,
-                ThemeUtility.Padding.MEDIUM,
-                ThemeUtility.Gap.SMALL
+                BoxSizing.BORDER,
+                Display.FLEX,
+                FlexDirection.COLUMN,
+                Padding.MEDIUM,
+                Gap.SMALL
         );
 
         add(

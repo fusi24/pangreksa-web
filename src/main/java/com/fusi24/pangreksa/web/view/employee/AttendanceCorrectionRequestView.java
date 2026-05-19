@@ -1,6 +1,6 @@
 package com.fusi24.pangreksa.web.view.employee;
 
-import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.fusi24.pangreksa.base.ui.TailwindUtility.*;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
@@ -60,11 +60,11 @@ public class AttendanceCorrectionRequestView extends Main {
         this.attendanceService.setUser(currentUser.require());
 
         addClassNames(
-                ThemeUtility.BoxSizing.BORDER,
-                ThemeUtility.Display.FLEX,
-                ThemeUtility.FlexDirection.COLUMN,
-                ThemeUtility.Padding.MEDIUM,
-                ThemeUtility.Gap.SMALL
+                BoxSizing.BORDER,
+                Display.FLEX,
+                FlexDirection.COLUMN,
+                Padding.MEDIUM,
+                Gap.SMALL
         );
 
         add(new ViewToolbar("Pengajuan Koreksi Absensi"));
