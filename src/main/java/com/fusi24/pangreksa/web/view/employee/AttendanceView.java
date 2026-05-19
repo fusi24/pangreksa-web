@@ -242,6 +242,7 @@ public class AttendanceView extends Main {
             companyFilter.setEnabled(false);
             orgStructureFilter.setEnabled(false);
         }
+        
 
         // Date range
         startDateFilter.setPlaceholder("Mulai");

@@ -97,8 +97,28 @@ public class AttendanceCorrectionRequestView extends Main {
     }
 
     private void refreshGrid() {
-        HrPerson employee = attendanceService.getCurrentUser().getPerson();
-        grid.setItems(correctionService.getSubmissionHistory(employee, 6));
+
+        FwAppUser user =
+                attendanceService.getCurrentUser();
+
+        if (user == null || user.getPerson() == null) {
+
+            grid.setItems(List.of());
+
+            return;
+        }
+
+        grid.setItems(
+                correctionService.getSubmissionHistory(
+                        user.getPerson(),
+                        6
+                )
+        );
+
+        System.out.println(
+                "CURRENT PERSON ID = "
+                        + user.getPerson().getId()
+        );
     }
 
     private void openRequestDialog() {
