@@ -8,9 +8,11 @@ import com.pangreksa.service.service.CampaignService;
 import com.pangreksa.service.service.PersonService;
 import com.fusi24.pangreksa.web.view.common.CampaignCarousel;
 import com.vaadin.flow.component.avatar.Avatar;
+import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -20,6 +22,7 @@ import java.time.LocalDate;
 @Route(value = "admin-dashboard", layout = MainLayout.class)
 @PageTitle("Admin Dashboard")
 @PermitAll
+@StyleSheet("dashboard.css")
 public class AdminDashboardView extends VerticalLayout {
 
     private final PersonService personService;
@@ -42,8 +45,9 @@ public class AdminDashboardView extends VerticalLayout {
         this.payrollRepository = payrollRepository;
         this.campaignService = campaignService;
 
-        setWidthFull();
-        setPadding(true);
+        setSizeFull();
+        setPadding(false);
+        setSpacing(false);
 
         H2 title = new H2("HR Dashboard");
         title.getStyle().set("margin-top", "0").set("color", "#111827");
@@ -53,20 +57,25 @@ public class AdminDashboardView extends VerticalLayout {
 
         CampaignCarousel campaignCarousel = new CampaignCarousel(campaignService);
 
-        // Baris Atas (3 Kolom)
         grid.add(
                 createTotalEmployeeCard(),
                 createAttendanceCard(),
                 createLeaveRequestCard()
         );
 
-        // Baris Bawah (2 Kolom)
         grid.add(
                 createPayrollCard(),
                 createActivityCard()
         );
 
-        add(title,campaignCarousel, grid);
+        var content = new VerticalLayout(title, campaignCarousel, grid);
+        content.setWidthFull();
+        content.setPadding(true);
+
+        var scroller = new Scroller(content);
+        scroller.setSizeFull();
+
+        add(scroller);
     }
 
     /* =========================================================

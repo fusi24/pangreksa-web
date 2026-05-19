@@ -12,9 +12,11 @@ import com.pangreksa.service.service.LeaveService;
 import com.pangreksa.service.service.PersonService;
 
 import com.vaadin.flow.component.avatar.Avatar;
+import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -28,6 +30,7 @@ import com.fusi24.pangreksa.web.view.common.CampaignCarousel;
 @Route(value = "dashboard", layout = MainLayout.class)
 @PageTitle("Dashboard")
 @PermitAll
+@StyleSheet("dashboard.css")
 public class DashboardView extends VerticalLayout {
 
     private final CurrentUser currentUser;
@@ -50,36 +53,40 @@ public class DashboardView extends VerticalLayout {
         this.personService = personService;
         this.campaignService = campaignService;
 
-
-        setWidthFull();
+        setSizeFull();
         setPadding(false);
         setSpacing(false);
-        addClassName("main-container");
 
         AppUserInfo user = currentUser.require();
         attendanceService.setUser(user);
 
         H2 title = new H2("Dashboard Karyawan");
-        title.addClassName("title");
+        title.getStyle().set("margin-top", "0").set("color", "#111827");
 
         Div grid = new Div();
         grid.addClassName("dashboard-grid");
 
         CampaignCarousel campaignCarousel = new CampaignCarousel(campaignService);
 
-        // Baris 1: Sisa Cuti, Kehadiran, Notifikasi (Masing-masing ambil 2 slot dari total 6)
         grid.add(
-                createLeaveBalanceCard(user), // Ganti class ke col-span-4
-                createAttendanceCard(user),   // Ganti class ke col-span-4
-                createNotificationCard()      // Ganti class ke col-span-4
+                createLeaveBalanceCard(user),
+                createAttendanceCard(user),
+                createNotificationCard()
         );
 
         grid.add(
-                createCoworkerCard(),         // Ganti class ke col-span-6
-                createBirthdayCard()          // Ganti class ke col-span-6
+                createCoworkerCard(),
+                createBirthdayCard()
         );
 
-        add(title,campaignCarousel, grid);
+        var content = new VerticalLayout(title, campaignCarousel, grid);
+        content.setWidthFull();
+        content.setPadding(true);
+
+        var scroller = new Scroller(content);
+        scroller.setSizeFull();
+
+        add(scroller);
     }
 
     /* =====================================================
