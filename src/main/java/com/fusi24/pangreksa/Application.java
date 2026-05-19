@@ -4,7 +4,6 @@ import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.shared.communication.PushMode;
-import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.aura.Aura;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -18,6 +17,7 @@ import java.time.Clock;
 @EntityScan(basePackages = {"com.pangreksa.service.model.entity", "com.fusi24.pangreksa.taskmanagement.domain"})
 @EnableJpaRepositories(basePackages = {"com.pangreksa.service.model.repo", "com.fusi24.pangreksa.taskmanagement.domain"})
 @StyleSheet(Aura.STYLESHEET)
+@StyleSheet("styles.css")
 @Push(PushMode.AUTOMATIC)
 public class Application implements AppShellConfigurator {
 
@@ -29,5 +29,4 @@ public class Application implements AppShellConfigurator {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
-
 }

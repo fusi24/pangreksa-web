@@ -22,7 +22,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.fusi24.pangreksa.base.ui.TailwindUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,8 +60,8 @@ public class MasterDepartmentView extends Main {
     public MasterDepartmentView(HrDepartmentRepository departmentRepo) {
         this.departmentRepo = departmentRepo;
 
-        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
-                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
+        addClassNames(TailwindUtility.BoxSizing.BORDER, TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.COLUMN,
+                TailwindUtility.Padding.MEDIUM, TailwindUtility.Gap.SMALL);
 
         configureGrid();
         configureForm();

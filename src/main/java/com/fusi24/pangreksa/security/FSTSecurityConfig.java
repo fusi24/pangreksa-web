@@ -34,6 +34,7 @@ class FSTSecurityConfig {
             .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
             .authorizeHttpRequests(authz -> authz
                             .requestMatchers("/h2-console/**").permitAll()
+                            .requestMatchers("/images/**").permitAll()
                     // Jangan tambahkan .anyRequest() di sini
             );
 

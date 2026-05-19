@@ -27,7 +27,7 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.fusi24.pangreksa.base.ui.TailwindUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.lang3.StringUtils;
 
@@ -55,8 +55,8 @@ public class PageFormView extends Main implements HasUrlParameter<String> {
     public PageFormView(FwPagesRepository pagesRepository) {
         this.pagesRepository = pagesRepository;
         
-        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
-                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.MEDIUM);
+        addClassNames(TailwindUtility.BoxSizing.BORDER, TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.COLUMN,
+                TailwindUtility.Padding.MEDIUM, TailwindUtility.Gap.MEDIUM);
 
         add(new ViewToolbar(VIEW_NAME));
 
@@ -203,10 +203,10 @@ public class PageFormView extends Main implements HasUrlParameter<String> {
         error.setPadding(true);
         error.setMargin(true);
         error.addClassNames(
-                ThemeUtility.Background.ERROR_10,
-                ThemeUtility.BorderColor.ERROR,
-                ThemeUtility.Border.ALL,
-                ThemeUtility.BorderRadius.MEDIUM
+                TailwindUtility.Background.ERROR_10,
+                TailwindUtility.BorderColor.ERROR,
+                TailwindUtility.Border.ALL,
+                TailwindUtility.BorderRadius.MEDIUM
         );
 
         // Add back button

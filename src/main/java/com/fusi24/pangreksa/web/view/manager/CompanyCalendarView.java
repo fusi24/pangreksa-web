@@ -20,7 +20,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.fusi24.pangreksa.base.ui.TailwindUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,11 +66,11 @@ public class CompanyCalendarView extends Main {
         this.responsibility =
                 (String) UI.getCurrent().getSession().getAttribute("responsibility");
         addClassNames(
-                ThemeUtility.BoxSizing.BORDER,
-                ThemeUtility.Display.FLEX,
-                ThemeUtility.FlexDirection.COLUMN,
-                ThemeUtility.Padding.MEDIUM,
-                ThemeUtility.Gap.MEDIUM // Gap diperbesar sedikit agar tidak terlalu rapat
+                TailwindUtility.BoxSizing.BORDER,
+                TailwindUtility.Display.FLEX,
+                TailwindUtility.FlexDirection.COLUMN,
+                TailwindUtility.Padding.MEDIUM,
+                TailwindUtility.Gap.MEDIUM // Gap diperbesar sedikit agar tidak terlalu rapat
         );
 
         add(new ViewToolbar(VIEW_NAME));
@@ -126,13 +126,13 @@ public class CompanyCalendarView extends Main {
         dotMerah.setWidth("12px"); dotMerah.setHeight("12px");
         dotMerah.getStyle().set("background-color", "#d9534f").set("border-radius", "50%");
         Span lblLibur = new Span("Libur");
-        lblLibur.addClassNames(ThemeUtility.FontSize.SMALL, ThemeUtility.TextColor.SECONDARY);
+        lblLibur.addClassNames(TailwindUtility.FontSize.SMALL, TailwindUtility.TextColor.SECONDARY);
 
         Span dotBiru = new Span();
         dotBiru.setWidth("12px"); dotBiru.setHeight("12px");
         dotBiru.getStyle().set("background-color", "#4a90e2").set("border-radius", "50%");
         Span lblCuti = new Span("Cuti");
-        lblCuti.addClassNames(ThemeUtility.FontSize.SMALL, ThemeUtility.TextColor.SECONDARY);
+        lblCuti.addClassNames(TailwindUtility.FontSize.SMALL, TailwindUtility.TextColor.SECONDARY);
 
         legendLayout.add(dotMerah, lblLibur, dotBiru, lblCuti);
 
@@ -144,11 +144,11 @@ public class CompanyCalendarView extends Main {
         calendarCard.setPadding(true);
         // Menambahkan style card (Background putih, shadow halus, sudut melengkung)
         calendarCard.addClassNames(
-                ThemeUtility.Background.BASE,
-//                ThemeUtility.BoxShadow.XS,
-                ThemeUtility.BorderRadius.MEDIUM,
-                ThemeUtility.Border.ALL,
-                ThemeUtility.BorderColor.CONTRAST_10
+                TailwindUtility.Background.BASE,
+//                TailwindUtility.BoxShadow.XS,
+                TailwindUtility.BorderRadius.MEDIUM,
+                TailwindUtility.Border.ALL,
+                TailwindUtility.BorderColor.CONTRAST_10
         );
 
         calendar = FullCalendarBuilder.create().build();

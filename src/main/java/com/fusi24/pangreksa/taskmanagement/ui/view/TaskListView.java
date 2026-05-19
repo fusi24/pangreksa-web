@@ -15,7 +15,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.fusi24.pangreksa.base.ui.TailwindUtility;
 import jakarta.annotation.security.PermitAll;
 
 import java.time.Clock;
@@ -67,8 +67,8 @@ public class TaskListView extends Main {
         taskGrid.setSizeFull();
 
         setSizeFull();
-        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
-                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
+        addClassNames(TailwindUtility.BoxSizing.BORDER, TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.COLUMN,
+                TailwindUtility.Padding.MEDIUM, TailwindUtility.Gap.SMALL);
 
         add(new ViewToolbar("Task List", ViewToolbar.group(description, dueDate, createBtn)));
         add(taskGrid);

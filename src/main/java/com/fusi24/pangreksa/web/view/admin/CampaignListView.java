@@ -21,7 +21,7 @@ import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
-import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.fusi24.pangreksa.base.ui.TailwindUtility;
 import jakarta.annotation.security.RolesAllowed;
 import com.vaadin.flow.data.provider.ListDataProvider;
 import java.io.ByteArrayInputStream;
@@ -52,7 +52,7 @@ public class CampaignListView extends VerticalLayout {
 
         // Tambahkan deskripsi singkat di bawah toolbar seperti di mockup
         Span subTitle = new Span("Buat, edit, dan pantau performa campaign komunikasi untuk seluruh karyawan.");
-        subTitle.addClassNames(ThemeUtility.FontSize.SMALL, ThemeUtility.TextColor.SECONDARY, ThemeUtility.Margin.Bottom.MEDIUM);
+        subTitle.addClassNames(TailwindUtility.FontSize.SMALL, TailwindUtility.TextColor.SECONDARY, TailwindUtility.Margin.Bottom.MEDIUM);
         add(subTitle);
 
         add(createFilterBar());
@@ -103,7 +103,7 @@ public class CampaignListView extends VerticalLayout {
         layout.setWidthFull();
         layout.setJustifyContentMode(JustifyContentMode.BETWEEN);
         layout.setAlignItems(Alignment.END);
-        layout.addClassNames(ThemeUtility.Margin.Bottom.MEDIUM);
+        layout.addClassNames(TailwindUtility.Margin.Bottom.MEDIUM);
 
         return layout;
     }
@@ -152,9 +152,9 @@ public class CampaignListView extends VerticalLayout {
             Div imgContainer = new Div();
             imgContainer.setWidth("48px");
             imgContainer.setHeight("48px");
-            imgContainer.addClassNames(ThemeUtility.Background.CONTRAST_10, ThemeUtility.BorderRadius.MEDIUM,
-                    ThemeUtility.Display.FLEX, ThemeUtility.AlignItems.CENTER, ThemeUtility.JustifyContent.CENTER,
-                    ThemeUtility.Overflow.HIDDEN);
+            imgContainer.addClassNames(TailwindUtility.Background.CONTRAST_10, TailwindUtility.BorderRadius.MEDIUM,
+                    TailwindUtility.Display.FLEX, TailwindUtility.AlignItems.CENTER, TailwindUtility.JustifyContent.CENTER,
+                    TailwindUtility.Overflow.HIDDEN);
 
             if (bytes != null) {
                 StreamResource res = new StreamResource("thumb", () -> new ByteArrayInputStream(bytes));
@@ -172,7 +172,7 @@ public class CampaignListView extends VerticalLayout {
         // 2. Data Columns dengan font weight bold untuk judul
         grid.addColumn(new ComponentRenderer<>(c -> {
             Span title = new Span(c.getTitle());
-            title.addClassNames(ThemeUtility.FontWeight.BOLD, ThemeUtility.TextColor.HEADER);
+            title.addClassNames(TailwindUtility.FontWeight.BOLD, TailwindUtility.TextColor.HEADER);
             return title;
         })).setHeader("Judul").setSortable(true).setFlexGrow(2);
 

@@ -28,7 +28,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.server.streams.UploadHandler;
-import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.fusi24.pangreksa.base.ui.TailwindUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,8 +78,8 @@ public class CampaignManagementView extends VerticalLayout implements com.vaadin
                 (String) UI.getCurrent().getSession().getAttribute("responsibility"),
                 20L);
 
-        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
-                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL, ThemeUtility.Background.CONTRAST_5);
+        addClassNames(TailwindUtility.BoxSizing.BORDER, TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.COLUMN,
+                TailwindUtility.Padding.MEDIUM, TailwindUtility.Gap.SMALL, TailwindUtility.Background.CONTRAST_5);
 
         add(new ViewToolbar("Manajemen Campaign"));
         createBody();
@@ -138,8 +138,8 @@ public class CampaignManagementView extends VerticalLayout implements com.vaadin
 
     private void createBody() {
         VerticalLayout card = new VerticalLayout();
-        card.addClassNames(ThemeUtility.Background.BASE, ThemeUtility.BorderRadius.MEDIUM,
-                ThemeUtility.BoxShadow.SMALL, ThemeUtility.Padding.LARGE, ThemeUtility.Margin.AUTO);
+        card.addClassNames(TailwindUtility.Background.BASE, TailwindUtility.BorderRadius.MEDIUM,
+                TailwindUtility.BoxShadow.SMALL, TailwindUtility.Padding.LARGE, TailwindUtility.Margin.AUTO);
         card.setMaxWidth("1100px");
 
         HorizontalLayout header = new HorizontalLayout();
@@ -147,7 +147,7 @@ public class CampaignManagementView extends VerticalLayout implements com.vaadin
         header.setAlignItems(FlexComponent.Alignment.CENTER);
         header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
 
-        titleText.addClassNames(ThemeUtility.FontSize.XLARGE, ThemeUtility.Margin.NONE);
+        titleText.addClassNames(TailwindUtility.FontSize.XLARGE, TailwindUtility.Margin.NONE);
 
         HorizontalLayout actions = new HorizontalLayout();
         Button btnKembali = new Button("Kembali", VaadinIcon.ARROW_LEFT.create(),
@@ -172,14 +172,14 @@ public class CampaignManagementView extends VerticalLayout implements com.vaadin
         formLayout.setColspan(description, 2);
 
         photoPlaceholder = new Div();
-        photoPlaceholder.addClassNames(ThemeUtility.Background.CONTRAST_10, ThemeUtility.Display.FLEX,
-                ThemeUtility.AlignItems.CENTER, ThemeUtility.JustifyContent.CENTER, ThemeUtility.BorderRadius.MEDIUM);
+        photoPlaceholder.addClassNames(TailwindUtility.Background.CONTRAST_10, TailwindUtility.Display.FLEX,
+                TailwindUtility.AlignItems.CENTER, TailwindUtility.JustifyContent.CENTER, TailwindUtility.BorderRadius.MEDIUM);
         photoPlaceholder.setWidth("100%");
         photoPlaceholder.setMaxWidth("600px");
         photoPlaceholder.setHeight("200px");
 
         Icon placeholderIcon = VaadinIcon.PICTURE.create();
-        placeholderIcon.addClassNames(ThemeUtility.TextColor.TERTIARY, ThemeUtility.FontSize.XXLARGE);
+        placeholderIcon.addClassNames(TailwindUtility.TextColor.TERTIARY, TailwindUtility.FontSize.XXLARGE);
         photoPlaceholder.add(placeholderIcon);
 
         photoPreview.setWidthFull();
@@ -207,7 +207,7 @@ public class CampaignManagementView extends VerticalLayout implements com.vaadin
 
 // Mengganti setHelperText dengan Span manual
         Span uploadHelper = new Span("Rekomendasi ukuran: 1200 x 400 px (Rasio 3:1) untuk menghindari pemotongan otomatis.");
-        uploadHelper.addClassNames(ThemeUtility.FontSize.SMALL, ThemeUtility.TextColor.SECONDARY);
+        uploadHelper.addClassNames(TailwindUtility.FontSize.SMALL, TailwindUtility.TextColor.SECONDARY);
 
 // --- PENYUSUNAN AKHIR ---
         card.add(

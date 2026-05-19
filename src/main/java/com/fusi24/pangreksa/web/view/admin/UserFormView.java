@@ -26,7 +26,7 @@ import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.*;
-import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.fusi24.pangreksa.base.ui.TailwindUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,8 +107,8 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
 
         log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
 
-        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
-                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
+        addClassNames(TailwindUtility.BoxSizing.BORDER, TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.COLUMN,
+                TailwindUtility.Padding.MEDIUM, TailwindUtility.Gap.SMALL);
 
         add(new ViewToolbar(VIEW_NAME));
         createBody();
@@ -193,7 +193,7 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
         createResponsibilityForm();
 
         body.add(splitLayout);
-        body.addClassNames(ThemeUtility.Gap.MEDIUM);
+        body.addClassNames(TailwindUtility.Gap.MEDIUM);
         body.setHeightFull();
         body.getStyle().setFlexGrow("1");
 
@@ -307,7 +307,7 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
         gridAppUserResp.getStyle().setMaxWidth(MAX_WIDTH_GRID);
         gridAppUserResp.setHeight(HEIGHT_GRID);
 
-        responsibilityLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
+        responsibilityLayout.addClassNames(TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.ROW, TailwindUtility.Gap.MEDIUM);
         responsibilityLayout.add(gridAppUserResp, responsibilityFromLayout);
     }
 

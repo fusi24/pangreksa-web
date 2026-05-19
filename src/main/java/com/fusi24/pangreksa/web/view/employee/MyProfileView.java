@@ -39,7 +39,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.server.streams.InMemoryUploadHandler;
 import com.vaadin.flow.server.streams.UploadHandler;
-import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.fusi24.pangreksa.base.ui.TailwindUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -183,8 +183,8 @@ public class MyProfileView extends Main {
 
         log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
 
-        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
-                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
+        addClassNames(TailwindUtility.BoxSizing.BORDER, TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.COLUMN,
+                TailwindUtility.Padding.MEDIUM, TailwindUtility.Gap.SMALL);
 
         add(new ViewToolbar(VIEW_NAME));
         createBody();
@@ -337,7 +337,7 @@ public class MyProfileView extends Main {
         splitLayout.setSizeFull();
 
         body.add(splitLayout);
-        body.addClassNames(ThemeUtility.Gap.MEDIUM);
+        body.addClassNames(TailwindUtility.Gap.MEDIUM);
         body.setHeightFull();
         body.getStyle().setFlexGrow("1");
 
@@ -624,7 +624,7 @@ public class MyProfileView extends Main {
         gridAddress.getStyle().setMaxWidth(MAX_WIDTH_GRID);
         gridAddress.setHeight(HEIGHT_GRID);
 
-        addressesLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
+        addressesLayout.addClassNames(TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.ROW, TailwindUtility.Gap.MEDIUM);
         addressesLayout.add(gridAddress, addressFormLayout);
     }
 
@@ -731,7 +731,7 @@ public class MyProfileView extends Main {
         gridContacts.setHeight(HEIGHT_GRID);
 
         contactsLayout.setWidthFull();
-        contactsLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
+        contactsLayout.addClassNames(TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.ROW, TailwindUtility.Gap.MEDIUM);
         contactsLayout.add(gridContacts, contactFormLayout);
     }
 
@@ -845,7 +845,7 @@ public class MyProfileView extends Main {
         gridEducation.setHeight(HEIGHT_GRID);
 
         educationLayout.setWidthFull();
-        educationLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
+        educationLayout.addClassNames(TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.ROW, TailwindUtility.Gap.MEDIUM);
         educationLayout.add(gridEducation, educationFormLayout);
     }
 
@@ -937,7 +937,7 @@ public class MyProfileView extends Main {
         gridDocument.setHeight(HEIGHT_GRID);
 
         documentsLayout.setWidthFull();
-        documentsLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
+        documentsLayout.addClassNames(TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.ROW, TailwindUtility.Gap.MEDIUM);
         documentsLayout.add(gridDocument, documentFormLayout);
     }
 

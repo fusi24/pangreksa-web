@@ -1,0 +1,30 @@
+html {
+    color-scheme: dark;
+    --aura-content-color-scheme: light;
+
+    --aura-accent-color-light: #962829;
+    --aura-accent-color-dark:  #AF3931;
+
+    --aura-background-color-light: #f5f3f2;
+    --aura-background-color-dark:  #1e1a1a;
+
+    --aura-app-layout-inset: 0px;
+
+    --aura-app-layout-border-width: 0px;
+    --aura-app-layout-radius: 0px;
+}
+
+vaadin-side-nav-item:not([current]) > vaadin-icon {
+    color: var(--aura-accent-text-color);
+}
+
+vaadin-app-layout::part(navbar) {
+    --vaadin-text-color: light-dark(var(--aura-neutral-light), var(--aura-neutral-dark));
+    color-scheme: light;
+    background: var(--aura-background-color-light);
+    border-bottom: 1px solid var(--aura-accent-border-color);
+}
+
+vaadin-app-layout>[slot="navbar"] {
+    color: var(--vaadin-text-color);
+}

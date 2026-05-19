@@ -37,7 +37,7 @@ import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.fusi24.pangreksa.base.ui.TailwindUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.ocpsoft.prettytime.PrettyTime;
 import org.slf4j.Logger;
@@ -121,8 +121,8 @@ public class ProfilDataKaryawanView extends Main {
 
         log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
 
-        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
-                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
+        addClassNames(TailwindUtility.BoxSizing.BORDER, TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.COLUMN,
+                TailwindUtility.Padding.MEDIUM, TailwindUtility.Gap.SMALL);
 
         add(new ViewToolbar(VIEW_NAME));
         createBody();
@@ -169,7 +169,7 @@ public class ProfilDataKaryawanView extends Main {
         toolbarLayout.setJustifyContentMode(JustifyContentMode.BETWEEN);
         toolbarLayout.setAlignItems(Alignment.BASELINE);
         toolbarLayout.add(leftLayout, rightLayout);
-        toolbarLayout.addClassNames(ThemeUtility.Padding.Top.NONE, ThemeUtility.Padding.Right.NONE, ThemeUtility.Padding.Bottom.MEDIUM, ThemeUtility.Padding.Left.NONE);
+        toolbarLayout.addClassNames(TailwindUtility.Padding.Top.NONE, TailwindUtility.Padding.Right.NONE, TailwindUtility.Padding.Bottom.MEDIUM, TailwindUtility.Padding.Left.NONE);
 
         body.add(toolbarLayout);
 

@@ -40,7 +40,7 @@ import com.vaadin.flow.router.*;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.server.streams.InMemoryUploadHandler;
 import com.vaadin.flow.server.streams.UploadHandler;
-import com.fusi24.pangreksa.base.ui.ThemeUtility;
+import com.fusi24.pangreksa.base.ui.TailwindUtility;
 import com.pangreksa.service.service.PersonPtkpService;
 
 import jakarta.annotation.security.RolesAllowed;
@@ -206,8 +206,8 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
 
         log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
 
-        addClassNames(ThemeUtility.BoxSizing.BORDER, ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.COLUMN,
-                ThemeUtility.Padding.MEDIUM, ThemeUtility.Gap.SMALL);
+        addClassNames(TailwindUtility.BoxSizing.BORDER, TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.COLUMN,
+                TailwindUtility.Padding.MEDIUM, TailwindUtility.Gap.SMALL);
 
         add(new ViewToolbar(VIEW_NAME));
         createBody();
@@ -513,7 +513,7 @@ switch (tabNo) {
         splitLayout.setSizeFull();
 
         body.add(splitLayout);
-        body.addClassNames(ThemeUtility.Gap.MEDIUM);
+        body.addClassNames(TailwindUtility.Gap.MEDIUM);
         body.setHeightFull();
         body.getStyle().setFlexGrow("1");
 
@@ -832,7 +832,7 @@ switch (tabNo) {
         gridAddress.getStyle().setMaxWidth(MAX_WIDTH_GRID);
         gridAddress.setHeight(HEIGHT_GRID);
 
-        addressesLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
+        addressesLayout.addClassNames(TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.ROW, TailwindUtility.Gap.MEDIUM);
         addressesLayout.add(gridAddress, addressFormLayout);
     }
 
@@ -990,7 +990,7 @@ switch (tabNo) {
         gridContacts.setHeight(HEIGHT_GRID);
 
         contactsLayout.setWidthFull();
-        contactsLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
+        contactsLayout.addClassNames(TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.ROW, TailwindUtility.Gap.MEDIUM);
         contactsLayout.add(gridContacts, contactFormLayout);
     }
 
@@ -1098,7 +1098,7 @@ switch (tabNo) {
         gridEducation.setHeight(HEIGHT_GRID);
 
         educationLayout.setWidthFull();
-        educationLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
+        educationLayout.addClassNames(TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.ROW, TailwindUtility.Gap.MEDIUM);
         educationLayout.add(gridEducation, educationFormLayout);
     }
 
@@ -1193,7 +1193,7 @@ switch (tabNo) {
         gridDocument.setHeight(HEIGHT_GRID);
 
         documentsLayout.setWidthFull();
-        documentsLayout.addClassNames(ThemeUtility.Display.FLEX, ThemeUtility.FlexDirection.ROW, ThemeUtility.Gap.MEDIUM);
+        documentsLayout.addClassNames(TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.ROW, TailwindUtility.Gap.MEDIUM);
         documentsLayout.add(gridDocument, documentFormLayout);
     }
 
