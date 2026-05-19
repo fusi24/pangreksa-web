@@ -10,6 +10,7 @@ import com.pangreksa.service.model.entity.HrAttendance;
 import com.fusi24.pangreksa.web.service.AppUserAuthService;
 import com.pangreksa.service.service.AttendanceService;
 import com.pangreksa.service.service.SystemService;
+import com.vaadin.flow.router.AfterNavigationEvent;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
@@ -38,6 +39,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.shared.Tooltip;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
+import com.vaadin.flow.router.AfterNavigationListener;
 import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.server.menu.MenuEntry;
 import com.vaadin.flow.spring.security.AuthenticationContext;
@@ -53,7 +55,7 @@ import static com.fusi24.pangreksa.base.ui.TailwindUtility.*;
 
 @Layout
 @PermitAll // When security is enabled, allow all authenticated users
-public final class MainLayout extends AppLayout {
+public final class MainLayout extends AppLayout implements AfterNavigationListener {
     private static final Logger log = LoggerFactory.getLogger(MainLayout.class);
     private final AppUserAuthService appUserAuthService;
     private final AttendanceService attendanceService;
@@ -174,6 +176,20 @@ public final class MainLayout extends AppLayout {
         if (currentResponsibility == null) return;
         navLayout.removeAll();
         navLayout.add(populateNavigation(currentResponsibility));
+    }
+
+	@Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        // Cek session responsibility
+        String resp = (String) UI.getCurrent().getSession().getAttribute("responsibility");
+
+        // Ambil path tujuan saat ini menggunakan event
+        String currentPath = event.getLocation().getPath();
+
+        // Jika belum pilih responsibility DAN tidak sedang di page "pilih-tanggung-jawab"
+        if (resp == null && !currentPath.equals("pilih-tanggung-jawab")) {
+            UI.getCurrent().navigate("pilih-tanggung-jawab");
+        }
     }
 
     // ── Drawer: user panel (footer) ───────────────────────────────────────────────
