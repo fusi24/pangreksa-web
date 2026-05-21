@@ -90,6 +90,9 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
         attendanceService.setUser(this.user);
 
         navLayout = new VerticalLayout();
+        navLayout.addClassName(
+                "sidebar-content"
+        );
         navLayout.setWidthFull();
         navLayout.setMargin(false);
         navLayout.setPadding(false);
@@ -107,33 +110,80 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
     // ── Navbar ───────────────────────────────────────────────────────────────────
 
     private Component createNavbar() {
-        var toggle = new DrawerToggle();
 
-        // Notification bell button with badge
-        int unread = notificationService.countUnread(user.getUserId().toString());
-        var bellButton = new Button(VaadinIcon.BELL.create(), e -> openNotificationPanel());
-        bellButton.addThemeVariants(ButtonVariant.TERTIARY);
+        var toggle =
+                new DrawerToggle();
 
-        notificationBadge = new Span(String.valueOf(unread));
-        notificationBadge.getStyle()
-                .set("background", "red")
-                .set("color", "white")
-                .set("border-radius", "50%")
-                .set("padding", "2px 6px")
-                .set("font-size", "10px")
-                .set("position", "absolute")
-                .set("top", "0")
-                .set("right", "0");
-        notificationBadge.setVisible(unread > 0);
+        // =========================================
+        // NOTIFICATION
+        // =========================================
 
-        var bellWrapper = new Div(bellButton, notificationBadge);
-        bellWrapper.getStyle().set("position", "relative").set("display", "inline-block");
+        int unread =
+                notificationService.countUnread(
+                        user.getUserId().toString()
+                );
 
-        var spacer = new Span();
-        spacer.addClassName(Flex.GROW);
+        var bellButton =
+                new Button(
+                        VaadinIcon.BELL.create(),
+                        e -> openNotificationPanel()
+                );
 
-        var navbar = new Div(toggle, spacer, bellWrapper);
-        navbar.addClassNames(Display.FLEX, AlignItems.CENTER, Width.FULL);
+        bellButton.addThemeVariants(
+                ButtonVariant.TERTIARY
+        );
+
+        notificationBadge =
+                new Span(
+                        String.valueOf(unread)
+                );
+
+        notificationBadge.addClassName(
+                "notification-badge"
+        );
+
+        notificationBadge.setVisible(
+                unread > 0
+        );
+
+        var bellWrapper =
+                new Div(
+                        bellButton,
+                        notificationBadge
+                );
+
+        bellWrapper.getStyle()
+                .set("position", "relative")
+                .set("display", "inline-block");
+
+        // =========================================
+        // SPACER
+        // =========================================
+
+        var spacer =
+                new Span();
+
+        spacer.addClassName(
+                Flex.GROW
+        );
+
+        // =========================================
+        // NAVBAR
+        // =========================================
+
+        var navbar =
+                new Div(
+                        toggle,
+                        spacer,
+                        bellWrapper
+                );
+
+        navbar.addClassNames(
+                Display.FLEX,
+                AlignItems.CENTER,
+                Width.FULL
+        );
+
         return navbar;
     }
 
@@ -149,6 +199,7 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
         appName.getStyle().set("font-size", "0.95rem");
 
         var header = new Div(appLogo, appName);
+        header.addClassName("app-logo");
         header.setHeight("50px");
         header.addClassNames(Display.FLEX, AlignItems.CENTER, Gap.MEDIUM,
                 Padding.Left.MEDIUM, Padding.Right.MEDIUM);
@@ -168,6 +219,8 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
         searchField.addValueChangeListener(e -> refreshNavigation());
 
         var wrapper = new Div(searchField);
+
+        wrapper.addClassName("sidebar-search");
         wrapper.addClassNames(Padding.MEDIUM);
         return wrapper;
     }
@@ -255,9 +308,19 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
 
         // Assemble panel
         var panel = new Div();
+        panel.addClassName("sidebar-user");
         panel.addClassNames(Display.FLEX, FlexDirection.COLUMN, Border.TOP, Gap.MEDIUM, Padding.Vertical.MEDIUM, Margin.Horizontal.MEDIUM);
         panel.getStyle().set("border-color", "var(--aura-accent-border-color)");
-        panel.add(userInfo, responsibilityDropdown);
+        var userCard = new Div(
+                userInfo,
+                responsibilityDropdown
+        );
+
+        userCard.addClassName(
+                "sidebar-user-card"
+        );
+
+        panel.add(userCard);
         return new Div(panel);
     }
 
@@ -457,30 +520,35 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
 
             for (HrNotification n : notifications) {
 
-                Div item =
-                        new Div();
+                Div item = new Div();
 
-                item.getStyle()
-                        .set("padding", "10px")
-                        .set("border-radius", "10px")
-                        .set("margin-bottom", "8px")
-                        .set(
-                                "background",
-                                n.getIsRead()
-                                        ? "#f8f9fa"
-                                        : "#fff5f5"
+                item.addClassName(
+                        "notification-item"
+                );
+
+                if (!n.getIsRead()) {
+
+                    item.addClassName(
+                            "unread"
+                    );
+                }
+
+                // =====================================================
+                // TEXT
+                // =====================================================
+
+                Span notifText =
+                        new Span(
+                                n.getTitle()
                         );
 
-                Span notifTitle =
-                        new Span(n.getTitle());
+                notifText.addClassName(
+                        "notification-text"
+                );
 
-                notifTitle.getStyle()
-                        .set(
-                                "font-weight",
-                                n.getIsRead()
-                                        ? "400"
-                                        : "600"
-                        );
+                // =====================================================
+                // TIME
+                // =====================================================
 
                 Span time =
                         new Span(
@@ -489,14 +557,22 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
                                 )
                         );
 
-                time.getStyle()
-                        .set("font-size", "11px")
-                        .set("color", "gray");
+                time.addClassName(
+                        "notification-time"
+                );
+
+                // =====================================================
+                // DISMISS
+                // =====================================================
 
                 Button dismiss =
                         new Button(
                                 VaadinIcon.CLOSE_SMALL.create()
                         );
+
+                dismiss.addClassName(
+                        "notification-dismiss"
+                );
 
                 dismiss.addThemeVariants(
                         ButtonVariant.LUMO_TERTIARY_INLINE
@@ -513,20 +589,31 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
                     updateNotificationBadge();
                 });
 
-                HorizontalLayout top =
-                        new HorizontalLayout(
-                                notifTitle,
-                                dismiss
+                // =====================================================
+                // CONTENT
+                // =====================================================
+
+                Div content =
+                        new Div(
+                                notifText,
+                                time
                         );
 
-                top.setWidthFull();
-                top.expand(notifTitle);
+                content.addClassName(
+                        "notification-content"
+                );
 
-                item.add(top, time);
+                item.add(
+                        content,
+                        dismiss
+                );
 
                 panel.add(item);
 
-                // auto mark read
+                // =====================================================
+                // AUTO READ
+                // =====================================================
+
                 if (!n.getIsRead()) {
 
                     notificationService.markAsRead(

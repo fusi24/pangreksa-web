@@ -286,6 +286,10 @@ public class UserFormView extends Main implements HasUrlParameter<Long> {
             actions.setSpacing(true);
 
             Button deleteBtn = new Button(VaadinIcon.CLOSE_CIRCLE_O.create());
+            deleteBtn.getElement().setAttribute(
+                    "theme",
+                    "icon error"
+            );
             deleteBtn.addClickListener(e -> {
                 appUserRespList.remove(appUserResp);
                 gridAppUserResp.setItems(appUserRespList);

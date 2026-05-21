@@ -406,6 +406,10 @@ public class AttendanceView extends Main {
         HorizontalLayout actions = new HorizontalLayout();
 
         Button deleteBtn = new Button(new Icon(VaadinIcon.TRASH));
+        deleteBtn.getElement().setAttribute(
+                "theme",
+                "icon error"
+        );
         deleteBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);
         deleteBtn.setTooltipText("Hapus Absensi");
         deleteBtn.addClickListener(e -> {

@@ -142,6 +142,9 @@ public class MasterCompanyView extends Main {
         companyGrid.setSizeFull();
 
         VerticalLayout layout = new VerticalLayout(toolbar, companyGrid);
+        layout.addClassName(
+                "form-card"
+        );
         layout.setPadding(false);
         layout.setSpacing(false);
         layout.setSizeFull();
@@ -508,6 +511,9 @@ AppNotification.success("Data berhasil disimpan.");
         branchGrid.setSizeFull();
 
         VerticalLayout layout = new VerticalLayout(toolbar, branchGrid);
+        layout.addClassName(
+                "form-card"
+        );
         layout.setSizeFull();
         layout.setPadding(false);
         layout.setSpacing(false);
@@ -857,6 +863,9 @@ AppNotification.success(
         buttons.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
 
         VerticalLayout layout = new VerticalLayout(form, buttons);
+        layout.addClassName(
+                "form-card"
+        );
         layout.setPadding(false);
         layout.setSpacing(false);
         layout.setWidthFull();
