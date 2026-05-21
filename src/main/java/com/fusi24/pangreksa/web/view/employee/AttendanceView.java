@@ -268,7 +268,10 @@ public class AttendanceView extends Main {
         searchField.setVisible(isHr);
 
         Button refreshButton = new Button(new Icon(VaadinIcon.REFRESH), e -> applyFilters());
-        MenuBar exportMenu = buildExportMenu();
+        MenuBar exportMenu =
+                isHr
+                        ? buildExportMenu()
+                        : null;
         checkInButton = new Button("Clock-In / Clock-Out");
         checkInButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         checkInButton.setIcon(new Icon(VaadinIcon.CLOCK));
@@ -285,15 +288,25 @@ public class AttendanceView extends Main {
         uploadAttendanceButton.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
         uploadAttendanceButton.setVisible(isHr);
 
-        HorizontalLayout toolbar = new HorizontalLayout(
+        HorizontalLayout toolbar =
+                new HorizontalLayout();
+
+        toolbar.add(
                 filterBar,
                 searchField,
-                refreshButton,
-                exportMenu,
+                refreshButton
+        );
+
+        if (exportMenu != null) {
+            toolbar.add(exportMenu);
+        }
+
+        toolbar.add(
                 checkInButton,
                 uploadAttendanceButton,
                 addAttendanceButton
         );
+        
         toolbar.setWidthFull();
         toolbar.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
 
