@@ -11,7 +11,7 @@ import com.fusi24.pangreksa.web.service.AppUserAuthService;
 import com.pangreksa.service.service.AttendanceService;
 import com.pangreksa.service.service.SystemService;
 import com.vaadin.flow.router.AfterNavigationEvent;
-
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -352,38 +352,209 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
     // ── Notification panel ────────────────────────────────────────────────────────
 
     private void openNotificationPanel() {
-        var currentUserInfo = currentUser.require();
+
+        var currentUserInfo =
+                currentUser.require();
 
         var panel = new Div();
-        panel.setWidth("320px");
+
+        panel.setWidth("360px");
+
         panel.getStyle()
                 .set("position", "fixed")
                 .set("top", "70px")
                 .set("right", "20px")
                 .set("background", "white")
-                .set("box-shadow", "0 2px 10px rgba(0,0,0,0.2)")
-                .set("padding", "10px")
-                .set("z-index", "999");
+                .set("border-radius", "12px")
+                .set("box-shadow", "0 4px 20px rgba(0,0,0,0.15)")
+                .set("padding", "12px")
+                .set("z-index", "999")
+                .set("max-height", "500px")
+                .set("overflow", "auto");
 
-        var close = VaadinIcon.CLOSE.create();
-        close.addClickListener(e -> panel.removeFromParent());
-        panel.add(close);
+        // =====================================================
+        // HEADER
+        // =====================================================
+
+        var title =
+                new Span("Notifications");
+
+        title.getStyle()
+                .set("font-weight", "600")
+                .set("font-size", "16px");
+
+        Button markAll =
+                new Button("Mark all as read");
+
+        markAll.addThemeVariants(
+                ButtonVariant.LUMO_TERTIARY_INLINE
+        );
+
+        markAll.addClickListener(e -> {
+
+            notificationService.markAllAsRead(
+                    currentUserInfo.getUserId().toString()
+            );
+
+            updateNotificationBadge();
+
+            panel.removeFromParent();
+        });
+
+        var close =
+                new Button(VaadinIcon.CLOSE_SMALL.create());
+
+        close.addThemeVariants(
+                ButtonVariant.LUMO_TERTIARY_INLINE
+        );
+
+        close.addClickListener(
+                e -> panel.removeFromParent()
+        );
+
+        var spacer = new Span();
+
+        spacer.getStyle().set("flex-grow", "1");
+
+        HorizontalLayout header =
+                new HorizontalLayout(
+                        title,
+                        spacer,
+                        markAll,
+                        close
+                );
+
+        header.setWidthFull();
+        header.setAlignItems(
+                FlexComponent.Alignment.CENTER
+        );
+
+        panel.add(header);
+
+        panel.add(new Hr());
+
+        // =====================================================
+        // NOTIFICATIONS
+        // =====================================================
 
         List<HrNotification> notifications =
-                notificationService.getNotifications(currentUserInfo.getUserId().toString());
-        for (HrNotification n : notifications) {
-            var item = new Div();
-            var title = new Span(n.getTitle());
-            if (!n.getIsRead()) {
-                title.getStyle().set("font-weight", "bold").set("color", "red");
+                notificationService.getNotifications(
+                        currentUserInfo.getUserId().toString()
+                );
+
+        if (notifications.isEmpty()) {
+
+            Span empty =
+                    new Span("Tidak ada notifikasi.");
+
+            empty.getStyle()
+                    .set("color", "gray")
+                    .set("font-size", "13px");
+
+            panel.add(empty);
+
+        } else {
+
+            for (HrNotification n : notifications) {
+
+                Div item =
+                        new Div();
+
+                item.getStyle()
+                        .set("padding", "10px")
+                        .set("border-radius", "10px")
+                        .set("margin-bottom", "8px")
+                        .set(
+                                "background",
+                                n.getIsRead()
+                                        ? "#f8f9fa"
+                                        : "#fff5f5"
+                        );
+
+                Span notifTitle =
+                        new Span(n.getTitle());
+
+                notifTitle.getStyle()
+                        .set(
+                                "font-weight",
+                                n.getIsRead()
+                                        ? "400"
+                                        : "600"
+                        );
+
+                Span time =
+                        new Span(
+                                formatTime(
+                                        n.getCreatedAt()
+                                )
+                        );
+
+                time.getStyle()
+                        .set("font-size", "11px")
+                        .set("color", "gray");
+
+                Button dismiss =
+                        new Button(
+                                VaadinIcon.CLOSE_SMALL.create()
+                        );
+
+                dismiss.addThemeVariants(
+                        ButtonVariant.LUMO_TERTIARY_INLINE
+                );
+
+                dismiss.addClickListener(e -> {
+
+                    notificationService.dismissNotification(
+                            n.getId()
+                    );
+
+                    item.setVisible(false);
+
+                    updateNotificationBadge();
+                });
+
+                HorizontalLayout top =
+                        new HorizontalLayout(
+                                notifTitle,
+                                dismiss
+                        );
+
+                top.setWidthFull();
+                top.expand(notifTitle);
+
+                item.add(top, time);
+
+                panel.add(item);
+
+                // auto mark read
+                if (!n.getIsRead()) {
+
+                    notificationService.markAsRead(
+                            n.getId()
+                    );
+                }
             }
-            var time = new Span(formatTime(n.getCreatedAt()));
-            time.getStyle().set("font-size", "10px");
-            item.add(title, new Div(time));
-            panel.add(item);
         }
 
+        updateNotificationBadge();
+
         UI.getCurrent().add(panel);
+    }
+
+    private void updateNotificationBadge() {
+
+        int unread =
+                notificationService.countUnread(
+                        user.getUserId().toString()
+                );
+
+        notificationBadge.setText(
+                String.valueOf(unread)
+        );
+
+        notificationBadge.setVisible(
+                unread > 0
+        );
     }
 
     private String formatTime(LocalDateTime time) {
