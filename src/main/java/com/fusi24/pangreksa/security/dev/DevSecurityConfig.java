@@ -1,6 +1,6 @@
 package com.fusi24.pangreksa.security.dev;
 
-import com.fusi24.pangreksa.security.controlcenter.ControlCenterSecurityConfig;
+// TODO Vaadin 25: Control Center has been removed; ControlCenterSecurityConfig no longer exists.
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.server.VaadinServiceInitListener;
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
@@ -22,7 +22,7 @@ import org.springframework.security.web.SecurityFilterChain;
  * </ul>
  * </p>
  * <p>
- * This configuration is automatically activated when {@link ControlCenterSecurityConfig} is not active. It should
+ * This configuration is automatically activated when no production security config is active. It should
  * <strong>not</strong> be used in production environments, as it uses hardcoded credentials and simplified security
  * settings.
  * </p>
@@ -52,7 +52,7 @@ class DevSecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.headers(headers -> headers.frameOptions().disable())
+        http.headers(headers -> headers.frameOptions(frame -> frame.disable()))
             .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
             .authorizeHttpRequests(authz -> authz
                             .requestMatchers("/h2-console/**").permitAll()

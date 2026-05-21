@@ -2,10 +2,10 @@ package com.fusi24.pangreksa.web;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fusi24.pangreksa.web.model.entity.*;
-import com.fusi24.pangreksa.web.model.enumerate.*;
-import com.fusi24.pangreksa.web.repo.FwAppUserRepository;
-import com.fusi24.pangreksa.web.service.PersonService;
+import com.pangreksa.service.model.entity.*;
+import com.pangreksa.service.model.enumerate.*;
+import com.pangreksa.service.model.repo.FwAppUserRepository;
+import com.pangreksa.service.service.PersonService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

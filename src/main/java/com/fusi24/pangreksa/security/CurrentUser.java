@@ -1,5 +1,8 @@
 package com.fusi24.pangreksa.security;
 
+import com.pangreksa.service.shared.security.AppUserInfo;
+import com.pangreksa.service.shared.security.UserId;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

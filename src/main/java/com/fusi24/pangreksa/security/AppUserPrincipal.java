@@ -1,5 +1,8 @@
 package com.fusi24.pangreksa.security;
 
+import com.pangreksa.service.shared.security.AppUserInfo;
+import com.pangreksa.service.shared.security.UserId;
+
 import org.springframework.security.core.GrantedAuthority;
 
 import java.security.Principal;

@@ -1,0 +1,97 @@
+name: Build & Deploy (hexagonal branch)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - hexagonal
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+      # Step 1: Checkout this repo (pangreksa-web)
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Checkout pangreksa-service into a subdirectory
+      - name: Checkout pangreksa-service
+        uses: actions/checkout@v4
+        with:
+          repository: fusi24/pangreksa-service
+          ref: main
+          path: _pangreksa-service
+
+      # Step 3: Set up JDK 21
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # Step 4: Install pangreksa-service into local Maven repo (~/.m2)
+      - name: Install pangreksa-service
+        working-directory: _pangreksa-service
+        run: mvn clean install -DskipTests
+
+      # Step 5: Replace FSTSecurityConfig.java with prod version from /opt/source
+      - name: Replace FSTSecurityConfig.java
+        run: |
+          cp /opt/source/hexagonal/FSTSecurityConfig.java src/main/java/com/fusi24/pangreksa/security/FSTSecurityConfig.java
+
+      # Step 6: Copy application.properties from /opt/source
+      - name: Add cloud DB application.properties
+        run: |
+          cp /opt/source/application.properties_cloud_db src/main/resources/application.properties
+
+      # Step 7: Build JAR with Maven, production profile (skip tests)
+      - name: Build with Maven
+        run: mvn -B clean package -DskipTests -Pproduction
+
+      # Step 8: Save artifact for next stage
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-jar
+          path: target/web-1.0-SNAPSHOT.jar
+
+  deploy:
+    runs-on: self-hosted
+    needs: build
+
+    steps:
+      # Step 1: Download the JAR artifact
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: built-jar
+          path: target
+
+      # Step 2: Rename JAR with timestamp
+      - name: Rename JAR with timestamp
+        run: |
+          ts=$(date +'%Y%m%d%H%M%S')
+          mv target/web-1.0-SNAPSHOT.jar target/web-1.0-${ts}.jar
+          echo "JAR_NAME=web-1.0-${ts}.jar" >> $GITHUB_ENV
+
+      # Step 3: Delete old JARs on remote machine
+      - name: Delete old JARs on remote
+        run: |
+          ssh root@cloudserver "rm -f ~/web-1.0-*.jar"
+
+      # Step 4: Copy new JAR to remote
+      - name: Copy JAR to remote
+        run: |
+          scp target/${{ env.JAR_NAME }} root@cloudserver:~
+
+      # Step 5: Kill old Java process if running
+      - name: Kill old Java process
+        run: |
+          ssh -o StrictHostKeyChecking=no root@cloudserver "pkill -f 'web-1.0'" || true
+
+      # Step 6: Run JAR on remote with nohup (prod profile)
+      - name: Run JAR on remote
+        run: |
+          ssh root@cloudserver "nohup java -jar ~/$(echo ${{ env.JAR_NAME }}) --spring.profiles.active=prod > ~/run.log 2>&1 &"

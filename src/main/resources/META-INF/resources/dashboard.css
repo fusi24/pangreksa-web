@@ -1,0 +1,179 @@
+/* =========================================
+   Dashboard-specific styles
+   Loaded via @StyleSheet on DashboardView
+   and AdminDashboardView
+   ========================================= */
+
+/* ── Layout container ──────────────────── */
+
+.main-container {
+  max-width: 1200px;
+  margin: auto;
+  padding: var(--vaadin-padding-l, 20px);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--vaadin-gap-l, 20px);
+  width: 100%;
+}
+
+.title {
+  font-size: var(--aura-font-size-xl, 22px);
+  font-weight: var(--aura-font-weight-semibold, 600);
+  color: var(--vaadin-text-color);
+}
+
+/* ── Card system ───────────────────────── */
+
+.dashboard-card {
+  background: var(--aura-background-color, white);
+  border: 1px solid var(--vaadin-border-color-secondary, #e2e8f0);
+  border-radius: var(--vaadin-radius-l, 16px);
+  padding: var(--vaadin-padding-l, 24px);
+  box-shadow: var(--aura-shadow-xs, 0 1px 3px 0 rgb(0 0 0 / 0.1));
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-card:hover {
+  box-shadow: var(--aura-shadow-m, 0 10px 15px -3px rgb(0 0 0 / 0.1));
+  transform: translateY(-2px);
+}
+
+/* ── Card headers ──────────────────────── */
+
+.card-header {
+  font-size: var(--aura-font-size-s, 13px);
+  font-weight: var(--aura-font-weight-semibold, 700);
+  color: var(--vaadin-text-color-secondary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--vaadin-gap-l, 20px);
+  display: flex;
+  align-items: center;
+  gap: var(--vaadin-gap-s, 10px);
+}
+
+.dashboard-title {
+  display: flex;
+  align-items: center;
+  gap: var(--vaadin-gap-s, 8px);
+  font-size: var(--aura-font-size-s, 13px);
+  font-weight: var(--aura-font-weight-semibold, 700);
+  color: var(--vaadin-text-color-secondary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--vaadin-gap-m, 16px);
+}
+
+/* ── Leave ring (employee dashboard) ───── */
+
+.leave-ring {
+  width: 100px;
+  height: 100px;
+  border: 6px solid var(--vaadin-border-color-secondary, #e2e8f0);
+  border-top: 6px solid var(--lumo-primary-color, #0f172a);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--vaadin-gap-m, 10px) auto;
+}
+
+.leave-ring-inner {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--vaadin-text-color, #0f172a);
+}
+
+/* ── Progress ring (admin dashboard) ───── */
+
+.progress-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  /* conic-gradient background is set inline by Java */
+}
+
+.progress-ring-inner {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--aura-background-color, white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--aura-font-size-m, 15px);
+  font-weight: 800;
+  color: var(--vaadin-text-color, #111827);
+}
+
+/* ── Notification box ──────────────────── */
+
+.notification-box {
+  background: var(--vaadin-background-container, #f8fafc);
+  border: 1px solid var(--vaadin-border-color-secondary, #e2e8f0);
+  border-radius: var(--vaadin-radius-m, 12px);
+  padding: var(--vaadin-padding-m, 12px) var(--vaadin-padding-l, 16px);
+  font-size: var(--aura-font-size-s, 14px);
+  color: var(--vaadin-text-color-secondary, #64748b);
+  line-height: var(--aura-line-height-m, 1.6);
+}
+
+/* ── Activity icon (admin dashboard) ───── */
+
+.activity-icon-bg {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--vaadin-radius-m, 8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Responsive ────────────────────────── */
+
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: var(--vaadin-gap-m, 16px);
+  }
+
+  .main-container {
+    padding: var(--vaadin-padding-m, 12px);
+  }
+
+  .title {
+    font-size: var(--aura-font-size-l, 18px);
+    margin-bottom: var(--vaadin-gap-m, 15px);
+  }
+
+  .dashboard-card {
+    padding: var(--vaadin-padding-m, 12px);
+    min-height: auto;
+  }
+
+  .leave-ring {
+    width: 80px;
+    height: 80px;
+  }
+
+  .leave-ring-inner {
+    font-size: 24px;
+  }
+}
+

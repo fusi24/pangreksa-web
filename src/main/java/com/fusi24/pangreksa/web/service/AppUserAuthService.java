@@ -1,8 +1,8 @@
 package com.fusi24.pangreksa.web.service;
 
 import com.fusi24.pangreksa.web.model.Responsibility;
-import com.fusi24.pangreksa.web.model.entity.VwAppUserAuth;
-import com.fusi24.pangreksa.web.repo.VwAppUserAuthRepository;
+import com.pangreksa.service.model.entity.VwAppUserAuth;
+import com.pangreksa.service.model.repo.VwAppUserAuthRepository;
 import com.vaadin.flow.server.menu.MenuEntry;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,6 +1,6 @@
 package com.fusi24.pangreksa.taskmanagement.domain;
 
-import com.fusi24.pangreksa.base.domain.AbstractEntity;
+import com.pangreksa.service.shared.AbstractEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import org.jspecify.annotations.Nullable;

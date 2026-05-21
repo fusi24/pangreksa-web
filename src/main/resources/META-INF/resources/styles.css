@@ -1,0 +1,52 @@
+html {
+    color-scheme: dark;
+    --aura-content-color-scheme: light;
+
+    --aura-accent-color-light: #962829;
+    --aura-accent-color-dark:  #AF3931;
+
+    --aura-background-color-light: #f5f3f2;
+    --aura-background-color-dark:  #1e1a1a;
+
+    --aura-app-layout-inset: 0px;
+
+    --aura-app-layout-border-width: 0px;
+    --aura-app-layout-radius: 0px;
+}
+
+vaadin-side-nav-item:not([current]) > vaadin-icon {
+    color: var(--aura-accent-text-color);
+}
+
+vaadin-app-layout::part(navbar) {
+    --vaadin-text-color: light-dark(var(--aura-neutral-light), var(--aura-neutral-dark));
+    color-scheme: light;
+    background: var(--aura-background-color-light);
+    border-bottom: 1px solid var(--aura-accent-border-color);
+}
+
+vaadin-app-layout>[slot="navbar"] {
+    color: var(--vaadin-text-color);
+}
+
+/* =========================================
+   📐 COLUMN SYSTEM (reusable)
+   ========================================= */
+
+.col-span-1 { grid-column: span 1; }
+.col-span-2 { grid-column: span 2; }
+.col-span-3 { grid-column: span 3; }
+.col-span-4 { grid-column: span 4; }
+.col-span-5 { grid-column: span 5; }
+.col-span-6 { grid-column: span 6; }
+
+@media (max-width: 1024px) {
+  .col-span-4, .col-span-5, .col-span-6 { grid-column: span 3; }
+}
+
+@media (max-width: 768px) {
+  .col-span-1, .col-span-2, .col-span-3,
+  .col-span-4, .col-span-5, .col-span-6 {
+    grid-column: span 1;
+  }
+}

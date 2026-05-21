@@ -1,7 +1,7 @@
 package com.fusi24.pangreksa.security.dev;
 
 import com.fusi24.pangreksa.security.AppRoles;
-import com.fusi24.pangreksa.security.domain.UserId;
+import com.pangreksa.service.shared.security.UserId;
 
 import java.util.List;
 import java.util.UUID;

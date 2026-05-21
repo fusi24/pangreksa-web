@@ -1,9 +1,9 @@
 package com.fusi24.pangreksa.web;
 
-import com.fusi24.pangreksa.web.model.entity.FwAppUser;
-import com.fusi24.pangreksa.web.model.entity.HrPersonPosition;
-import com.fusi24.pangreksa.web.repo.FwAppUserRepository;
-import com.fusi24.pangreksa.web.service.PersonService;
+import com.pangreksa.service.model.entity.FwAppUser;
+import com.pangreksa.service.model.entity.HrPersonPosition;
+import com.pangreksa.service.model.repo.FwAppUserRepository;
+import com.pangreksa.service.service.PersonService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

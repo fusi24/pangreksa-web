@@ -2,9 +2,9 @@ package com.fusi24.pangreksa.web.view.common;
 
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.model.entity.HrAttendance;
-import com.fusi24.pangreksa.web.model.entity.HrCompanyBranch;
-import com.fusi24.pangreksa.web.service.AttendanceService;
+import com.pangreksa.service.model.entity.HrAttendance;
+import com.pangreksa.service.model.entity.HrCompanyBranch;
+import com.pangreksa.service.service.AttendanceService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;

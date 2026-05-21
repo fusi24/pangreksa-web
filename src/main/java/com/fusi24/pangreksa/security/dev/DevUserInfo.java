@@ -1,7 +1,7 @@
 package com.fusi24.pangreksa.security.dev;
 
-import com.fusi24.pangreksa.security.AppUserInfo;
-import com.fusi24.pangreksa.security.domain.UserId;
+import com.pangreksa.service.shared.security.AppUserInfo;
+import com.pangreksa.service.shared.security.UserId;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZoneId;

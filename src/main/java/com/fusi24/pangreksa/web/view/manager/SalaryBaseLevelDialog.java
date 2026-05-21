@@ -1,10 +1,10 @@
 package com.fusi24.pangreksa.web.view.manager;
 
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
-import com.fusi24.pangreksa.web.model.entity.FwAppUser;
-import com.fusi24.pangreksa.web.model.entity.HrCompany;
-import com.fusi24.pangreksa.web.model.entity.HrSalaryBaseLevel;
-import com.fusi24.pangreksa.web.service.SalaryBaseLevelService;
+import com.pangreksa.service.model.entity.FwAppUser;
+import com.pangreksa.service.model.entity.HrCompany;
+import com.pangreksa.service.model.entity.HrSalaryBaseLevel;
+import com.pangreksa.service.service.SalaryBaseLevelService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;

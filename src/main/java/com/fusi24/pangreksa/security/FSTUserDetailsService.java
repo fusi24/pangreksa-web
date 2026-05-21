@@ -1,9 +1,9 @@
 package com.fusi24.pangreksa.security;
 
-import com.fusi24.pangreksa.web.model.entity.FwAppUser;
-import com.fusi24.pangreksa.web.model.entity.VwAppUserRole;
-import com.fusi24.pangreksa.web.repo.FwAppUserRepository;
-import com.fusi24.pangreksa.web.repo.VwAppUserRoleRepository;
+import com.pangreksa.service.model.entity.FwAppUser;
+import com.pangreksa.service.model.entity.VwAppUserRole;
+import com.pangreksa.service.model.repo.FwAppUserRepository;
+import com.pangreksa.service.model.repo.VwAppUserRoleRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;

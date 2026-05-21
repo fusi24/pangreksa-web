@@ -3,15 +3,15 @@ package com.fusi24.pangreksa.web.view.employee;
 import com.fusi24.pangreksa.base.ui.component.ViewToolbar;
 import com.fusi24.pangreksa.base.ui.notification.AppNotification;
 import com.fusi24.pangreksa.security.CurrentUser;
-import com.fusi24.pangreksa.web.model.Authorization;
-import com.fusi24.pangreksa.web.model.entity.*;
-import com.fusi24.pangreksa.web.repo.HrDepartmentRepo;
-import com.fusi24.pangreksa.web.repo.HrCompanyRepository;
-import com.fusi24.pangreksa.web.service.CommonService;
-import com.fusi24.pangreksa.web.service.CompanyService;
-import com.fusi24.pangreksa.web.service.CompanyBranchService;
-import com.fusi24.pangreksa.web.service.PersonService;
-import com.fusi24.pangreksa.web.service.SystemService;
+import com.pangreksa.service.shared.Authorization;
+import com.pangreksa.service.model.entity.*;
+import com.pangreksa.service.model.repo.HrDepartmentRepository;
+import com.pangreksa.service.model.repo.HrCompanyRepository;
+import com.pangreksa.service.service.CommonService;
+import com.pangreksa.service.service.CompanyService;
+import com.pangreksa.service.service.CompanyBranchService;
+import com.pangreksa.service.service.PersonService;
+import com.pangreksa.service.service.SystemService;
 
 
 
@@ -37,7 +37,7 @@ import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fusi24.pangreksa.base.ui.TailwindUtility;
 import jakarta.annotation.security.RolesAllowed;
 import org.ocpsoft.prettytime.PrettyTime;
 import org.slf4j.Logger;
@@ -49,6 +49,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import com.pangreksa.service.model.repo.FwAppUserRepository;
+import com.vaadin.flow.component.html.Span;
 
 @Route("profil-data-karyawan-page-access")
 @PageTitle("Profil Data Karyawan")
@@ -85,10 +87,13 @@ public class ProfilDataKaryawanView extends Main {
     Grid<HrPosition> positionGrid;
 
     @Autowired
-    private HrDepartmentRepo hrDepartmentRepo;
+    private HrDepartmentRepository hrDepartmentRepo;
 
     @Autowired
     private HrCompanyRepository hrCompanyRepository;
+
+    @Autowired
+    private FwAppUserRepository fwAppUserRepository;
 
     public ProfilDataKaryawanView(CurrentUser currentUser,
                                   CommonService commonService,
@@ -116,8 +121,8 @@ public class ProfilDataKaryawanView extends Main {
 
         log.debug("Page {}, Authorization: {} {} {} {}", VIEW_NAME, auth.canView, auth.canCreate, auth.canEdit, auth.canDelete);
 
-        addClassNames(LumoUtility.BoxSizing.BORDER, LumoUtility.Display.FLEX, LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.Padding.MEDIUM, LumoUtility.Gap.SMALL);
+        addClassNames(TailwindUtility.BoxSizing.BORDER, TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.COLUMN,
+                TailwindUtility.Padding.MEDIUM, TailwindUtility.Gap.SMALL);
 
         add(new ViewToolbar(VIEW_NAME));
         createBody();
@@ -164,7 +169,7 @@ public class ProfilDataKaryawanView extends Main {
         toolbarLayout.setJustifyContentMode(JustifyContentMode.BETWEEN);
         toolbarLayout.setAlignItems(Alignment.BASELINE);
         toolbarLayout.add(leftLayout, rightLayout);
-        toolbarLayout.addClassNames(LumoUtility.Padding.Top.NONE, LumoUtility.Padding.Right.NONE, LumoUtility.Padding.Bottom.MEDIUM, LumoUtility.Padding.Left.NONE);
+        toolbarLayout.addClassNames(TailwindUtility.Padding.Top.NONE, TailwindUtility.Padding.Right.NONE, TailwindUtility.Padding.Bottom.MEDIUM, TailwindUtility.Padding.Left.NONE);
 
         body.add(toolbarLayout);
 
@@ -525,6 +530,40 @@ public class ProfilDataKaryawanView extends Main {
 //        }).setHeader("Departemen").setSortable(true);
         // Tanggal Mulai
         gridEmployees.addColumn(HrPersonPosition::getStartDate).setHeader("Tanggal Mulai").setSortable(true);
+
+        gridEmployees.addColumn(new ComponentRenderer<>(personPosition -> {
+
+            HrPerson person = personPosition.getPerson();
+
+            Span badge = new Span("Nonaktif");
+
+            badge.getStyle()
+                    .set("padding", "4px 10px")
+                    .set("border-radius", "12px")
+                    .set("font-size", "12px")
+                    .set("font-weight", "600")
+                    .set("color", "white")
+                    .set("background-color", "#ef4444");
+
+            if (person != null) {
+
+                Optional<FwAppUser> appUserOpt =
+                        fwAppUserRepository.findByPerson(person);
+
+                if (appUserOpt.isPresent()
+                        && Boolean.TRUE.equals(appUserOpt.get().getIsActive())) {
+
+                    badge.setText("Aktif");
+
+                    badge.getStyle()
+                            .set("background-color", "#22c55e");
+                }
+            }
+
+            return badge;
+
+        })).setHeader("Status");
+
         // Action column with delete button (icon only, no title)
         gridEmployees.addColumn(new ComponentRenderer<>(personPosition -> {
             HorizontalLayout actionLayout = new HorizontalLayout();
