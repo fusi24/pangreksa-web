@@ -258,6 +258,7 @@ public class AttendanceView extends Main {
                 startDateFilter,
                 endDateFilter
         );
+        filterBar.addClassName("attendance-filter-bar");
         filterBar.setSpacing(true);
 
         searchField.setPlaceholder("Cari nama karyawan");
@@ -266,6 +267,7 @@ public class AttendanceView extends Main {
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
         searchField.addValueChangeListener(e -> applyFilters());
         searchField.setVisible(isHr);
+        searchField.addClassName("attendance-search");
 
         Button refreshButton = new Button(new Icon(VaadinIcon.REFRESH), e -> applyFilters());
         MenuBar exportMenu =
@@ -290,6 +292,7 @@ public class AttendanceView extends Main {
 
         HorizontalLayout toolbar =
                 new HorizontalLayout();
+        toolbar.addClassName("attendance-toolbar");
 
         toolbar.add(
                 filterBar,
@@ -301,10 +304,28 @@ public class AttendanceView extends Main {
             toolbar.add(exportMenu);
         }
 
-        toolbar.add(
+        HorizontalLayout actionBar = new HorizontalLayout();
+
+        actionBar.addClassName("attendance-action-bar");
+
+        actionBar.add(
+                refreshButton
+        );
+
+        if (exportMenu != null) {
+            actionBar.add(exportMenu);
+        }
+
+        actionBar.add(
                 checkInButton,
                 uploadAttendanceButton,
                 addAttendanceButton
+        );
+
+        toolbar.add(
+                filterBar,
+                searchField,
+                actionBar
         );
         
         toolbar.setWidthFull();
@@ -315,6 +336,7 @@ public class AttendanceView extends Main {
         layout.setPadding(false);
         layout.setSpacing(false);
         grid.setSizeFull();
+        grid.addClassName("attendance-grid");
 
         grid.sort(
                 Collections.singletonList(

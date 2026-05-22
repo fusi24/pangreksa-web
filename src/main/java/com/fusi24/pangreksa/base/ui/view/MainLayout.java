@@ -271,6 +271,9 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
 
         // Responsibility selector — no label, placeholder only, defaults to first role
         responsibilityDropdown = new ComboBox<>();
+        responsibilityDropdown.addClassName(
+                "sidebar-role-select"
+        );
         responsibilityDropdown.setItems(responsibilityList);
         responsibilityDropdown.setItemLabelGenerator(Responsibility::getResponsibility);
         responsibilityDropdown.setWidthFull();
@@ -445,7 +448,9 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
         title.getStyle()
                 .set("font-weight", "600")
                 .set("font-size", "16px");
-
+        title.addClassName(
+                "notification-title"
+        );
         Button markAll =
                 new Button("Mark all as read");
 
@@ -488,12 +493,17 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
                 );
 
         header.setWidthFull();
+        header.addClassName(
+                "notification-header"
+        );
         header.setAlignItems(
                 FlexComponent.Alignment.CENTER
         );
 
         panel.add(header);
-
+        panel.addClassName(
+                "notification-panel"
+        );
         panel.add(new Hr());
 
         // =====================================================
