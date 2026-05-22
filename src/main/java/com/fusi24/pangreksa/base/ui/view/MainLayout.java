@@ -268,8 +268,6 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
         gapSpan.addClassNames(Flex.GROW);
         var userInfo = new Div(avatar, nameSpan, gapSpan, contextButton);
         userInfo.addClassNames(Display.FLEX, AlignItems.CENTER, Gap.MEDIUM, Width.FULL);
-
-        // Responsibility selector — no label, placeholder only, defaults to first role
         responsibilityDropdown = new ComboBox<>();
         responsibilityDropdown.addClassName(
                 "sidebar-role-select"
