@@ -20,7 +20,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 @Configuration
 @Import({ VaadinAwareSecurityContextHolderStrategyConfiguration.class })
-class FSTSecurityConfig {
+public class FSTSecurityConfig {
 
     private static final Logger log = LoggerFactory.getLogger(FSTSecurityConfig.class);
 
