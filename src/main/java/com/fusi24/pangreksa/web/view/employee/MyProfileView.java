@@ -581,7 +581,12 @@ public class MyProfileView extends Main {
         this.gridAddress = new Grid<>(HrPersonAddress.class, false);
         // Column 1: Address name and full address (multi-line)
         gridAddress.addComponentColumn(address -> {
-            VerticalLayout layout = new VerticalLayout();
+            VerticalLayout layout =
+                    new VerticalLayout();
+
+            layout.addClassName(
+                    "form-card"
+            );
             layout.setSpacing(false);
             layout.setPadding(false);
             layout.setMargin(false);
@@ -611,6 +616,9 @@ public class MyProfileView extends Main {
             });
 
             Button editBtn = new Button(VaadinIcon.PENCIL.create());
+            editBtn.addClassName(
+                    "grid-action-btn"
+            );
             editBtn.getElement().setAttribute("theme", "icon primary");
             editBtn.addClickListener(e -> {
                 populateAddressFields(address);
@@ -688,7 +696,12 @@ public class MyProfileView extends Main {
                 .setAutoWidth(true);
         // Column 2: multi-line
         gridContacts.addComponentColumn(contact -> {
-            VerticalLayout layout = new VerticalLayout();
+            VerticalLayout layout =
+                    new VerticalLayout();
+
+            layout.addClassName(
+                    "form-card"
+            );
             layout.setSpacing(false);
             layout.setPadding(false);
             layout.setMargin(false);
@@ -717,6 +730,9 @@ public class MyProfileView extends Main {
             });
 
             Button editBtn = new Button(VaadinIcon.PENCIL.create());
+            editBtn.addClassName(
+                    "grid-action-btn"
+            );
             editBtn.getElement().setAttribute("theme", "icon primary");
             editBtn.addClickListener(e -> {
                 populateContactFields(contact);
@@ -786,7 +802,12 @@ public class MyProfileView extends Main {
                 .setAutoWidth(true);
         // Column 2: multi-line
         gridEducation.addComponentColumn(education -> {
-            VerticalLayout layout = new VerticalLayout();
+            VerticalLayout layout =
+                    new VerticalLayout();
+
+            layout.addClassName(
+                    "form-card"
+            );
             layout.setSpacing(false);
             layout.setPadding(false);
             layout.setMargin(false);
@@ -804,7 +825,12 @@ public class MyProfileView extends Main {
         }).setHeader("Pendidikan").setAutoWidth(true);
         // Column 3: multi-line
         gridEducation.addComponentColumn(education -> {
-            VerticalLayout layout = new VerticalLayout();
+            VerticalLayout layout =
+                    new VerticalLayout();
+
+            layout.addClassName(
+                    "form-card"
+            );
             layout.setSpacing(false);
             layout.setPadding(false);
             layout.setMargin(false);
@@ -831,6 +857,9 @@ public class MyProfileView extends Main {
             });
 
             Button editBtn = new Button(VaadinIcon.PENCIL.create());
+            editBtn.addClassName(
+                    "grid-action-btn"
+            );
             editBtn.getElement().setAttribute("theme", "icon primary");
             editBtn.addClickListener(e -> {
                 populateEducationFields(education);
@@ -923,6 +952,9 @@ public class MyProfileView extends Main {
             });
 
             Button editBtn = new Button(VaadinIcon.PENCIL.create());
+            editBtn.addClassName(
+                    "grid-action-btn"
+            );
             editBtn.getElement().setAttribute("theme", "icon primary");
             editBtn.addClickListener(e -> {
                 populateDocumentFields(document);

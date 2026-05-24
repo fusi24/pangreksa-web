@@ -13,12 +13,14 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.time.Clock;
+import com.vaadin.flow.theme.Theme;
 
 @SpringBootApplication(scanBasePackages = {"com.fusi24.pangreksa", "com.pangreksa.service"})
 @EntityScan(basePackages = {"com.pangreksa.service.model.entity", "com.fusi24.pangreksa.taskmanagement.domain"})
 @EnableJpaRepositories(basePackages = {"com.pangreksa.service.model.repo", "com.fusi24.pangreksa.taskmanagement.domain"})
 @StyleSheet(Aura.STYLESHEET)
 @StyleSheet("styles.css")
+//@Theme("default")
 @Push(PushMode.AUTOMATIC)
 @EnableScheduling
 public class Application implements AppShellConfigurator {

@@ -24,7 +24,8 @@ import jakarta.annotation.security.RolesAllowed;
 import com.pangreksa.service.model.repo.FwAppUserRepository;
 import com.pangreksa.service.model.repo.FwSystemRepository;
 import com.pangreksa.service.model.repo.HrPersonRepository;
-
+import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import java.time.LocalDate;
 
 @Route("contract-management")
@@ -73,9 +74,9 @@ public class ContractManagementView extends Main {
 
         add(new ViewToolbar("Manajemen Kontrak"));
 
-        configureGrid();
-
         configureToolbar();
+
+        configureGrid();
 
         loadData();
     }
@@ -113,10 +114,54 @@ public class ContractManagementView extends Main {
         });
 
         HorizontalLayout toolbar =
+                new HorizontalLayout();
+
+        toolbar.setWidthFull();
+
+        toolbar.setAlignItems(
+                Alignment.END
+        );
+
+        toolbar.setJustifyContentMode(
+                JustifyContentMode.BETWEEN
+        );
+
+        toolbar.addClassName(
+                "page-toolbar"
+        );
+
+// =====================================
+// LEFT
+// =====================================
+
+        HorizontalLayout left =
                 new HorizontalLayout(
-                        statusFilter,
+                        statusFilter
+                );
+
+        left.setAlignItems(
+                Alignment.END
+        );
+
+// =====================================
+// RIGHT
+// =====================================
+
+        HorizontalLayout right =
+                new HorizontalLayout(
                         addButton
                 );
+
+        right.setAlignItems(
+                Alignment.END
+        );
+
+// =====================================
+
+        toolbar.add(
+                left,
+                right
+        );
 
         add(toolbar);
     }
