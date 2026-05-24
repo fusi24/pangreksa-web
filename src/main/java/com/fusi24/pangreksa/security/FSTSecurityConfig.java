@@ -24,7 +24,7 @@ public class FSTSecurityConfig {
 
     private static final Logger log = LoggerFactory.getLogger(FSTSecurityConfig.class);
 
-    FSTSecurityConfig() {
+    public FSTSecurityConfig()  {
         log.warn("Using DEVELOPMENT security configuration. This should not be used in production environments!");
     }
 
