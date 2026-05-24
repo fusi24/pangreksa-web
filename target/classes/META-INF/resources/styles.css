@@ -1,865 +1,3 @@
-
-* {
-    box-sizing: border-box;
-}
-
-html,
-body {
-
-    margin: 0;
-    padding: 0;
-
-    background:
-        #f4f6f9;
-
-    font-family:
-        Inter,
-        sans-serif;
-
-    -webkit-font-smoothing:
-        antialiased;
-
-    -moz-osx-font-smoothing:
-        grayscale;
-}
-
-/* =========================================
-   APP LAYOUT
-   ========================================= */
-
-vaadin-app-layout {
-
-    background:
-        #f4f6f9;
-}
-
-/* drawer */
-
-vaadin-app-layout::part(drawer) {
-
-    width:
-        285px;
-
-    background:
-        linear-gradient(
-            180deg,
-            #111827 0%,
-            #0f172a 100%
-        );
-
-    border-right:
-        1px solid rgba(255,255,255,0.04);
-}
-
-/* navbar */
-
-vaadin-app-layout::part(navbar) {
-
-    background:
-        rgba(255,255,255,0.94);
-
-    backdrop-filter:
-        blur(10px);
-
-    border-bottom:
-        1px solid #e5e7eb;
-
-    height:
-        64px;
-}
-
-/* =========================================
-   SIDEBAR
-   ========================================= */
-
-.sidebar-content {
-
-    height:
-        100%;
-
-    display:
-        flex;
-
-    flex-direction:
-        column;
-
-    padding:
-        16px 14px;
-
-    color:
-        white;
-}
-
-/* =========================================
-   LOGO
-   ========================================= */
-
-.app-logo {
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    gap:
-        12px;
-
-    padding:
-        4px 6px 22px 6px;
-
-    flex-shrink:
-        0;
-}
-
-/* =========================================
-   SEARCH
-   ========================================= */
-
-.sidebar-search {
-
-    margin-bottom:
-        18px;
-
-    flex-shrink:
-        0;
-}
-
-.sidebar-search vaadin-text-field::part(input-field) {
-
-    background:
-        rgba(255,255,255,0.06);
-
-    border:
-        1px solid rgba(255,255,255,0.08);
-
-    border-radius:
-        14px;
-
-    min-height:
-        40px;
-
-    box-shadow:
-        none;
-}
-
-.sidebar-search input {
-
-    color:
-        white !important;
-
-    font-size:
-        13px;
-}
-
-.sidebar-search input::placeholder {
-
-    color:
-        rgba(255,255,255,0.42);
-}
-
-/* =========================================
-   SIDE NAV
-   ========================================= */
-
-vaadin-side-nav {
-
-    display:
-        flex;
-
-    flex-direction:
-        column;
-
-    gap:
-        2px;
-
-    padding:
-        0 !important;
-
-    flex:
-        1;
-}
-
-/* menu item */
-
-vaadin-side-nav-item {
-
-    --vaadin-side-nav-item-padding:
-        8px 12px;
-
-    min-height:
-        38px;
-
-    border-radius:
-        12px;
-
-    margin:
-        2px 0;
-
-    transition:
-        all 0.15s ease;
-}
-
-/* content */
-
-vaadin-side-nav-item::part(content) {
-
-    color:
-        rgba(255,255,255,0.84);
-
-    font-size:
-        13px;
-
-    font-weight:
-        500;
-
-    padding:
-        8px 14px;
-}
-
-/* icon */
-
-vaadin-side-nav-item vaadin-icon {
-
-    width:
-        16px;
-
-    height:
-        16px;
-
-    color:
-        rgba(255,255,255,0.70);
-}
-
-/* hover */
-
-vaadin-side-nav-item:hover {
-
-    background:
-        rgba(255,255,255,0.06);
-}
-
-/* active */
-
-vaadin-side-nav-item[current] {
-
-    background:
-        linear-gradient(
-            135deg,
-            #962829,
-            #b63a3b
-        );
-
-    box-shadow:
-        0 8px 18px rgba(150,40,41,0.20);
-}
-
-/* active text */
-
-vaadin-side-nav-item[current]::part(content) {
-
-    color:
-        white;
-
-    font-weight:
-        600;
-}
-
-/* active icon */
-
-vaadin-side-nav-item[current] vaadin-icon {
-
-    color:
-        white;
-}
-
-/* =========================================
-   SECTION TITLE
-   ========================================= */
-
-vaadin-details-summary {
-
-    color:
-        rgba(255,255,255,0.34);
-
-    font-size:
-        10px;
-
-    font-weight:
-        700;
-
-    letter-spacing:
-        0.08em;
-
-    text-transform:
-        uppercase;
-
-    margin-top:
-        12px;
-
-    margin-bottom:
-        4px;
-}
-
-/* =========================================
-   USER PANEL
-   ========================================= */
-
-.sidebar-user {
-
-    margin-top:
-        14px;
-
-    flex-shrink:
-        0;
-}
-
-.sidebar-user-card {
-
-    background:
-        rgba(255,255,255,0.04);
-
-    border:
-        1px solid rgba(255,255,255,0.06);
-
-    border-radius:
-        18px;
-
-    padding:
-        10px;
-
-    display:
-        flex;
-
-    flex-direction:
-        column;
-
-    gap:
-        12px;
-
-    backdrop-filter:
-        blur(12px);
-}
-
-/* avatar */
-
-.sidebar-avatar {
-
-    width:
-        42px;
-
-    height:
-        42px;
-
-    border-radius:
-        50%;
-
-    background:
-        linear-gradient(
-            135deg,
-            #962829,
-            #c24142
-        );
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    justify-content:
-        center;
-
-    color:
-        white;
-
-    font-size:
-        13px;
-
-    font-weight:
-        700;
-
-    flex-shrink:
-        0;
-}
-
-/* name */
-
-.sidebar-user-name {
-
-    color:
-        white;
-
-    font-size:
-        13px;
-
-    font-weight:
-        600;
-
-    line-height:
-        1.35;
-}
-
-/* role select */
-
-.sidebar-role-select {
-
-    width:
-        100%;
-}
-
-.sidebar-role-select::part(input-field) {
-
-    background:
-        rgba(255,255,255,0.08);
-
-    border:
-        1px solid rgba(255,255,255,0.08);
-
-    border-radius:
-        12px;
-
-    min-height:
-        36px;
-
-    padding:
-        0 10px;
-
-    box-shadow:
-        none;
-}
-
-.sidebar-role-select::part(value) {
-
-    color:
-        white;
-
-    font-size:
-        12px;
-
-    font-weight:
-        500;
-}
-
-.sidebar-role-select::part(toggle-button) {
-
-    color:
-        rgba(255,255,255,0.70);
-}
-
-/* =========================================
-   CONTENT
-   ========================================= */
-
-.view-container {
-
-    padding:
-        16px 18px 20px 18px;
-
-    background:
-        #f4f6f9;
-}
-
-/* =========================================
-   TITLES
-   ========================================= */
-
-h1,
-h2,
-h3 {
-
-    color:
-        #111827;
-
-    font-weight:
-        700;
-
-    letter-spacing:
-        -0.02em;
-}
-
-/* =========================================
-   CARDS
-   ========================================= */
-
-.dashboard-card,
-.quick-action-card {
-
-    background:
-        white;
-
-    border:
-        1px solid #e5e7eb;
-
-    border-radius:
-        22px;
-
-    box-shadow:
-        0 4px 14px rgba(15,23,42,0.04);
-}
-
-/* =========================================
-   GRID
-   ========================================= */
-
-.attendance-grid {
-
-    border-radius:
-        18px;
-
-    overflow:
-        hidden;
-
-    border:
-        1px solid #e5e7eb;
-
-    background:
-        white;
-
-    box-shadow:
-        0 4px 12px rgba(15,23,42,0.04);
-}
-
-/* header */
-
-.attendance-grid::part(header-cell) {
-
-    background:
-        #f8fafc;
-
-    height:
-        40px;
-
-    font-size:
-        12px;
-
-    font-weight:
-        700;
-
-    color:
-        #374151;
-
-    text-transform:
-        uppercase;
-
-    letter-spacing:
-        0.03em;
-
-    border-bottom:
-        1px solid #e5e7eb;
-}
-
-/* row */
-
-.attendance-grid::part(row) {
-
-    min-height:
-        42px;
-}
-
-/* cell */
-
-.attendance-grid vaadin-grid-cell-content {
-
-    font-size:
-        13px;
-
-    color:
-        #1f2937;
-
-    padding-top:
-        4px;
-
-    padding-bottom:
-        4px;
-}
-
-/* =========================================
-   BUTTON
-   ========================================= */
-
-vaadin-button {
-
-    border-radius:
-        12px;
-
-    min-height:
-        36px;
-
-    font-size:
-        13px;
-
-    font-weight:
-        600;
-}
-
-/* primary */
-
-vaadin-button[theme~="primary"] {
-
-    background:
-        linear-gradient(
-            135deg,
-            #962829,
-            #7d2021
-        );
-
-    border:
-        none;
-
-    color:
-        white;
-
-    box-shadow:
-        0 6px 16px rgba(150,40,41,0.18);
-}
-
-/* grid action */
-
-.grid-action-btn {
-
-    width:
-        32px;
-
-    height:
-        32px;
-
-    min-width:
-        32px;
-
-    border-radius:
-        10px !important;
-}
-
-/* =========================================
-   FORM
-   ========================================= */
-
-vaadin-text-field::part(input-field),
-vaadin-combo-box::part(input-field),
-vaadin-date-picker::part(input-field) {
-
-    min-height:
-        38px;
-
-    border-radius:
-        12px;
-
-    background:
-        white;
-
-    border:
-        1px solid #e5e7eb;
-
-    box-shadow:
-        none;
-}
-
-/* =========================================
-   NOTIFICATION PANEL
-   ========================================= */
-
-.notification-panel {
-
-    background:
-        #fcfcfd;
-
-    border:
-        1px solid #e5e7eb;
-
-    border-radius:
-        18px;
-
-    box-shadow:
-        0 18px 40px rgba(15,23,42,0.14);
-
-    padding:
-        14px;
-}
-
-/* header */
-
-.notification-header {
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    justify-content:
-        space-between;
-
-    margin-bottom:
-        12px;
-
-    padding-bottom:
-        8px;
-}
-
-/* title */
-
-.notification-title {
-
-    font-size:
-        15px;
-
-    font-weight:
-        600;
-
-    color:
-        #111827;
-}
-
-/* header button */
-
-.notification-header vaadin-button {
-
-    min-height:
-        32px;
-
-    border-radius:
-        10px;
-
-    font-size:
-        12px;
-
-    font-weight:
-        600;
-
-    padding:
-        0 12px;
-
-    min-width:
-        unset;
-}
-
-/* secondary */
-
-.notification-header vaadin-button[theme~="tertiary"] {
-
-    background:
-        #f3f4f6;
-
-    color:
-        #374151;
-}
-
-/* item */
-
-.notification-item {
-
-    display:
-        flex;
-
-    align-items:
-        flex-start;
-
-    justify-content:
-        space-between;
-
-    gap:
-        10px;
-
-    padding:
-        12px;
-
-    border-radius:
-        12px;
-
-    margin-bottom:
-        8px;
-
-    border:
-        1px solid #f1f5f9;
-
-    background:
-        #fafafa;
-
-    transition:
-        all 0.2s ease;
-}
-
-.notification-item.unread {
-
-    background:
-        #fef2f2;
-
-    border:
-        1px solid #fecaca;
-}
-
-/* hover */
-
-.notification-item:hover {
-
-    background:
-        white;
-
-    border-color:
-        #e5e7eb;
-}
-
-/* message */
-
-.notification-message {
-
-    font-size:
-        13px;
-
-    color:
-        #111827;
-
-    line-height:
-        1.45;
-}
-
-/* time */
-
-.notification-time {
-
-    font-size:
-        11px;
-
-    color:
-        #6b7280;
-
-    margin-top:
-        6px;
-}
-
-/* dismiss */
-
-.notification-dismiss {
-
-    min-width:
-        28px !important;
-
-    width:
-        28px !important;
-
-    height:
-        28px !important;
-
-    border-radius:
-        8px !important;
-
-    background:
-        transparent !important;
-
-    color:
-        #9ca3af !important;
-}
-
-.notification-dismiss:hover {
-
-    background:
-        #f3f4f6 !important;
-
-    color:
-        #111827 !important;
-}
-
 /* =========================================
    FULLCALENDAR FIX
    ========================================= */
@@ -1031,4 +169,206 @@ vaadin-date-picker::part(input-field) {
 
     opacity:
         1 !important;
+}
+
+
+/* =========================================
+   SIDEBAR / PANGREKSA FIX
+   ========================================= */
+
+/* sidebar main */
+vaadin-app-layout::part(drawer) {
+    background: linear-gradient(180deg, #07152b 0%, #0b1731 100%);
+    color: #ffffff;
+}
+
+/* wrapper sidebar */
+.sidebar-content {
+    background: transparent !important;
+    color: #ffffff !important;
+}
+
+/* =========================================
+   LOGO + APP NAME
+   ========================================= */
+
+.app-logo span {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 18px !important;
+}
+
+/* =========================================
+   SEARCH FIELD
+   ========================================= */
+
+.sidebar-search vaadin-text-field {
+    --vaadin-input-field-background: rgba(255,255,255,0.08);
+    --vaadin-input-field-border-radius: 14px;
+    --vaadin-input-field-value-color: #ffffff;
+    --vaadin-input-field-placeholder-color: rgba(255,255,255,0.65);
+    --vaadin-input-field-border-width: 1px;
+    --vaadin-input-field-border-color: rgba(255,255,255,0.08);
+}
+
+/* search icon */
+.sidebar-search vaadin-icon {
+    color: rgba(255,255,255,0.75) !important;
+}
+
+/* =========================================
+   GROUP MENU TITLE
+   contoh: Administrasi, Manajemen
+   ========================================= */
+
+vaadin-side-nav-item::part(label) {
+    color: rgba(255,255,255,0.72);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* =========================================
+   MENU ITEM
+   ========================================= */
+
+vaadin-side-nav-item {
+    --vaadin-side-nav-item-color: rgba(255,255,255,0.88);
+    --vaadin-side-nav-item-hover-color: #ffffff;
+    --vaadin-side-nav-item-hover-background: rgba(255,255,255,0.08);
+    --vaadin-side-nav-item-active-background: rgba(255,255,255,0.12);
+    --vaadin-side-nav-item-active-color: #ffffff;
+    border-radius: 12px;
+}
+
+/* icon menu */
+vaadin-side-nav-item vaadin-icon {
+    color: rgba(255,255,255,0.82);
+}
+
+/* =========================================
+   USER CARD
+   ========================================= */
+
+.sidebar-user {
+    background: transparent !important;
+}
+
+.sidebar-user-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px;
+    padding: 14px;
+    backdrop-filter: blur(10px);
+}
+
+/* nama user */
+.user-info-row span {
+    color: #ffffff !important;
+}
+
+/* tombol titik tiga */
+.user-info-row vaadin-button {
+    color: rgba(255,255,255,0.8) !important;
+}
+
+/* =========================================
+   RESPONSIBILITY DROPDOWN
+   ========================================= */
+
+.sidebar-role-select {
+    margin-top: 10px;
+}
+
+.sidebar-role-select::part(input-field) {
+    background: rgba(255,255,255,0.08);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* text selected responsibility */
+.sidebar-role-select::part(value) {
+    color: #ffffff !important;
+}
+
+/* placeholder */
+.sidebar-role-select::part(input-field) input::placeholder {
+    color: rgba(255,255,255,0.6);
+}
+
+/* dropdown icon */
+.sidebar-role-select vaadin-icon {
+    color: rgba(255,255,255,0.7);
+}
+
+/* =========================================
+   DRAWER TOGGLE
+   ========================================= */
+
+vaadin-drawer-toggle {
+    color: #111827 !important;
+}
+
+/* =========================================
+   NOTIFICATION ICON
+   ========================================= */
+
+.notification-badge {
+    background: #ef4444;
+    color: white;
+    border-radius: 999px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* =========================================
+   SCROLLER
+   ========================================= */
+
+vaadin-scroller::part(content) {
+    padding-bottom: 12px;
+}
+
+/* =========================================
+   GROUP MENU FIX
+   ========================================= */
+
+vaadin-side-nav::part(label) {
+
+    color:
+        rgba(255,255,255,0.78);
+
+    font-size:
+        11px;
+
+    font-weight:
+        700;
+
+    letter-spacing:
+        0.08em;
+
+    text-transform:
+        uppercase;
+}
+
+/* =========================================
+   RESPONSIBILITY FIX
+   ========================================= */
+
+.sidebar-role-select::part(value) {
+
+    color:
+        #ffffff !important;
+
+    font-weight:
+        600;
+}
+
+.sidebar-role-select::part(input-field) {
+
+    background:
+        rgba(255,255,255,0.10);
+
+    border:
+        1px solid rgba(255,255,255,0.12);
 }
