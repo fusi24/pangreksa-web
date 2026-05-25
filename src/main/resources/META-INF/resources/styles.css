@@ -1,10 +1,3 @@
-/* =========================================
-   PANGREKSA ENTERPRISE UI
-   ========================================= */
-
-/* =========================================
-   ROOT
-   ========================================= */
 
 * {
     box-sizing: border-box;
@@ -1023,8 +1016,6 @@ vaadin-date-picker::part(input-field) {
         #7d2021 !important;
 }
 
-/* disable dark overlay */
-
 .fc-scrollgrid,
 .fc-view-harness,
 .fc-daygrid-body,
@@ -1034,19 +1025,13 @@ vaadin-date-picker::part(input-field) {
         white !important;
 }
 
-/* remove accidental opacity */
-
 .fc * {
 
     opacity:
         1 !important;
 }
 
-/* =========================================
-   FINAL SIDEBAR COLOR FIX
-   ========================================= */
 
-/* logo text */
 .app-logo span {
     color: #ffffff !important;
 }
@@ -1070,4 +1055,8 @@ vaadin-side-nav::part(label) {
 .sidebar-role-select::part(input-field) {
     background: rgba(255,255,255,0.10) !important;
     border: 1px solid rgba(255,255,255,0.12) !important;
+}
+
+.oke21 {
+    background-color: #2563eb;
 }
