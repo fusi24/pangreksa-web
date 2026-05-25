@@ -1041,3 +1041,33 @@ vaadin-date-picker::part(input-field) {
     opacity:
         1 !important;
 }
+
+/* =========================================
+   FINAL SIDEBAR COLOR FIX
+   ========================================= */
+
+/* logo text */
+.app-logo span {
+    color: #ffffff !important;
+}
+
+/* group menu */
+vaadin-side-nav::part(label) {
+    color: rgba(255,255,255,0.78) !important;
+}
+
+/* username */
+.user-info-row span {
+    color: #ffffff !important;
+}
+
+/* responsibility */
+.sidebar-role-select::part(value) {
+    color: #ffffff !important;
+}
+
+/* responsibility field */
+.sidebar-role-select::part(input-field) {
+    background: rgba(255,255,255,0.10) !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+}
