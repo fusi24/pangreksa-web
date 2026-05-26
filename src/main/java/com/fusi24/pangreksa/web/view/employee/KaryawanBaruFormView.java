@@ -1520,6 +1520,16 @@ switch (tabNo) {
         person.setMarriage(marriage.getValue());
         person.setKtpNumber(ktpNumber.getValue());
 
+        if (uploadedImageBytes.get() != null) {
+
+            String filename = personService.savePhoto(
+                    uploadedImageBytes.get(),
+                    firstName.getValue()
+            );
+
+            person.setPhotoFilename(filename);
+        }
+
         // upload photo dll...
         personService.workingWithPerson(person, appUser);
         personService.savePerson();
@@ -1687,19 +1697,48 @@ switch (tabNo) {
             marriage.setValue(personData.getMarriage());
             ktpNumber.setValue(personData.getKtpNumber() != null ? personData.getKtpNumber() : "");
 
-            // Load photo if available
-            if (personData.getPhotoFilename() != null && !personData.getPhotoFilename().isEmpty()) {
-                log.debug("Getting photo from path: {}", personData.getPhotoFilename());
+            if (personData.getPhotoFilename() != null
+                    && !personData.getPhotoFilename().isEmpty()) {
 
-                // Load image file from photoPath as in memory byte array
-                byte[] imageBytes = personService.getPhotoAsByteArray(personData.getPhotoFilename());
-                this.photoPreview = new Image(new StreamResource(
-                        personData.getPhotoFilename(),
-                        () -> new ByteArrayInputStream(imageBytes)
-                ), "Photo for " + personData.getFirstName());
-                photoPreviewCosmetics();
-                this.avatarLayout.removeAll();
-                this.avatarLayout.add(photoPreview);
+                try {
+
+                    log.debug(
+                            "Getting photo from path: {}",
+                            personData.getPhotoFilename()
+                    );
+
+                    byte[] imageBytes =
+                            personService.getPhotoAsByteArray(
+                                    personData.getPhotoFilename()
+                            );
+
+                    if (imageBytes != null && imageBytes.length > 0) {
+
+                        this.photoPreview = new Image(
+                                new StreamResource(
+                                        personData.getPhotoFilename(),
+                                        () -> new ByteArrayInputStream(imageBytes)
+                                ),
+                                "Photo for " + personData.getFirstName()
+                        );
+
+                        photoPreviewCosmetics();
+
+                        this.avatarLayout.removeAll();
+                        this.avatarLayout.add(photoPreview);
+                    }
+
+                } catch (Exception ex) {
+
+                    log.warn(
+                            "Photo file not found: {}",
+                            personData.getPhotoFilename()
+                    );
+
+                    // jangan throw error
+                    // biarkan avatar kosong/default
+                    this.avatarLayout.removeAll();
+                }
             }
 
 
