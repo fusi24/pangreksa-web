@@ -1522,12 +1522,12 @@ switch (tabNo) {
 
         if (uploadedImageBytes.get() != null) {
 
-            String filename = personService.savePhoto(
-                    uploadedImageBytes.get(),
-                    firstName.getValue()
-            );
+            String photoPath =
+                    personService.savePhoto(
+                            uploadedImageBytes.get()
+                    );
 
-            person.setPhotoFilename(filename);
+            person.setPhotoFilename(photoPath);
         }
 
         // upload photo dll...
