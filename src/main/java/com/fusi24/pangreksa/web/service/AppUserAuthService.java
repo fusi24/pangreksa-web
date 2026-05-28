@@ -13,12 +13,17 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import com.pangreksa.service.model.entity.HrPerson;
+import com.pangreksa.service.model.repo.HrPersonRepository;
 
 @Service
 public class AppUserAuthService {
 
     @Autowired
     private VwAppUserAuthRepository appUserAuthRepository;
+
+    @Autowired
+    private HrPersonRepository hrPersonRepository;
 
     public List<Responsibility> getAllResponsibilitiesFromUsername(String username)  {
         List<VwAppUserAuth> appUserAuthList = appUserAuthRepository.findAllByIsActiveTrueAndUsernameOrderByResponsibilityAsc(username);
@@ -65,4 +70,18 @@ public class AppUserAuthService {
 
         return responsibilityList;
     }
+
+    public HrPerson getPersonByUserId(Long userId) {
+
+        return hrPersonRepository
+                .findAll()
+                .stream()
+                .filter(person ->
+                        person.getCreatedBy() != null
+                                && person.getCreatedBy().getId().equals(userId)
+                )
+                .findFirst()
+                .orElse(null);
+    }
+
 }

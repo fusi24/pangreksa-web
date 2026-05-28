@@ -1700,45 +1700,21 @@ switch (tabNo) {
             if (personData.getPhotoFilename() != null
                     && !personData.getPhotoFilename().isEmpty()) {
 
-                try {
+                log.debug(
+                        "Loading profile image: {}",
+                        personData.getPhotoFilename()
+                );
 
-                    log.debug(
-                            "Getting photo from path: {}",
-                            personData.getPhotoFilename()
-                    );
+                this.photoPreview = new Image(
+                        personData.getPhotoFilename(),
+                        "Photo for " + personData.getFirstName()
+                );
 
-                    byte[] imageBytes =
-                            personService.getPhotoAsByteArray(
-                                    personData.getPhotoFilename()
-                            );
+                photoPreviewCosmetics();
 
-                    if (imageBytes != null && imageBytes.length > 0) {
+                this.avatarLayout.removeAll();
 
-                        this.photoPreview = new Image(
-                                new StreamResource(
-                                        personData.getPhotoFilename(),
-                                        () -> new ByteArrayInputStream(imageBytes)
-                                ),
-                                "Photo for " + personData.getFirstName()
-                        );
-
-                        photoPreviewCosmetics();
-
-                        this.avatarLayout.removeAll();
-                        this.avatarLayout.add(photoPreview);
-                    }
-
-                } catch (Exception ex) {
-
-                    log.warn(
-                            "Photo file not found: {}",
-                            personData.getPhotoFilename()
-                    );
-
-                    // jangan throw error
-                    // biarkan avatar kosong/default
-                    this.avatarLayout.removeAll();
-                }
+                this.avatarLayout.add(photoPreview);
             }
 
 
