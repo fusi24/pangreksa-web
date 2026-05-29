@@ -417,223 +417,112 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
     // ── Notification panel ────────────────────────────────────────────────────────
 
     private void openNotificationPanel() {
-
-        var currentUserInfo =
-                currentUser.require();
-
+        var currentUserInfo = currentUser.require();
         var panel = new Div();
 
-        panel.setWidth("360px");
+        panel.addClassName("notification-panel");
 
+        // Paksa skema warna panel menjadi light agar teks otomatis berwarna gelap
         panel.getStyle()
                 .set("position", "fixed")
-                .set("top", "70px")
+                .set("top", "60px")
                 .set("right", "20px")
-                .set("background", "white")
-                .set("border-radius", "12px")
-                .set("box-shadow", "0 4px 20px rgba(0,0,0,0.15)")
-                .set("padding", "12px")
                 .set("z-index", "999")
                 .set("max-height", "500px")
-                .set("overflow", "auto");
+                .set("overflow-y", "auto")
+                .set("color-scheme", "light"); // <--- TAMBAHKAN INI
 
         // =====================================================
         // HEADER
         // =====================================================
+        var title = new Span("Notifications");
+        title.addClassName("notification-title");
 
-        var title =
-                new Span("Notifications");
-
-        title.getStyle()
-                .set("font-weight", "600")
-                .set("font-size", "16px");
-        title.addClassName(
-                "notification-title"
-        );
-        Button markAll =
-                new Button("Mark all as read");
-
-        markAll.addThemeVariants(
-                ButtonVariant.LUMO_TERTIARY_INLINE
-        );
-
+        Button markAll = new Button("Mark all as read");
+        markAll.addClassName("notification-action");
+        markAll.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
         markAll.addClickListener(e -> {
-
-            notificationService.markAllAsRead(
-                    currentUserInfo.getUserId().toString()
-            );
-
+            notificationService.markAllAsRead(currentUserInfo.getUserId().toString());
             updateNotificationBadge();
-
             panel.removeFromParent();
         });
 
-        var close =
-                new Button(VaadinIcon.CLOSE_SMALL.create());
+        Button close = new Button(VaadinIcon.CLOSE_SMALL.create());
+        close.addClassName("notification-close-btn"); // Berikan class khusus
+        close.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+        close.addClickListener(e -> panel.removeFromParent());
 
-        close.addThemeVariants(
-                ButtonVariant.LUMO_TERTIARY_INLINE
-        );
+        var rightWrapper = new HorizontalLayout(markAll, close);
+        rightWrapper.setSpacing(true);
+        rightWrapper.setAlignItems(FlexComponent.Alignment.CENTER);
 
-        close.addClickListener(
-                e -> panel.removeFromParent()
-        );
-
-        var spacer = new Span();
-
-        spacer.getStyle().set("flex-grow", "1");
-
-        HorizontalLayout header =
-                new HorizontalLayout(
-                        title,
-                        spacer,
-                        markAll,
-                        close
-                );
-
+        var header = new HorizontalLayout(title, rightWrapper);
         header.setWidthFull();
-        header.addClassName(
-                "notification-header"
-        );
-        header.setAlignItems(
-                FlexComponent.Alignment.CENTER
-        );
+        header.addClassName("notification-header");
+        header.getStyle().set("justify-content", "space-between");
+        header.setAlignItems(FlexComponent.Alignment.CENTER);
 
         panel.add(header);
-        panel.addClassName(
-                "notification-panel"
-        );
-        panel.add(new Hr());
 
         // =====================================================
-        // NOTIFICATIONS
+        // NOTIFICATIONS LIST
         // =====================================================
-
-        List<HrNotification> notifications =
-                notificationService.getNotifications(
-                        currentUserInfo.getUserId().toString()
-                );
+        List<HrNotification> notifications = notificationService.getNotifications(currentUserInfo.getUserId().toString());
 
         if (notifications.isEmpty()) {
-
-            Span empty =
-                    new Span("Tidak ada notifikasi.");
-
+            Span empty = new Span("Tidak ada notifikasi.");
             empty.getStyle()
-                    .set("color", "gray")
-                    .set("font-size", "13px");
-
+                    .set("color", "#6b7280")
+                    .set("font-size", "13px")
+                    .set("display", "block")
+                    .set("text-align", "center")
+                    .set("padding", "20px 0");
             panel.add(empty);
-
         } else {
-
             for (HrNotification n : notifications) {
-
                 Div item = new Div();
+                item.addClassName("notification-item");
 
-                item.addClassName(
-                        "notification-item"
-                );
+                item.getStyle()
+                        .set("display", "flex")
+                        .set("justify-content", "space-between")
+                        .set("align-items", "flex-start")
+                        .set("padding", "12px 0")
+                        .set("border-bottom", "1px solid #f3f4f6");
 
                 if (!n.getIsRead()) {
-
-                    item.addClassName(
-                            "unread"
-                    );
+                    item.getStyle().set("background-color", "#f9fafb");
                 }
 
-                // =====================================================
-                // TEXT
-                // =====================================================
+                Span notifText = new Span(n.getTitle());
+                notifText.addClassName("notification-message");
+                notifText.getStyle().set("display", "block").set("margin-bottom", "4px");
 
-                Span notifText =
-                        new Span(
-                                n.getTitle()
-                        );
+                Span time = new Span(formatTime(n.getCreatedAt()));
+                time.addClassName("notification-time");
 
-                notifText.addClassName(
-                        "notification-text"
-                );
+                Div content = new Div(notifText, time);
+                content.getStyle().set("flex-grow", "1").set("padding-right", "12px");
 
-                // =====================================================
-                // TIME
-                // =====================================================
-
-                Span time =
-                        new Span(
-                                formatTime(
-                                        n.getCreatedAt()
-                                )
-                        );
-
-                time.addClassName(
-                        "notification-time"
-                );
-
-                // =====================================================
-                // DISMISS
-                // =====================================================
-
-                Button dismiss =
-                        new Button(
-                                VaadinIcon.CLOSE_SMALL.create()
-                        );
-
-                dismiss.addClassName(
-                        "notification-dismiss"
-                );
-
-                dismiss.addThemeVariants(
-                        ButtonVariant.LUMO_TERTIARY_INLINE
-                );
-
+                Button dismiss = new Button(VaadinIcon.CLOSE_SMALL.create());
+                dismiss.addClassName("notification-dismiss-btn"); // Berikan class khusus
+                dismiss.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
                 dismiss.addClickListener(e -> {
-
-                    notificationService.dismissNotification(
-                            n.getId()
-                    );
-
+                    notificationService.dismissNotification(n.getId());
                     item.setVisible(false);
-
                     updateNotificationBadge();
                 });
 
-                // =====================================================
-                // CONTENT
-                // =====================================================
-
-                Div content =
-                        new Div(
-                                notifText,
-                                time
-                        );
-
-                content.addClassName(
-                        "notification-content"
-                );
-
-                item.add(
-                        content,
-                        dismiss
-                );
-
+                item.add(content, dismiss);
                 panel.add(item);
 
-                // =====================================================
-                // AUTO READ
-                // =====================================================
-
                 if (!n.getIsRead()) {
-
-                    notificationService.markAsRead(
-                            n.getId()
-                    );
+                    notificationService.markAsRead(n.getId());
                 }
             }
         }
 
         updateNotificationBadge();
-
         UI.getCurrent().add(panel);
     }
 
