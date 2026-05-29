@@ -34,16 +34,15 @@ public class FSTSecurityConfig {
             .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
                 .authorizeHttpRequests(authz -> authz
 
-                                .requestMatchers("/h2-console/**")
-                                .permitAll()
+                        .requestMatchers("/h2-console/**")
+                        .permitAll()
 
-                                .requestMatchers("/images/**")
-                                .permitAll()
+                        .requestMatchers("/images/**")
+                        .permitAll()
 
-                                .requestMatchers("/uploads/**")
-                                .permitAll()
+                        .requestMatchers("/uploads/**")
+                        .permitAll()
 
-                        // jangan tambahkan anyRequest()
                 )
 
         http.with(VaadinSecurityConfigurer.vaadin(),
