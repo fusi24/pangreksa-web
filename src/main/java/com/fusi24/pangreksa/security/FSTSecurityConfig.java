@@ -1,8 +1,5 @@
 package com.fusi24.pangreksa.security;
 
-// TODO Vaadin 25: Control Center starter is not yet available; the prod OIDC
-// config (formerly ControlCenterSecurityConfig) is temporarily removed.
-// This config is now active unconditionally.
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.server.VaadinServiceInitListener;
 import com.vaadin.flow.spring.security.VaadinAwareSecurityContextHolderStrategyConfiguration;
