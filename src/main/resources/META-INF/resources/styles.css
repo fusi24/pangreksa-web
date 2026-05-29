@@ -50,3 +50,90 @@ vaadin-app-layout>[slot="navbar"] {
     grid-column: span 1;
   }
 }
+
+
+.notification-panel {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border-radius: 18px;
+    padding: 16px;
+    width: 420px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 12px 32px rgba(0,0,0,.12);
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.notification-title {
+    color: #111827 !important; /* Hitam Pekat */
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.notification-action {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    color: #962829 !important; /* Warna merah identitas app */
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0 !important;
+}
+
+.notification-message {
+    color: #1f2937 !important; /* Abu-abu sangat gelap (sangat terbaca) */
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.notification-time {
+    color: #6b7280 !important; /* Abu-abu khas sub-text enterprise */
+    font-size: 12px;
+}
+
+/* Menghilangkan background kotak abu-abu bawaan Vaadin Button */
+.notification-close-btn,
+.notification-dismiss-btn {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    color: #9ca3af !important;
+    cursor: pointer;
+    padding: 0 !important;
+    min-width: auto !important;
+    height: auto !important;
+}
+
+.notification-close-btn:hover,
+.notification-dismiss-btn:hover {
+    color: #4b5563 !important;
+}
+
+.fc,
+.fc-theme-standard,
+.fc-scrollgrid,
+.fc-view-harness,
+.fc-view {
+    background: #ffffff !important;
+}
+
+.fc table,
+.fc th,
+.fc td,
+.fc-col-header-cell-cushion,
+.fc-daygrid-day-number {
+    color: #111827 !important;
+}
+
+.fc-scrollgrid {
+    border-color: #e5e7eb !important;
+}

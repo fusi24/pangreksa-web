@@ -51,6 +51,7 @@ vaadin-app-layout>[slot="navbar"] {
   }
 }
 
+
 .notification-panel {
     background: #ffffff !important;
     background-color: #ffffff !important;
