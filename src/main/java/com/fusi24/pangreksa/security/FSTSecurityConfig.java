@@ -43,7 +43,7 @@ public class FSTSecurityConfig {
                         .requestMatchers("/uploads/**")
                         .permitAll()
 
-                )
+                );
 
         http.with(VaadinSecurityConfigurer.vaadin(),
 
