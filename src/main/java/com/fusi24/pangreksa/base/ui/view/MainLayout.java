@@ -52,6 +52,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import static com.fusi24.pangreksa.base.ui.TailwindUtility.*;
+import java.time.Duration;
 
 @Layout
 @PermitAll // When security is enabled, allow all authenticated users
@@ -543,13 +544,33 @@ public final class MainLayout extends AppLayout implements AfterNavigationListen
     }
 
     private String formatTime(LocalDateTime time) {
-        var duration = java.time.Duration.between(time, LocalDateTime.now());
-        if (duration.toHours() < 24) {
-            return duration.toHours() + " jam lalu";
-        } else if (duration.toDays() < 30) {
-            return duration.toDays() + " hari lalu";
-        } else {
-            return duration.toDays() / 30 + " bulan lalu";
+
+        Duration duration =
+                Duration.between(
+                        time,
+                        LocalDateTime.now()
+                );
+
+        long minutes = duration.toMinutes();
+        long hours = duration.toHours();
+        long days = duration.toDays();
+
+        if (minutes < 1) {
+            return "Baru saja";
         }
+
+        if (minutes < 60) {
+            return minutes + " menit lalu";
+        }
+
+        if (hours < 24) {
+            return hours + " jam lalu";
+        }
+
+        if (days < 30) {
+            return days + " hari lalu";
+        }
+
+        return (days / 30) + " bulan lalu";
     }
 }
