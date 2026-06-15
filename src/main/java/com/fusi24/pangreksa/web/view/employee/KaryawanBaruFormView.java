@@ -126,7 +126,8 @@ public class KaryawanBaruFormView extends Main implements HasUrlParameter<Long> 
     private Checkbox isDefaultAddress = new Checkbox("Alamat Utama");
 
     // Contacts Fields
-    private TextField designation = new TextField("Penamaan");
+    private TextField designation =
+            new TextField("Nama Kontak");
     private TextField relationship = new TextField("Hubungan");
     private TextField stringValue = new TextField("Data Kontak");
     private ComboBox<ContactTypeEnum> typeContact = new ComboBox<>("Tipe Kontak");
@@ -269,23 +270,40 @@ switch (tabNo) {
 
     // ================= ADDRESS =================
     case 0 -> {
+
         if (fullAddress.isEmpty()) {
             AppNotification.error("Alamat wajib diisi");
             return;
         }
 
-                    HrPersonAddress address =
-                            addressData != null ? addressData : new HrPersonAddress();
+        HrPersonAddress address =
+                addressData != null ? addressData : new HrPersonAddress();
 
-                    address.setFullAddress(fullAddress.getValue());
-                    address.setIsDefault(isDefaultAddress.getValue());
+        address.setFullAddress(fullAddress.getValue());
 
-                    addressList.add(address);
-                    gridAddress.setItems(addressList);
+        // ==================================================
+        // HANYA SATU ALAMAT UTAMA
+        // ==================================================
+        if (Boolean.TRUE.equals(isDefaultAddress.getValue())) {
 
-                    clearForm(false, true, false, false, false);
-                    addressData = null;
-                }
+            addressList.forEach(
+                    a -> a.setIsDefault(false)
+            );
+
+            address.setIsDefault(true);
+
+        } else {
+
+            address.setIsDefault(false);
+        }
+
+        addressList.add(address);
+
+        refreshAddressGrid();
+
+        clearForm(false, true, false, false, false);
+        addressData = null;
+    }
 
                 // ================= CONTACT =================
                 case 1 -> {
@@ -816,7 +834,7 @@ switch (tabNo) {
             deleteBtn.getElement().setAttribute("theme", "icon error");
             deleteBtn.addClickListener(e -> {
                 addressList.remove(address);
-                gridAddress.setItems(addressList);
+                refreshAddressGrid();
                 if (address.getId() != null)
                     personService.deleteAddress(address);
             });
@@ -840,6 +858,20 @@ switch (tabNo) {
 
         addressesLayout.addClassNames(TailwindUtility.Display.FLEX, TailwindUtility.FlexDirection.ROW, TailwindUtility.Gap.MEDIUM);
         addressesLayout.add(gridAddress, addressFormLayout);
+    }
+
+    private void refreshAddressGrid() {
+
+        List<HrPersonAddress> sorted =
+                addressList.stream()
+                        .sorted(
+                                java.util.Comparator.comparing(
+                                        HrPersonAddress::getIsDefault
+                                ).reversed()
+                        )
+                        .toList();
+
+        gridAddress.setItems(sorted);
     }
 
     private void createContactsForm() {
@@ -1295,8 +1327,7 @@ switch (tabNo) {
     // Helper to populate address fields for editing
     private void populateAddressFields(HrPersonAddress address) {
         this.addressData = address;
-        this.addressList.remove(address);
-        this.gridAddress.setItems(addressList);
+        refreshAddressGrid();
 
         fullAddress.setValue(address.getFullAddress() != null ? address.getFullAddress() : "");
         isDefaultAddress.setValue(address.getIsDefault() != null ? address.getIsDefault() : false);
@@ -1305,8 +1336,6 @@ switch (tabNo) {
     // Helper to populate contact fields for editing
     private void populateContactFields(HrPersonContact contact) {
         this.contactData = contact;
-        this.contactList.remove(contact);
-        this.gridContacts.setItems(contactList);
 
         designation.setValue(contact.getDesignation() != null ? contact.getDesignation() : "");
         relationship.setValue(contact.getRelationship() != null ? contact.getRelationship() : "");
@@ -1319,8 +1348,6 @@ switch (tabNo) {
     // Helper to populate education fields for editing
     private void populateEducationFields(HrPersonEducation education) {
         this.educationData = education;
-        this.educationList.remove(education);
-        this.gridEducation.setItems(educationList);
 
         institution.setValue(education.getInstitution() != null ? education.getInstitution() : "");
         program.setValue(education.getProgram() != null ? education.getProgram() : "");
@@ -1335,8 +1362,6 @@ switch (tabNo) {
     // Helper to populate document fields for editing
     private void populateDocumentFields(HrPersonDocument document) {
         this.documentData = document;
-        this.documentList.remove(document);
-        this.gridDocument.setItems(documentList);
 
         nameDocoument.setValue(document.getName() != null ? document.getName() : "");
         descDocument.setValue(document.getDescription() != null ? document.getDescription() : "");
@@ -1719,7 +1744,7 @@ switch (tabNo) {
 
 
             // Populate the form fields with the loaded data
-            this.gridAddress.setItems(this.addressList);
+            refreshAddressGrid();
             this.gridContacts.setItems(this.contactList);
             this.gridEducation.setItems(this.educationList);
             this.gridDocument.setItems(this.documentList);

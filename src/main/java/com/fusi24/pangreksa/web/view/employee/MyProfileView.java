@@ -109,7 +109,8 @@ public class MyProfileView extends Main {
     private Checkbox isDefaultAddress = new Checkbox("Alamat Utama");
 
     // Contacts Fields
-    private TextField designation = new TextField("Penamaan");
+    private TextField designation =
+            new TextField("Nama Kontak");
     private TextField relationship = new TextField("Hubungan");
     private TextField stringValue = new TextField("Data Kontak");
     private ComboBox<ContactTypeEnum> typeContact = new ComboBox<>("Tipe Kontak");
@@ -644,7 +645,7 @@ public class MyProfileView extends Main {
         stringValue.setRequiredIndicatorVisible(true);
         designation.setRequiredIndicatorVisible(true);
         relationship.setRequiredIndicatorVisible(true);
-        description.setRequiredIndicatorVisible(true);
+        description.setRequiredIndicatorVisible(false);
 
         // Create FormLayout
         contactFormLayout = new FormLayout();
@@ -975,19 +976,25 @@ public class MyProfileView extends Main {
 
     // Helper to populate address fields for editing
     private void populateAddressFields(HrPersonAddress address) {
-        this.addressData = address;
-        this.addressList.remove(address);
-        this.gridAddress.setItems(addressList);
 
-        fullAddress.setValue(address.getFullAddress() != null ? address.getFullAddress() : "");
-        isDefaultAddress.setValue(address.getIsDefault() != null ? address.getIsDefault() : false);
+        this.addressData = address;
+
+        fullAddress.setValue(
+                address.getFullAddress() != null
+                        ? address.getFullAddress()
+                        : ""
+        );
+
+        isDefaultAddress.setValue(
+                address.getIsDefault() != null
+                        ? address.getIsDefault()
+                        : false
+        );
     }
 
     // Helper to populate contact fields for editing
     private void populateContactFields(HrPersonContact contact) {
         this.contactData = contact;
-        this.contactList.remove(contact);
-        this.gridContacts.setItems(contactList);
 
         designation.setValue(contact.getDesignation() != null ? contact.getDesignation() : "");
         relationship.setValue(contact.getRelationship() != null ? contact.getRelationship() : "");
@@ -1000,8 +1007,6 @@ public class MyProfileView extends Main {
     // Helper to populate education fields for editing
     private void populateEducationFields(HrPersonEducation education) {
         this.educationData = education;
-        this.educationList.remove(education);
-        this.gridEducation.setItems(educationList);
 
         institution.setValue(education.getInstitution() != null ? education.getInstitution() : "");
         program.setValue(education.getProgram() != null ? education.getProgram() : "");
@@ -1016,8 +1021,6 @@ public class MyProfileView extends Main {
     // Helper to populate document fields for editing
     private void populateDocumentFields(HrPersonDocument document) {
         this.documentData = document;
-        this.documentList.remove(document);
-        this.gridDocument.setItems(documentList);
 
         nameDocoument.setValue(document.getName() != null ? document.getName() : "");
         descDocument.setValue(document.getDescription() != null ? document.getDescription() : "");
@@ -1135,7 +1138,17 @@ public class MyProfileView extends Main {
                     if (stringValue.getValue() == null || stringValue.getValue().trim().isEmpty()) { stringValue.setInvalid(true); valid = false; }
                     if (designation.getValue() == null || designation.getValue().trim().isEmpty()) { designation.setInvalid(true); valid = false; }
                     if (relationship.getValue() == null || relationship.getValue().trim().isEmpty()) { relationship.setInvalid(true); valid = false; }
-                    if (description.getValue() == null || description.getValue().trim().isEmpty()) { description.setInvalid(true); valid = false; }
+                    if (typeContact.getValue() == ContactTypeEnum.EMERGENCY
+                            && (description.getValue() == null
+                            || description.getValue().trim().isEmpty())) {
+
+                        description.setInvalid(true);
+                        description.setErrorMessage(
+                                "Deskripsi wajib untuk kontak darurat"
+                        );
+
+                        valid = false;
+                    }
 
                     // Validasi format khusus (Email/Angka) menggunakan method yang sudah ada
                     if (valid && !validateCurrentContactInputs()) {
